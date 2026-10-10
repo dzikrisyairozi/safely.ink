@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 // Shared contract between the API, the agents' structured output, Firestore
-// documents and the UI. Field meanings are specified in docs/TSD.md section 3.
+// documents and the UI. This file is the reference; docs/TSD.md section 3
+// links here.
 
 export const DocType = z.enum([
   'insurance',
@@ -14,11 +15,11 @@ export const DocType = z.enum([
 export type DocType = z.infer<typeof DocType>;
 
 export const Clause = z.object({
-  id: z.string(),
+  id: z.string(), // "c-017"
   number: z.string().nullable(),
   heading: z.string().nullable(),
-  text: z.string(),
-  gloss: z.string().nullable(),
+  text: z.string(), // verbatim, original language
+  gloss: z.string().nullable(), // English, when the original is not English
   page: z.number().int(),
 });
 export type Clause = z.infer<typeof Clause>;
@@ -26,13 +27,14 @@ export type Clause = z.infer<typeof Clause>;
 const FactValue = z.union([z.number(), z.boolean(), z.string()]);
 export type FactValue = z.infer<typeof FactValue>;
 
+// One entry per fact that matters in this document.
 export const Fact = z.object({
-  key: z.string(),
+  key: z.string(), // "daysSinceStart"
   type: z.enum(['number', 'boolean', 'enum']),
-  values: z.array(z.string()).nullable(),
-  unit: z.string().nullable(),
-  description: z.string(),
-  neutral: FactValue,
+  values: z.array(z.string()).nullable(), // for enum
+  unit: z.string().nullable(), // "days", "IDR", "%"
+  description: z.string(), // plain English
+  neutral: FactValue, // value in an uneventful situation
 });
 export type Fact = z.infer<typeof Fact>;
 
@@ -87,10 +89,10 @@ export const Rule = z
       .object({
         type: z.enum(['grant', 'deny', 'cap', 'deduct', 'charge']),
         amount: z.number().nullable(),
-        percent: z.number().nullable(),
+        percent: z.number().nullable(), // of the amount at stake
       })
       .nullable(),
-    touches: z.array(z.string()),
+    touches: z.array(z.string()), // fact keys the rule depends on
   })
   .refine((rule) => rule.when !== null || rule.kind === 'unmodeled', {
     path: ['when'],
@@ -111,6 +113,7 @@ export const Scenario = z.object({
   ]),
   frequency: z.enum(['common', 'occasional', 'rare']),
   targetRuleIds: z.array(z.string()),
+  // Money the user stands to get or keep; null if not about money.
   stake: z.number().nullable(),
   facts: z.record(z.string(), FactValue),
 });
@@ -120,7 +123,7 @@ export const Outcome = z.object({
   scenarioId: z.string(),
   result: z.enum(['fine', 'partly_bad', 'bad', 'undetermined']),
   stake: z.number().nullable(),
-  loss: z.number(),
+  loss: z.number(), // unpaid part of the stake plus charges
   decidingRuleId: z.string().nullable(),
   trace: z.array(
     z.object({

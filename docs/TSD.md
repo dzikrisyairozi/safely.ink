@@ -98,102 +98,12 @@ firebase.json  firestore.rules  storage.rules
 
 ### 3.1 Shared schemas (`@repo/api-types`)
 
-```ts
-export const DocType = z.enum([
-  'insurance',
-  'loan',
-  'employment',
-  'nda',
-  'lease',
-  'other',
-]);
-
-export const Clause = z.object({
-  id: z.string(), // "c-017"
-  number: z.string().nullable(),
-  heading: z.string().nullable(),
-  text: z.string(), // verbatim, original language
-  gloss: z.string().nullable(), // English, when the original is not English
-  page: z.number().int(),
-});
-
-// One entry per fact that matters in THIS document.
-export const Fact = z.object({
-  key: z.string(), // "daysSinceStart"
-  type: z.enum(['number', 'boolean', 'enum']),
-  values: z.array(z.string()).nullable(), // for enum
-  unit: z.string().nullable(), // "days", "IDR", "%"
-  description: z.string(), // plain English, F-RULE-5
-  neutral: z.union([z.number(), z.boolean(), z.string()]), // value in an uneventful situation
-});
-export const FactSchema = z.array(Fact);
-
-type Condition =
-  | { all: Condition[] }
-  | { any: Condition[] }
-  | { not: Condition }
-  | {
-      fact: string;
-      op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte' | 'in';
-      value: number | boolean | string | string[];
-    };
-
-export const Rule = z.object({
-  id: z.string(),
-  kind: z.enum([
-    'benefit',
-    'exclusion',
-    'condition',
-    'deadline',
-    'limit',
-    'charge',
-    'unmodeled',
-  ]),
-  summary: z.string(), // plain English, one line
-  clauseIds: z.array(z.string()).min(1),
-  when: Condition.nullable(), // null only for kind = 'unmodeled'
-  effect: z
-    .object({
-      type: z.enum(['grant', 'deny', 'cap', 'deduct', 'charge']),
-      amount: z.number().nullable(),
-      percent: z.number().nullable(), // of the amount at stake
-    })
-    .nullable(),
-  touches: z.array(z.string()), // fact keys this rule depends on (also for unmodeled)
-});
-
-export const Scenario = z.object({
-  id: z.string(),
-  story: z.string(),
-  strategy: z.enum([
-    'baseline',
-    'boundary',
-    'overlap',
-    'definition',
-    'procedure',
-    'combination',
-  ]),
-  frequency: z.enum(['common', 'occasional', 'rare']),
-  targetRuleIds: z.array(z.string()),
-  stake: z.number().nullable(), // money the user stands to get or keep; null if not about money
-  facts: z.record(z.string(), z.union([z.number(), z.boolean(), z.string()])),
-});
-
-export const Outcome = z.object({
-  scenarioId: z.string(),
-  result: z.enum(['fine', 'partly_bad', 'bad', 'undetermined']),
-  stake: z.number().nullable(),
-  loss: z.number(), // unpaid part of the stake plus charges
-  decidingRuleId: z.string().nullable(),
-  trace: z.array(
-    z.object({
-      ruleId: z.string(),
-      fact: z.string().nullable(),
-      note: z.string(),
-    }),
-  ),
-});
-```
+The schemas, their inferred types and the meaning of each field are in
+[`packages/api-types/src/index.ts`](../packages/api-types/src/index.ts). That file is the
+reference; the schemas are not repeated here so the two cannot drift. In short: `Clause`,
+`Fact` (with `FactSchema` as the list for one document), `Condition` (a tree of `all` /
+`any` / `not` over fact comparisons), `Rule`, `Scenario` and `Outcome`. A rule must cite at
+least one clause, and only an `unmodeled` rule may have no condition.
 
 Rule kinds, read from the user's side:
 
