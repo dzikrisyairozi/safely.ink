@@ -2,7 +2,14 @@
 **/dist
 **/.next
 **/.turbo
+**/.env*
 .git
+.github
+.husky
+.serena
+.vscode
 docs
 spec
 tasks
+apps/web
+apps/dashboard
