@@ -53,8 +53,10 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`
 
 ## Pull requests
 
-Branch from `main` (`feat/…`, `fix/…`, `docs/…`), keep the change focused, and open the PR
-against `main`. CI runs build, type-check, lint, format check and tests on every PR.
+Branch from `staging` (`feat/…`, `fix/…`, `docs/…`), keep the change focused, and open the
+PR against `staging`. `main` only receives release PRs from `staging`; CI (build,
+type-check, lint, format check and tests) runs on those, so run the checks above locally
+before a feature PR.
 
 ## Rules that are easy to break
 

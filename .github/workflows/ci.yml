@@ -1,11 +1,10 @@
 name: CI/CD Pipeline
 
-# PRs only -- a merged PR already passed here, so push-to-branch runs were
-# pure duplicates. Feature PRs target staging; staging -> main is the
-# release PR.
+# Release PRs only. Feature PRs target staging and are checked locally;
+# staging -> main is the release PR and the only place CI runs.
 on:
   pull_request:
-    branches: [staging, main]
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore: ['**.md', 'docs/**']
   workflow_dispatch:
