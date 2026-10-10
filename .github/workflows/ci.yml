@@ -44,14 +44,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Update lockfile if needed
-        run: |
-          if [ -f pnpm-lock.yaml ]; then
-            echo "Lockfile exists, checking compatibility..."
-            pnpm install --lockfile-only
-          fi
+        run: pnpm install --frozen-lockfile
 
       - name: Build packages
         run: pnpm run build
