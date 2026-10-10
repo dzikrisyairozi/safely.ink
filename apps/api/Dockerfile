@@ -1,11 +1,12 @@
 # Build context is the repo root:
 #   docker build -f apps/api/Dockerfile -t policy-police-api .
-FROM node:22-slim
+FROM node:24-slim
 
 RUN corepack enable
 WORKDIR /app
 COPY . .
-RUN pnpm install --frozen-lockfile --filter api...
+# --ignore-scripts: the root prepare script runs husky, a dev dependency.
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter api...
 
 # The service runs TypeScript directly through tsx; there is no compile step.
 # Bundle with esbuild if cold-start time becomes a problem.
