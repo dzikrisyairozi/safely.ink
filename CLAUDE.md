@@ -309,7 +309,7 @@ pnpm dev:dashboard    # Product app     → http://localhost:5174
 
 ### Architecture
 
-This is a **Turborepo + pnpm workspaces** monorepo with three apps and six shared
+This is a **Turborepo + pnpm workspaces** monorepo with three apps and five shared
 packages. Everything deploys to Google Cloud (hackathon requirement): the API on Cloud
 Run, the front ends on Firebase.
 
@@ -329,7 +329,6 @@ Run, the front ends on Firebase.
 | `@repo/ui`                | 40+ shadcn/ui components (Radix UI + Tailwind)                    |
 | `@repo/i18n`              | i18next config, provider, and locale files (English + Indonesian) |
 | `@repo/tailwind-config`   | Shared Tailwind v4 theme and global CSS                           |
-| `@repo/eslint-config`     | ESLint configs: `base`, `next-js`, `react-internal`               |
 | `@repo/typescript-config` | TSConfigs: `base`, `nextjs`, `react-library`                      |
 
 #### Key Design Patterns

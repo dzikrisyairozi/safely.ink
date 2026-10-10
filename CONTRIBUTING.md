@@ -22,7 +22,7 @@ packages/
   api-types/    Zod schemas shared by api and dashboard
   ui/           Shared components (shadcn/ui)
   i18n/         i18next setup and shared locale files
-  tailwind-config/  eslint-config/  typescript-config/
+  tailwind-config/  typescript-config/
 docs/           PRD, FSD, TSD, architecture decisions (adr/)
 ```
 

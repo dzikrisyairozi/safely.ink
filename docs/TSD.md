@@ -89,7 +89,7 @@ apps/
     Dockerfile
 packages/
   api-types/      Zod schemas + inferred types
-  ui/ i18n/ tailwind-config/ eslint-config/ typescript-config/
+  ui/ i18n/ tailwind-config/ typescript-config/
 docs/             PRD, FSD, TSD, adr/
 firebase.json  firestore.rules  storage.rules
 ```

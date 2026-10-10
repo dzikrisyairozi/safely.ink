@@ -39,7 +39,7 @@ packages/
   api-types/    Zod schemas shared by api and dashboard
   ui/           shadcn/ui components
   i18n/         i18next setup (English, Indonesian)
-  tailwind-config/  eslint-config/  typescript-config/
+  tailwind-config/  typescript-config/
 docs/           PRD, FSD, TSD, architecture decision records
 ```
 
