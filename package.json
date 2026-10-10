@@ -20,7 +20,6 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json,js,jsx,css,scss,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,js,jsx,css,scss,yaml,yml}\"",
     "type-check": "turbo run type-check",
-    "check-types": "turbo run check-types",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
     "clean": "turbo run clean",

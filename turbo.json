@@ -16,9 +16,6 @@
     "lint:check": {
       "dependsOn": ["^lint:check"]
     },
-    "check-types": {
-      "dependsOn": ["^check-types"]
-    },
     "type-check": {
       "dependsOn": ["^build", "^type-check"]
     },
