@@ -1,27 +1,18 @@
-import { type ReactNode } from 'react';
+import { LanguageSwitcher } from '@repo/i18n';
 import { Header } from './header';
 import { ConfigDrawer } from '../config-drawer';
 import { ProfileDropdown } from '../profile-dropdown';
 import { Search } from '../search';
 import { ThemeSwitch } from '../theme-switch';
 
-/**
- * The Search/ThemeSwitch/ConfigDrawer/ProfileDropdown cluster every
- * authenticated route renders in its header. `extra` slots in anything a
- * specific route needs between Search and ThemeSwitch; `nav` passes through
- * to Header's own nav slot.
- */
-export function AppHeader({
-  nav,
-  extra,
-}: {
-  nav?: ReactNode;
-  extra?: ReactNode;
-}) {
+/** The header cluster every authenticated route renders. */
+export function AppHeader() {
   return (
-    <Header nav={nav}>
+    <Header>
       <Search />
-      {extra}
+      <div className="hidden lg:block">
+        <LanguageSwitcher />
+      </div>
       <ThemeSwitch />
       <ConfigDrawer />
       <ProfileDropdown />
