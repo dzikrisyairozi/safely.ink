@@ -45,9 +45,10 @@ export type Condition =
   | { not: Condition }
   | {
       fact: string;
-      op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte' | 'in';
-      value: FactValue | string[];
-    };
+      op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte';
+      value: FactValue;
+    }
+  | { fact: string; op: 'in'; value: string[] };
 
 export const Condition: z.ZodType<Condition> = z.lazy(() =>
   z.union([
@@ -56,35 +57,45 @@ export const Condition: z.ZodType<Condition> = z.lazy(() =>
     z.strictObject({ not: Condition }),
     z.strictObject({
       fact: z.string(),
-      op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte', 'in']),
-      value: z.union([FactValue, z.array(z.string())]),
+      op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),
+      value: FactValue,
+    }),
+    z.strictObject({
+      fact: z.string(),
+      op: z.literal('in'),
+      value: z.array(z.string()),
     }),
   ]),
 );
 
-export const Rule = z.object({
-  id: z.string(),
-  kind: z.enum([
-    'benefit',
-    'exclusion',
-    'condition',
-    'deadline',
-    'limit',
-    'charge',
-    'unmodeled',
-  ]),
-  summary: z.string(),
-  clauseIds: z.array(z.string()).min(1),
-  when: Condition.nullable(),
-  effect: z
-    .object({
-      type: z.enum(['grant', 'deny', 'cap', 'deduct', 'charge']),
-      amount: z.number().nullable(),
-      percent: z.number().nullable(),
-    })
-    .nullable(),
-  touches: z.array(z.string()),
-});
+export const Rule = z
+  .object({
+    id: z.string(),
+    kind: z.enum([
+      'benefit',
+      'exclusion',
+      'condition',
+      'deadline',
+      'limit',
+      'charge',
+      'unmodeled',
+    ]),
+    summary: z.string(),
+    clauseIds: z.array(z.string()).min(1),
+    when: Condition.nullable(),
+    effect: z
+      .object({
+        type: z.enum(['grant', 'deny', 'cap', 'deduct', 'charge']),
+        amount: z.number().nullable(),
+        percent: z.number().nullable(),
+      })
+      .nullable(),
+    touches: z.array(z.string()),
+  })
+  .refine((rule) => rule.when !== null || rule.kind === 'unmodeled', {
+    path: ['when'],
+    message: 'Only an unmodeled rule may have no condition',
+  });
 export type Rule = z.infer<typeof Rule>;
 
 export const Scenario = z.object({
