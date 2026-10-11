@@ -1,0 +1,10 @@
+echo "🔍 Running type check..."
+pnpm type-check
+
+echo "🧹 Running linter check..."
+pnpm lint:check || echo "⚠️  Linting issues found, but continuing..."
+
+echo "🧪 Running tests..."
+pnpm test
+
+echo "✅ Pre-push checks completed!" 

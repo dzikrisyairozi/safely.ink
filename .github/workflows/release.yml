@@ -1,0 +1,103 @@
+name: Release
+
+# The only workflow that builds an image. A v* tag on main creates the
+# GitHub Release, pushes the API image to GHCR and rolls it out to the VPS.
+# CI is not re-run here: the staging -> main PR already ran it on this
+# exact code.
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release, publish & deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      TAG: ${{ github.ref_name }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Refuse tags that are not on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      # Derived from the repo name (lowercased, as GHCR requires), so a
+      # project created from this template needs no edits here.
+      - name: Image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}-api" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ env.TAG }}
+            ${{ env.IMAGE }}:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Skipped until SSH_HOST / SSH_USER / SSH_KEY repo secrets exist
+      # (the VPS needs /opt/<repo> with a docker-compose.yml and .env).
+      - name: Deploy to VPS
+        if: env.SSH_HOST != ''
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: TAG
+          script: |
+            set -euo pipefail
+            cd /opt/${{ github.event.repository.name }}
+
+            sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/" .env
+            docker compose pull api
+            docker compose up -d api
+
+            # Images without a HEALTHCHECK report plain "running".
+            id=$(docker compose ps -q api)
+            for i in $(seq 1 30); do
+              status=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null || echo starting)
+              echo "attempt $i: $status"
+              if [ "$status" = "healthy" ] || [ "$status" = "running" ]; then
+                docker image prune -af --filter "until=72h"
+                exit 0
+              fi
+              if [ "$status" = "unhealthy" ] || [ "$status" = "exited" ]; then break; fi
+              sleep 2
+            done
+
+            echo "API did not come up on $TAG"
+            docker compose logs --tail=100 api
+            exit 1
+
+# Rollback: SSH in, set IMAGE_TAG in /opt/<repo>/.env to a previous tag,
+# then `docker compose pull api && docker compose up -d api`.

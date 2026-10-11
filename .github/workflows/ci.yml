@@ -1,0 +1,70 @@
+name: CI/CD Pipeline
+
+# PRs only -- a merged PR already passed here, so push-to-branch runs were
+# pure duplicates. Feature PRs target staging; staging -> main is the
+# release PR. Tags don't run CI: release.yml ships what main verified.
+on:
+  pull_request:
+    branches: [staging, main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  PNPM_VERSION: '9.0.0'
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  # Single comprehensive job with all checks
+  ci:
+    name: CI/CD Pipeline
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Update lockfile if needed
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "Lockfile exists, checking compatibility..."
+            pnpm install --lockfile-only
+          fi
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Type checking
+        run: pnpm run type-check
+
+      - name: Lint check
+        run: pnpm run lint:check
+
+      - name: Format check
+        run: pnpm run format:check
+
+      - name: Run unit tests
+        run: pnpm run test

@@ -1,0 +1,21 @@
+@import '@repo/tailwind-config/global.css';
+
+/* Note: The following @source directives are new in Tailwind v4. 
+   IDE warnings about "Unknown at rule @source" are safe to ignore. */
+@source "../../../../packages/i18n/src";
+@source "../../../../packages/ui/src";
+
+@layer base {
+  :root {
+    --bg: #0a0a0a;
+    --text: #f5f5f5;
+    --muted: #888888;
+    --stroke: #1f1f1f;
+  }
+}
+
+/* Note: The @theme inline directive is new in Tailwind v4. 
+   IDE warnings about "Unknown at rule @theme" are safe to ignore. */
+@theme inline {
+  --font-display: var(--font-instrument);
+}
