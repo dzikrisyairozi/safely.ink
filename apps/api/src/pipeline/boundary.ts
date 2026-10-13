@@ -1,3 +1,4 @@
+import { holds } from '../engine/evaluate';
 import type {
   Condition,
   Fact,
@@ -101,12 +102,21 @@ export function boundaryDrafts(
   return thresholds.flatMap(({ rule, at, siblings }) => {
     const fact = facts.get(at.fact)!;
     const threshold = at.value as number;
-    const others = siblings
-      .filter((sibling) => sibling.fact !== at.fact)
-      .map((sibling) => {
-        const of = facts.get(sibling.fact)!;
-        return { fact: of, value: satisfying(sibling, of) };
-      });
+    // One value for each other fact: one that all its siblings accept, if
+    // the value that satisfies one of them does.
+    const about = siblings.filter((sibling) => sibling.fact !== at.fact);
+    const others = [...new Set(about.map((sibling) => sibling.fact))].map(
+      (key) => {
+        const of = facts.get(key)!;
+        const group = about.filter((sibling) => sibling.fact === key);
+        const values = group.map((sibling) => satisfying(sibling, of));
+        const value =
+          values.find((candidate) =>
+            group.every((sibling) => holds(sibling, { [key]: candidate })),
+          ) ?? values[0]!;
+        return { fact: of, value };
+      },
+    );
 
     return [threshold - STEP, threshold, threshold + STEP]
       .filter((value) => value >= 0 || (fact.neutral as number) < 0)

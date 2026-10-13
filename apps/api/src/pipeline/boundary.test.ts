@@ -164,3 +164,21 @@ test('a draft says in words what is different from an uneventful day', () => {
     'the daysSinceStart: 29 days; the admission is for an illness: true',
   );
 });
+
+test('two siblings on one fact give that fact one value, in the facts and in words', () => {
+  const window = rule('r-001', {
+    all: [
+      { fact: 'daysSinceStart', op: 'lt', value: 30 },
+      { fact: 'noticeDays', op: 'gt', value: 30 },
+      { fact: 'noticeDays', op: 'lte', value: 90 },
+    ],
+  });
+  const [inside] = boundaryDrafts([window], factSchema).filter((draft) =>
+    draft.situation.startsWith('the daysSinceStart'),
+  );
+
+  expect(inside!.situation).toBe(
+    `the daysSinceStart: 29 days; the noticeDays: ${inside!.facts.noticeDays} days`,
+  );
+  expect(holds(window.when!, inside!.facts)).toBe(true);
+});
