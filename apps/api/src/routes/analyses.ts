@@ -1,18 +1,18 @@
 import { Hono } from 'hono';
-import { FieldValue, type DocumentReference } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import {
   AnalysisId,
   ConfirmAnalysisRequest,
   CreateAnalysisRequest,
   isLawChecked,
   type AnalysisStatus,
-  type Clause,
   type UploadError,
 } from '@repo/api-types';
 import { config } from '../config';
 import { failure } from '../failure';
 import { db } from '../firebase';
 import { readDocument } from '../agents/reader';
+import { runPipeline, saveAll } from '../pipeline';
 import { checkReading } from '../pipeline/reader-check';
 import { loadUploads } from '../uploads';
 import { nextReset, releaseDailySlot, reserveDailySlot } from '../usage';
@@ -30,17 +30,6 @@ const UPLOAD_MESSAGES: Record<UploadError, string> = {
 };
 
 const ALREADY_EXISTS = 6; // gRPC status of a create() on an existing document
-const BATCH = 500; // Firestore's limit of writes in one batch
-
-async function saveClauses(analysis: DocumentReference, clauses: Clause[]) {
-  for (let from = 0; from < clauses.length; from += BATCH) {
-    const batch = db.batch();
-    for (const clause of clauses.slice(from, from + BATCH)) {
-      batch.set(analysis.collection('clauses').doc(clause.id), clause);
-    }
-    await batch.commit();
-  }
-}
 
 export const analyses = new Hono<{ Variables: { uid: string } }>();
 
@@ -99,7 +88,7 @@ analyses.post('/', async (c) => {
       uploads.pageCount,
     );
     if (reading.status === 'awaiting_confirmation') {
-      await saveClauses(analysis, reading.clauses);
+      await saveAll(analysis, 'clauses', reading.clauses);
       await analysis.update({
         status: reading.status,
         meta: reading.meta,
@@ -132,7 +121,8 @@ analyses.post('/', async (c) => {
   return c.json({ analysisId, status }, 201);
 });
 
-// Stores what the user confirmed. The remaining stages attach here in M4.
+// Stores what the user confirmed, then runs the remaining stages. The
+// request stays open for the run; the screen follows Firestore meanwhile.
 analyses.post('/:id/confirm', async (c) => {
   const id = AnalysisId.safeParse(c.req.param('id'));
   if (!id.success)
@@ -190,6 +180,10 @@ analyses.post('/:id/confirm', async (c) => {
         400,
       );
     case 'confirmed':
-      return c.json({ analysisId: id.data, status: 'extracting_rules' });
+      // A stage that fails is a status of the analysis, not an HTTP error.
+      return c.json({
+        analysisId: id.data,
+        status: await runPipeline(id.data),
+      });
   }
 });
