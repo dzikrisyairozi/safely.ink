@@ -45,7 +45,7 @@ function triggerOf(condition: Condition | null, facts: Facts): string | null {
   return condition.fact;
 }
 
-const stageNotes: Partial<Record<Rule['kind'], string>> = {
+const stageNotes = {
   benefit: 'Benefit applies',
   condition: 'Condition not met',
   deadline: 'Deadline missed',
@@ -72,13 +72,17 @@ export function evaluate(
   const fired = rules.filter(
     (rule) => rule.when !== null && holds(rule.when, facts),
   );
-  const firedOf = (...kinds: Rule['kind'][]) => {
-    const stage = fired.filter((rule) => kinds.includes(rule.kind));
-    for (const rule of stage) {
+  const firedOf = (...kinds: (keyof typeof stageNotes)[]) => {
+    const stage: Rule[] = [];
+    for (const rule of fired) {
+      const kind = kinds.find((k) => k === rule.kind);
+      if (!kind) continue;
+
+      stage.push(rule);
       trace.push({
         ruleId: rule.id,
         fact: triggerOf(rule.when, facts),
-        note: stageNotes[rule.kind] ?? rule.kind,
+        note: stageNotes[kind],
       });
     }
     return stage;

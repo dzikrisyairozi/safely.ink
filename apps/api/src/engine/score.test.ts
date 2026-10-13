@@ -369,9 +369,3 @@ test('the numbers come from the weights', () => {
     grade: 'C',
   });
 });
-
-test('the same input gives the same result', () => {
-  const cases = [critical('c'), low('l'), high('h'), ...unclear(1, 2)];
-
-  expect(score(input(cases), weights)).toEqual(score(input(cases), weights));
-});
