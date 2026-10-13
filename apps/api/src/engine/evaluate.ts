@@ -52,6 +52,12 @@ const stageNotes: Partial<Record<Rule['kind'], string>> = {
   exclusion: 'Exclusion applies',
 };
 
+const moneyNotes = {
+  cap: 'Cap applies',
+  deduct: 'Deduction applies',
+  charge: 'Charge applies',
+};
+
 // Decides one scenario. The stages run in a fixed order and the first one
 // that settles the result ends the run: benefit, conditions and deadlines,
 // exclusions, unmodeled rules, money.
@@ -125,5 +131,54 @@ export function evaluate(
     }
   }
 
-  return outcome('fine', 0, null);
+  // Money. Caps come first (lowest wins), deductions come off what is left,
+  // charges are owed on top, so a loss can exceed the stake.
+  const effectsOf = (type: 'cap' | 'deduct' | 'charge') =>
+    fired.flatMap((rule) =>
+      (rule.kind === 'limit' || rule.kind === 'charge') &&
+      rule.effect?.type === type
+        ? [
+            {
+              rule,
+              type,
+              amount:
+                rule.effect.amount ??
+                ((stake ?? 0) * (rule.effect.percent ?? 0)) / 100,
+            },
+          ]
+        : [],
+    );
+
+  let payable = stake ?? 0;
+  let charges = 0;
+  const lossSoFar = () => (stake ?? 0) - payable + charges;
+  const lostTo = new Map<string, number>();
+
+  for (const { rule, type, amount } of [
+    ...effectsOf('cap').sort((a, b) => a.amount - b.amount),
+    ...effectsOf('deduct'),
+    ...effectsOf('charge'),
+  ]) {
+    const before = lossSoFar();
+    if (type === 'cap') payable = Math.min(payable, amount);
+    if (type === 'deduct') payable = Math.max(0, payable - amount);
+    if (type === 'charge') charges += amount;
+
+    lostTo.set(rule.id, lossSoFar() - before);
+    trace.push({
+      ruleId: rule.id,
+      fact: triggerOf(rule.when, facts),
+      note:
+        stake === null && lostTo.get(rule.id) === 0
+          ? 'No amount at stake to apply this to'
+          : moneyNotes[type],
+    });
+  }
+
+  const loss = lossSoFar();
+  if (loss === 0) return outcome('fine', 0, null);
+
+  const deciding = rules.find((rule) => (lostTo.get(rule.id) ?? 0) > 0);
+  const result = stake === null || loss >= stake ? 'bad' : 'partly_bad';
+  return outcome(result, loss, deciding?.id ?? null);
 }

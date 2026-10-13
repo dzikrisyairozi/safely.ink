@@ -306,3 +306,239 @@ test('an unmodeled rule whose facts are all neutral changes nothing', () => {
 
   expect(outcome).toMatchObject({ result: 'fine', decidingRuleId: null });
 });
+
+type Effect = NonNullable<Rule['effect']>;
+
+const fixed = (type: Effect['type'], amount: number): Effect => ({
+  type,
+  amount,
+  percent: null,
+});
+const share = (type: Effect['type'], percent: number): Effect => ({
+  type,
+  amount: null,
+  percent,
+});
+const limit = (effect: Effect, id = 'limit') =>
+  rule('limit', always, { id, effect });
+const charge = (effect: Effect, id = 'charge') =>
+  rule('charge', always, { id, effect });
+
+test.each<{
+  name: string;
+  rules: Rule[];
+  stake: number | null;
+  loss: number;
+  result: string;
+  deciding: string | null;
+}>([
+  {
+    name: 'cap above the stake',
+    rules: [limit(fixed('cap', 1500))],
+    stake: 1000,
+    loss: 0,
+    result: 'fine',
+    deciding: null,
+  },
+  {
+    name: 'cap below the stake',
+    rules: [limit(fixed('cap', 600))],
+    stake: 1000,
+    loss: 400,
+    result: 'partly_bad',
+    deciding: 'limit',
+  },
+  {
+    name: 'cap of nothing',
+    rules: [limit(fixed('cap', 0))],
+    stake: 1000,
+    loss: 1000,
+    result: 'bad',
+    deciding: 'limit',
+  },
+  {
+    name: 'two caps, the lower one bites',
+    rules: [
+      limit(fixed('cap', 800), 'l-800'),
+      limit(fixed('cap', 600), 'l-600'),
+    ],
+    stake: 1000,
+    loss: 400,
+    result: 'partly_bad',
+    deciding: 'l-600',
+  },
+  {
+    name: 'cap as a share of the stake',
+    rules: [limit(share('cap', 50))],
+    stake: 1000,
+    loss: 500,
+    result: 'partly_bad',
+    deciding: 'limit',
+  },
+  {
+    name: 'deductible',
+    rules: [limit(fixed('deduct', 100))],
+    stake: 1000,
+    loss: 100,
+    result: 'partly_bad',
+    deciding: 'limit',
+  },
+  {
+    name: 'deductible as a share of the stake',
+    rules: [limit(share('deduct', 10))],
+    stake: 1000,
+    loss: 100,
+    result: 'partly_bad',
+    deciding: 'limit',
+  },
+  {
+    name: 'deductible larger than the stake',
+    rules: [limit(fixed('deduct', 1500))],
+    stake: 1000,
+    loss: 1000,
+    result: 'bad',
+    deciding: 'limit',
+  },
+  {
+    name: 'deductible comes off the capped amount',
+    rules: [
+      limit(fixed('deduct', 100), 'deductible'),
+      limit(fixed('cap', 600), 'cap'),
+    ],
+    stake: 1000,
+    loss: 500,
+    result: 'partly_bad',
+    deciding: 'deductible',
+  },
+  {
+    name: 'fixed charge',
+    rules: [charge(fixed('charge', 50))],
+    stake: 1000,
+    loss: 50,
+    result: 'partly_bad',
+    deciding: 'charge',
+  },
+  {
+    name: 'charge as a share of the stake',
+    rules: [charge(share('charge', 5))],
+    stake: 1000,
+    loss: 50,
+    result: 'partly_bad',
+    deciding: 'charge',
+  },
+  {
+    name: 'charge larger than the stake',
+    rules: [charge(fixed('charge', 1200))],
+    stake: 1000,
+    loss: 1200,
+    result: 'bad',
+    deciding: 'charge',
+  },
+  {
+    name: 'charge on top of a lost stake',
+    rules: [charge(fixed('charge', 50)), limit(fixed('cap', 0))],
+    stake: 1000,
+    loss: 1050,
+    result: 'bad',
+    deciding: 'charge',
+  },
+  {
+    name: 'fixed charge with no stake',
+    rules: [charge(fixed('charge', 50))],
+    stake: null,
+    loss: 50,
+    result: 'bad',
+    deciding: 'charge',
+  },
+  {
+    name: 'share charge with no stake',
+    rules: [charge(share('charge', 5))],
+    stake: null,
+    loss: 0,
+    result: 'fine',
+    deciding: null,
+  },
+  {
+    name: 'cap with no stake',
+    rules: [limit(fixed('cap', 600))],
+    stake: null,
+    loss: 0,
+    result: 'fine',
+    deciding: null,
+  },
+  {
+    name: 'a limit that does not fire',
+    rules: [rule('limit', never, { effect: fixed('cap', 0) })],
+    stake: 1000,
+    loss: 0,
+    result: 'fine',
+    deciding: null,
+  },
+])('money: $name', ({ rules, stake, loss, result, deciding }) => {
+  const outcome = evaluate(rules, schema, scenario({ stake }));
+
+  expect(outcome).toMatchObject({ result, loss, decidingRuleId: deciding });
+});
+
+test('money rules are traced in the order they are applied', () => {
+  const rules = [
+    charge(fixed('charge', 50)),
+    limit(fixed('deduct', 100), 'deductible'),
+    limit(fixed('cap', 600), 'cap'),
+  ];
+
+  const outcome = evaluate(rules, schema, scenario());
+
+  expect(outcome.trace.map((step) => step.ruleId)).toEqual([
+    'cap',
+    'deductible',
+    'charge',
+  ]);
+});
+
+test('an unmodeled rule beats money', () => {
+  const rules = [
+    limit(fixed('cap', 0)),
+    rule('unmodeled', null, { touches: ['cause'] }),
+  ];
+  const facts = { ...neutralFacts, cause: 'flood' };
+
+  const outcome = evaluate(rules, schema, scenario({ facts }));
+
+  expect(outcome).toMatchObject({
+    result: 'undetermined',
+    loss: 0,
+    decidingRuleId: 'unmodeled',
+  });
+});
+
+function deepFreeze<T>(value: T): T {
+  if (typeof value === 'object' && value !== null) {
+    Object.values(value).forEach(deepFreeze);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+test('the same input gives the same outcome and is left untouched', () => {
+  const rules = deepFreeze([
+    rule('benefit', { not: early }),
+    rule('exclusion', { fact: 'cause', op: 'in', value: ['riot'] }),
+    rule('unmodeled', null, { touches: ['userPaidOnTime'] }),
+    limit(share('cap', 80)),
+    limit(fixed('deduct', 75), 'deductible'),
+    charge(fixed('charge', 20)),
+  ]);
+  const frozenSchema = deepFreeze(structuredClone(schema));
+  const input = deepFreeze(scenario({ targetRuleIds: ['benefit'] }));
+
+  const first = evaluate(rules, frozenSchema, input);
+  const second = evaluate(rules, frozenSchema, input);
+
+  expect(first).toEqual(second);
+  expect(first).toMatchObject({
+    result: 'partly_bad',
+    loss: 295,
+    decidingRuleId: 'limit',
+  });
+});
