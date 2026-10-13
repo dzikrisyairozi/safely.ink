@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "lint:check": "eslint . --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "test": "firebase emulators:exec --config ../../firebase.json --project demo-policy-police --only firestore,storage \"vitest run\"",
+    "test": "firebase emulators:exec --config ../../firebase.json --project demo-safely-ink --only firestore,storage \"vitest run\"",
     "test:watch": "vitest --dir src"
   },
   "dependencies": {

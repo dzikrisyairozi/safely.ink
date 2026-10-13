@@ -21,25 +21,25 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   ),
   title: {
-    default: 'Policy Police',
-    template: '%s | Policy Police',
+    default: 'safely.ink',
+    template: '%s | safely.ink',
   },
   description:
-    'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
+    'Stress-test any policy or contract before you sign. safely.ink finds the scenarios where the fine print leaves you worse off.',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    siteName: 'Policy Police',
-    title: 'Policy Police',
+    siteName: 'safely.ink',
+    title: 'safely.ink',
     description:
-      'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
+      'Stress-test any policy or contract before you sign. safely.ink finds the scenarios where the fine print leaves you worse off.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Policy Police',
+    title: 'safely.ink',
     description:
-      'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
+      'Stress-test any policy or contract before you sign. safely.ink finds the scenarios where the fine print leaves you worse off.',
   },
   icons: {
     icon: '/favicon/favicon.ico',

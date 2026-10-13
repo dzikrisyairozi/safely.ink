@@ -1,4 +1,4 @@
-# Policy Police — Product Requirements Document (PRD)
+# safely.ink — Product Requirements Document (PRD)
 
 |         |                                                                            |
 | ------- | -------------------------------------------------------------------------- |
@@ -18,7 +18,7 @@ summary tells you what the document says; it does not tell you where it breaks.
 
 ## 2. Product in one sentence
 
-Policy Police is a **policy fuzzer**: upload a policy or contract and it turns the wording
+safely.ink is a **policy fuzzer**: upload a policy or contract and it turns the wording
 into executable rules, generates dozens of tricky but realistic scenarios, runs them
 through those rules, and shows every case where you end up worse off than a reasonable
 person would expect — or worse off than the law allows.
@@ -106,7 +106,7 @@ ordinary person expects. Packs are content, not code; the engine is the same for
 
 ## 6. Why this is not "chat with your PDF"
 
-|             | Summariser / chat           | Policy Police                                                             |
+|             | Summariser / chat           | safely.ink                                                                |
 | ----------- | --------------------------- | ------------------------------------------------------------------------- |
 | Output      | Description of the document | Failing test cases against the document                                   |
 | Method      | One LLM reading             | LLM extraction → **deterministic** rule execution → independent judgments |

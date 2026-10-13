@@ -3,6 +3,9 @@
 How to stand the project up from nothing and how to deploy it. Project ID used below:
 `policy-police-96af6`. Region: `asia-southeast2` (Jakarta).
 
+The project ID still carries the product's first name. Google Cloud project IDs cannot be
+changed, so it stays; users reach the product through the safely.ink domains instead.
+
 Commands marked **(not yet run)** were written from the documentation and have not been
 executed against this project. Check them against `gcloud help` the first time.
 
@@ -79,7 +82,7 @@ gh auth token | oras login ghcr.io -u <your GitHub user> --password-stdin
 Pull and decrypt with the private half of your key in `.env.recipients`:
 
 ```bash
-oras pull ghcr.io/dzikrisyairozi/policy-police-env:latest
+oras pull ghcr.io/dzikrisyairozi/safely-ink-env:latest
 age -d -i ~/.ssh/id_ed25519 -o apps/api/.env api.env.age
 rm api.env.age
 ```
@@ -88,8 +91,8 @@ Push after the key or the recipients change:
 
 ```bash
 age -R apps/api/.env.recipients -o api.env.age apps/api/.env
-oras push ghcr.io/dzikrisyairozi/policy-police-env:latest api.env.age \
-  --annotation org.opencontainers.image.source=https://github.com/dzikrisyairozi/policy-police
+oras push ghcr.io/dzikrisyairozi/safely-ink-env:latest api.env.age \
+  --annotation org.opencontainers.image.source=https://github.com/dzikrisyairozi/safely.ink
 rm api.env.age
 ```
 
@@ -126,6 +129,18 @@ pnpm exec firebase deploy --only storage        # after Storage is set up
 The dashboard is served at `https://policy-police-96af6.web.app`. That domain and
 `localhost` are authorised for sign-in by default; a custom domain must be added under
 Authentication → Settings → Authorised domains.
+
+### Custom domains **(not yet run)**
+
+The landing page is served from `safely.ink` and the dashboard from `app.safely.ink`.
+
+1. Firebase console → Hosting → Add custom domain, once per domain. Add the DNS records
+   it shows at the registrar and wait for the certificate.
+2. Authentication → Settings → Authorised domains: add `app.safely.ink`.
+3. Set `ALLOWED_ORIGIN=https://app.safely.ink` on the Cloud Run service and redeploy it;
+   the API allows one origin only.
+4. Set `NEXT_PUBLIC_SITE_URL=https://safely.ink` and
+   `NEXT_PUBLIC_APP_URL=https://app.safely.ink` for the landing build.
 
 ### API on Cloud Run (needs Blaze) **(not yet run)**
 

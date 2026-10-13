@@ -9,7 +9,7 @@ Accepted
 The repository started from a starter template whose backend was a Rust (Axum, SQLx,
 PostgreSQL) API, with TypeScript types generated from Rust structs through `ts-rs`.
 
-Policy Police is a pipeline of Gemini calls around a deterministic rule engine, built for
+safely.ink is a pipeline of Gemini calls around a deterministic rule engine, built for
 AI Builder Cup 2026. Three facts decided the backend:
 
 - The hackathon requires Gemini or a Google agentic platform, and deployment on Cloud Run

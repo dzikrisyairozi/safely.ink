@@ -1,4 +1,4 @@
-# Policy Police — Technical Specification Document (TSD)
+# safely.ink — Technical Specification Document (TSD)
 
 |         |                                   |
 | ------- | --------------------------------- |
@@ -376,12 +376,12 @@ Commands below are a starting point written from memory; check flags against cur
 ### From-zero setup (day 0)
 
 ```bash
-gcloud projects create policy-police-<suffix> && gcloud config set project policy-police-<suffix>
-gcloud billing projects link policy-police-<suffix> --billing-account <ACCOUNT>
+gcloud projects create safely-ink-<suffix> && gcloud config set project safely-ink-<suffix>
+gcloud billing projects link safely-ink-<suffix> --billing-account <ACCOUNT>
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
   secretmanager.googleapis.com firestore.googleapis.com firebase.googleapis.com \
   firebasestorage.googleapis.com identitytoolkit.googleapis.com
-firebase projects:addfirebase policy-police-<suffix>
+firebase projects:addfirebase safely-ink-<suffix>
 gcloud firestore databases create --location=asia-southeast2
 # Firebase console: enable Google sign-in; create web app; create Storage bucket
 # AI Studio: create API key in this project

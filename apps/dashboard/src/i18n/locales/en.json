@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Policy Police"
+    "name": "safely.ink"
   },
   "errors": {
     "goBack": "Go back",
@@ -28,7 +28,7 @@
   },
   "signIn": {
     "title": "Sign in",
-    "description": "Use your Google account to access Policy Police.",
+    "description": "Use your Google account to access safely.ink.",
     "google": "Continue with Google",
     "failed": "Sign-in failed. Please try again."
   },
@@ -86,7 +86,7 @@
   },
   "newAnalysis": {
     "title": "Check a document",
-    "subtitle": "Upload a policy or contract and Policy Police will stress-test it with tricky scenarios.",
+    "subtitle": "Upload a policy or contract and safely.ink will stress-test it with tricky scenarios.",
     "comingSoon": "Upload is not available yet."
   }
 }

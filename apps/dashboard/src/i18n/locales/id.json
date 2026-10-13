@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Policy Police"
+    "name": "safely.ink"
   },
   "errors": {
     "goBack": "Kembali",
@@ -28,7 +28,7 @@
   },
   "signIn": {
     "title": "Masuk",
-    "description": "Gunakan akun Google Anda untuk mengakses Policy Police.",
+    "description": "Gunakan akun Google Anda untuk mengakses safely.ink.",
     "google": "Lanjutkan dengan Google",
     "failed": "Gagal masuk. Silakan coba lagi."
   },
@@ -86,7 +86,7 @@
   },
   "newAnalysis": {
     "title": "Periksa dokumen",
-    "subtitle": "Unggah polis atau kontrak, lalu Policy Police akan mengujinya dengan berbagai skenario sulit.",
+    "subtitle": "Unggah polis atau kontrak, lalu safely.ink akan mengujinya dengan berbagai skenario sulit.",
     "comingSoon": "Fitur unggah belum tersedia."
   }
 }

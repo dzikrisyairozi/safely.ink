@@ -1,7 +1,7 @@
-# Policy Police
+# safely.ink
 
 **A fuzzer for the fine print.** Upload an insurance policy, loan agreement, employment
-contract, NDA or lease. Policy Police turns the wording into executable rules, generates
+contract, NDA or lease. safely.ink turns the wording into executable rules, generates
 dozens of tricky but realistic scenarios, runs them through those rules, and shows every
 case where you end up worse off than a reasonable person would expect, or worse off than
 the law allows.
@@ -78,7 +78,7 @@ same. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 The repository was started from the author's own open-source Turborepo starter template,
 which supplied build tooling, the shared UI package and an empty dashboard shell. The
-template's Rust API, documentation site and demo screens were removed. All Policy Police
+template's Rust API, documentation site and demo screens were removed. All safely.ink
 product code is written for this project.
 
 ## License

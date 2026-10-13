@@ -1,5 +1,5 @@
 # Build context is the repo root:
-#   docker build -f apps/api/Dockerfile -t policy-police-api .
+#   docker build -f apps/api/Dockerfile -t safely-ink-api .
 FROM node:24-slim
 
 RUN corepack enable
