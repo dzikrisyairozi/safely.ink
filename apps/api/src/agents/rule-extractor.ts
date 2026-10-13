@@ -105,6 +105,11 @@ effect:
 touches: the fact keys the rule depends on. For an unmodeled rule, the facts
 whose value would make the clause matter.
 
+Every fact in the message has a neutral value: its value in an uneventful
+situation, in which nothing goes against the user. A rule of any kind other
+than benefit must be false when every fact has its neutral value. If yours is
+true there, the condition is the wrong way round.
+
 Use unmodeled when the clause depends on someone's discretion or on a vague
 term ("as determined by us", "reasonable", "at our sole discretion"), or when
 the facts in the message cannot express it. Then when is null and effect is
