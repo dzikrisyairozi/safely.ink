@@ -10,6 +10,7 @@ import {
   repairRules,
 } from './agents/rule-extractor';
 import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
+import { config } from './config';
 import { evaluate } from './engine/evaluate';
 import { db } from './firebase';
 import { runPipeline } from './pipeline';
@@ -383,8 +384,34 @@ test('the fuzzer is told the rules as stored, the facts, the seeds and the role'
     expect.arrayContaining([expect.objectContaining({ key: 'inpatientCost' })]),
     expect.objectContaining({ seeds: expect.any(Object) }),
     expect.objectContaining({ userRole: 'insured' }),
+    config.limits.modelCallSeconds.fuzzMost,
   );
 });
+
+// The clock is moved while the rule writer works; Firestore runs as usual.
+test.each([
+  [0, 240],
+  [400, 150],
+  [500, 90],
+])(
+  'when the rules took %i s, a fuzzer call may take %i s',
+  async (used, seconds) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    rules.mockImplementation(async () => {
+      vi.setSystemTime(Date.now() + used * 1000);
+      return proposedRules.rules;
+    });
+
+    try {
+      await runPipeline('analysis-1');
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(fuzzer.mock.calls[0]![5]).toBe(seconds);
+    expect(boundaries.mock.calls[0]![2]).toBe(seconds);
+  },
+);
 
 test('one call of the fuzzer that fails does not cost the others', async () => {
   fuzzer.mockImplementation(async (strategy) => {

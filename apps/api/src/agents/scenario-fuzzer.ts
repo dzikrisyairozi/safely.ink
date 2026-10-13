@@ -115,6 +115,7 @@ async function ask(
   list: 'scenarios' | 'stories',
   entry: z.ZodType,
   message: object,
+  seconds: number,
 ): Promise<unknown[]> {
   const answer = await runAgent({
     name,
@@ -123,7 +124,7 @@ async function ask(
     schema: z.object({ [list]: z.array(entry) }),
     accept: z.object({ [list]: z.array(z.unknown()) }),
     parts: [{ text: JSON.stringify(message) }],
-    seconds: config.limits.modelCallSeconds.fuzz,
+    seconds,
   });
   return answer[list]!;
 }
@@ -138,6 +139,7 @@ export const proposeScenarios = (
   factSchema: FactSchema,
   pack: Pack,
   document: Document,
+  seconds: number,
 ): Promise<unknown[]> =>
   ask(
     `${strategy}_fuzzer`,
@@ -164,6 +166,7 @@ export const proposeScenarios = (
         touches,
       })),
     },
+    seconds,
   );
 
 const Told = z.looseObject({ n: z.number().int() });
@@ -176,6 +179,7 @@ const Told = z.looseObject({ n: z.number().int() });
 export async function tellBoundaries(
   drafts: BoundaryDraft[],
   document: Document,
+  seconds: number,
 ): Promise<unknown[]> {
   if (drafts.length === 0) return [];
 
@@ -188,6 +192,7 @@ export async function tellBoundaries(
       ...about(document),
       situations: drafts.map(({ situation }, n) => ({ n: n + 1, situation })),
     },
+    seconds,
   );
   return stories.flatMap((entry) => {
     const told = Told.safeParse(entry);

@@ -13,6 +13,7 @@ import { proposeScenarios, tellBoundaries } from './scenario-fuzzer';
 // it, and what it was asked is kept.
 const model = vi.hoisted(() => ({
   answer: '',
+  hangs: false,
   calls: 0,
   agent: {} as { model: unknown; instruction: string; outputSchema: unknown },
   message: '',
@@ -30,6 +31,7 @@ vi.mock('@google/adk', () => ({
     async *runEphemeral(run: { newMessage: { parts: { text: string }[] } }) {
       model.calls += 1;
       model.message = run.newMessage.parts[0]!.text;
+      if (model.hangs) await new Promise(() => {});
       yield {};
     }
   },
@@ -72,6 +74,7 @@ test('the model is asked for a value for every fact of this document, by name', 
     factSchema,
     packFor('insurance'),
     document,
+    90,
   );
 
   const asked = model.agent.outputSchema as z.ZodObject<{
@@ -95,6 +98,7 @@ test('the model gets the role, the rules and the seeds of its strategy, and not 
     factSchema,
     { facts: [], seeds },
     document,
+    90,
   );
 
   const message = JSON.parse(model.message);
@@ -117,6 +121,7 @@ test('one malformed scenario does not lose the ones around it', async () => {
     factSchema,
     packFor('insurance'),
     document,
+    90,
   );
 
   expect(proposed).toEqual(entries);
@@ -132,7 +137,7 @@ test('a boundary keeps the facts and the target code gave it, whatever the model
     ],
   });
 
-  const proposed = await tellBoundaries(drafts, document);
+  const proposed = await tellBoundaries(drafts, document, 90);
 
   expect(proposed).toEqual([
     { ...told, facts: drafts[1]!.facts, targetRuleIds: ['r-002'] },
@@ -141,7 +146,7 @@ test('a boundary keeps the facts and the target code gave it, whatever the model
 });
 
 test('with no boundary to tell, the model is not called', async () => {
-  expect(await tellBoundaries([], document)).toEqual([]);
+  expect(await tellBoundaries([], document, 90)).toEqual([]);
   expect(model.calls).toBe(0);
 });
 
@@ -149,6 +154,30 @@ test('an answer that is not a list is an error', async () => {
   answers({ scenarios: 'none' });
 
   await expect(
-    proposeScenarios('baseline', rules, factSchema, packFor('other'), document),
+    proposeScenarios(
+      'baseline',
+      rules,
+      factSchema,
+      packFor('other'),
+      document,
+      90,
+    ),
   ).rejects.toThrow();
+});
+
+test('a call waits as long as it is given, not a fixed time', async () => {
+  vi.useFakeTimers();
+  model.hangs = true;
+  let failed = false;
+
+  tellBoundaries(boundaryDrafts(rules, factSchema), document, 240).catch(() => {
+    failed = true;
+  });
+
+  await vi.advanceTimersByTimeAsync(120_000);
+  expect(failed).toBe(false);
+  await vi.advanceTimersByTimeAsync(120_000);
+  expect(failed).toBe(true);
+  vi.useRealTimers();
+  model.hangs = false;
 });

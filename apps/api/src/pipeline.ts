@@ -114,22 +114,39 @@ const SCENARIOS_AIMED_FOR = 20;
 
 // The model proposes situations; scenario-check.ts decides which are
 // stored. The facts of a boundary scenario are set by code.
-async function fuzz(analysis: DocumentReference, meta: AnalysisMeta) {
+async function fuzz(
+  analysis: DocumentReference,
+  meta: AnalysisMeta,
+  deadline: number,
+) {
   const rules = await storedRules(analysis);
   const factSchema = FactSchema.parse(
     (await analysis.get()).data()!.factSchema,
   );
   const pack = packFor(meta.docType);
+  // What the earlier calls left of the request, within the limits of a call.
+  const { fuzz: least, fuzzMost: most } = config.limits.modelCallSeconds;
+  const seconds = Math.min(
+    most,
+    Math.max(least, Math.floor((deadline - Date.now()) / 1000)),
+  );
 
   // Side by side, and one call that fails does not cost the others.
   const calls = [
     ...WRITTEN.map((strategy) => ({
       strategy,
-      entries: proposeScenarios(strategy, rules, factSchema, pack, meta),
+      entries: proposeScenarios(
+        strategy,
+        rules,
+        factSchema,
+        pack,
+        meta,
+        seconds,
+      ),
     })),
     {
       strategy: 'boundary' as const,
-      entries: tellBoundaries(boundaryDrafts(rules, factSchema), meta),
+      entries: tellBoundaries(boundaryDrafts(rules, factSchema), meta, seconds),
     },
   ];
   const answers = await Promise.allSettled(calls.map((call) => call.entries));
@@ -197,7 +214,12 @@ async function runScenarios(analysis: DocumentReference) {
 
 type Stage = {
   status: AnalysisStatus;
-  run: (analysis: DocumentReference, meta: AnalysisMeta) => Promise<void>;
+  run: (
+    analysis: DocumentReference,
+    meta: AnalysisMeta,
+    // When the request must be done, in ms since the epoch.
+    deadline: number,
+  ) => Promise<void>;
   // The status when the stage is done: the next stage, or where the
   // analysis waits for a stage that is not built yet.
   next: AnalysisStatus;
@@ -218,11 +240,12 @@ export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
   const analysis = db.doc(`analyses/${analysisId}`);
   const data = (await analysis.get()).data()!;
   let status: AnalysisStatus = data.status;
+  const deadline = Date.now() + config.limits.confirmSeconds * 1000;
 
   for (const stage of STAGES) {
     if (stage.status !== status) continue;
     try {
-      await stage.run(analysis, AnalysisMeta.parse(data.meta));
+      await stage.run(analysis, AnalysisMeta.parse(data.meta), deadline);
       status = stage.next;
       await analysis.update({ status, updatedAt: updatedAt() });
     } catch (err) {

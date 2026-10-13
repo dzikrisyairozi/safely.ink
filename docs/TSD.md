@@ -251,8 +251,9 @@ is what is stored. After `running` the analysis waits at `comparing`.
 - The answer to each call only has to be a list. Every fact and every rule in it is
   checked on its own, so one entry that does not fit does not cost the others. A fact key
   must be a camelCase name, and at most 35 proposed facts are kept.
-- Time limits per call: facts 100 s, rules 240 s, repair 120 s. With the fuzzer's 90 s
-  the confirm request ends within 550 s.
+- Time limits per call: facts 100 s, rules 240 s, repair 120 s. The stages of the
+  confirm request must end within 550 s; the fuzzer gets what these calls leave of it
+  (5.3).
 - An `unmodeled` rule lists in `touches` only facts about that clause alone, and none
   when there is no such fact: stage 4 of `evaluate()` answers `undetermined` as soon as
   one touched fact is not neutral. A clause with a fixed amount, percentage or number of
@@ -280,8 +281,10 @@ is what is stored. After `running` the analysis waits at `comparing`.
   `neutral`. The step is 1 for every unit, and at most 5 thresholds are used, rules
   against the user first. The sixth call gets these situations in words and returns only
   the story, the frequency and the stake.
-- A call that fails or does not answer in 90 s is logged and the stage goes on with the
-  others.
+- A call may take what is left of the 550 s of the request when the stage starts, at
+  least 90 s and at most 240 s. The earlier calls seldom use their whole limit, and at a
+  fixed 90 s the baseline call did not answer in 1 live run of 3. A call that fails or
+  does not answer in time is logged and the stage goes on with the others.
 - Post-check and selection in code (`pipeline/scenario-check.ts`): a scenario is dropped
   if it does not parse, has no story or one over 600 characters, lacks a fact or has one
   the schema does not have, has a value of the wrong type, or targets a rule that does
