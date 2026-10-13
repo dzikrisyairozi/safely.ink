@@ -182,3 +182,18 @@ test('two siblings on one fact give that fact one value, in the facts and in wor
   );
   expect(holds(window.when!, inside!.facts)).toBe(true);
 });
+
+test('a threshold two rules share is tried once, for both', () => {
+  const shared = { fact: 'daysSinceStart', op: 'lt', value: 30 } as const;
+  const others = [10, 20, 30, 40].map((value, n) =>
+    rule(`r-00${n + 3}`, { fact: 'roomCostPerDay', op: 'gt', value }),
+  );
+  const drafts = boundaryDrafts(
+    [rule('r-001', shared), rule('r-002', shared), ...others],
+    factSchema,
+  );
+
+  expect(drafts).toHaveLength(15);
+  expect(drafts[0]!.targetRuleIds).toEqual(['r-001', 'r-002']);
+  expect(drafts.at(-1)!.targetRuleIds).toEqual(['r-006']);
+});

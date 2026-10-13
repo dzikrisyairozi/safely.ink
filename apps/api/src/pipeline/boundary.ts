@@ -96,10 +96,12 @@ export function boundaryDrafts(
       ({ at }) =>
         ['lt', 'lte', 'gt', 'gte'].includes(at.op) &&
         typeof at.value === 'number',
-    )
-    .slice(0, MAX_THRESHOLDS);
+    );
 
-  return thresholds.flatMap(({ rule, at, siblings }) => {
+  // A threshold that several rules share gives the same facts for each of
+  // them: it is tried once, for all of them, and takes one place.
+  const trios = new Map<string, BoundaryDraft[]>();
+  for (const { rule, at, siblings } of thresholds) {
     const fact = facts.get(at.fact)!;
     const threshold = at.value as number;
     // One value for each other fact: one that all its siblings accept, if
@@ -118,7 +120,7 @@ export function boundaryDrafts(
       },
     );
 
-    return [threshold - STEP, threshold, threshold + STEP]
+    const drafts = [threshold - STEP, threshold, threshold + STEP]
       .filter((value) => value >= 0 || (fact.neutral as number) < 0)
       .map((value) => ({
         targetRuleIds: [rule.id],
@@ -131,5 +133,15 @@ export function boundaryDrafts(
           .map((changed) => inWords(changed.fact, changed.value))
           .join('; '),
       }));
-  });
+
+    if (drafts.length === 0) continue;
+    const key = JSON.stringify(drafts.map((draft) => draft.facts));
+    const shared = trios.get(key);
+    if (!shared) {
+      trios.set(key, drafts);
+    } else if (!shared[0]?.targetRuleIds.includes(rule.id)) {
+      for (const draft of shared) draft.targetRuleIds.push(rule.id);
+    }
+  }
+  return [...trios.values()].slice(0, MAX_THRESHOLDS).flat();
 }
