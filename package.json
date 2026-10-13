@@ -28,7 +28,6 @@
     "dev:api": "turbo run dev --filter=api",
     "dev:dashboard": "turbo run dev --filter=dashboard",
     "build:web": "turbo run build --filter=web",
-    "build:api": "turbo run build --filter=api",
     "build:dashboard": "turbo run build --filter=dashboard",
     "prepare": "husky install",
     "commitlint": "commitlint --edit",
