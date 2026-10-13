@@ -14,7 +14,7 @@ This document says **what the system does** from the outside. How it is built is
 | Term           | Meaning                                                                                                                                                 |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Document       | The policy or contract the user uploads.                                                                                                                |
-| Document type  | `insurance`, `loan`, `employment`, `nda`, `lease`, or `other`.                                                                                          |
+| Document type  | `insurance`, `loan`, `employment`, `nda`, `lease`, `terms`, or `other`.                                                                                 |
 | Pack           | Scenario seeds and expectation hints for one document type. `other` uses the general pack.                                                              |
 | User's role    | The party the user is in the document (insured, borrower, employee, receiving party, tenant, …). Everything is judged from this side.                   |
 | Clause         | One numbered or otherwise separable piece of wording, with its page.                                                                                    |
@@ -85,7 +85,7 @@ Each requirement has an ID used by the TSD and by tests.
 | F-READ-2 | The system detects document type, title, the named parties and their roles, jurisdiction (from the governing-law clause, else from other evidence) and document language.                   |
 | F-READ-3 | Before the run continues, the user confirms or changes the document type and jurisdiction, and selects which party they are.                                                                |
 | F-READ-4 | If the upload is not a policy or contract (for example a letter, an invoice, a photo of something else), the run stops with a clear message and nothing is counted against the daily limit. |
-| F-READ-5 | A policy or contract that is not one of the five tuned types is analysed with the general pack, and its report is labelled "general analysis".                                              |
+| F-READ-5 | A policy or contract that is not one of the six tuned types is analysed with the general pack, and its report is labelled "general analysis".                                               |
 | F-READ-6 | A jurisdiction other than Indonesia, Singapore or Australia does not stop the run. The legal comparison is skipped and the report says so.                                                  |
 | F-READ-7 | Documents in any language are accepted. The report is always written in English; quoted clauses stay in the original language with an English gloss.                                        |
 | F-READ-8 | If pages are unreadable (blurred, cut off), the system says which pages and continues with the rest; the report carries a visible "incomplete document" warning.                            |
@@ -232,8 +232,8 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
    citation quote appears in the stored page text.
 4. **Three countries.** One real document each from ID, SG and AU produces a report with at
    least one legal finding that has a verified citation.
-5. **Five packs.** One real document each for insurance, loan, employment, NDA and lease
-   completes without `failed` and produces at least one trap a human reviewer agrees with.
+5. **Six packs.** One real document each for insurance, loan, employment, NDA, lease and
+   terms and conditions completes without `failed` and produces at least one trap a human reviewer agrees with.
 6. **General pack.** A document of another kind (for example a gym membership agreement)
    completes and is labelled "general analysis".
 7. **Role matters.** The same NDA analysed once as the disclosing party and once as the

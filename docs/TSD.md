@@ -214,7 +214,7 @@ exist (so the UI updates live).
   separate OCR service).
 - Output (structured): `meta` (including `isPolicyOrContract`, parties with roles) and `Clause[]`.
 - Post-check in code: clause text non-empty; pages within range; `rejected` if
-  `isPolicyOrContract` is false (F-READ-4). `docType` outside the five tuned types → `other`.
+  `isPolicyOrContract` is false (F-READ-4). `docType` outside the six tuned types → `other`.
 - Very long documents: process in page windows of 40. The windows are joined before the
   post-check, which numbers the clauses, so IDs are unique without an offset.
 - The page count comes from the files (PDF page tree, or the number of images), not from
