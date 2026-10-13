@@ -12,6 +12,8 @@ import {
   Rule,
   RuleDraft,
   Scenario,
+  StoredScenario,
+  Strategy,
   Trap,
 } from './index.js';
 
@@ -293,4 +295,46 @@ test('an analysis carries its facts and counts once the rules are read', () => {
   expect(
     Analysis.parse({ ...analysis, counts: { clauses: 12 } }).counts,
   ).toEqual({ clauses: 12 });
+});
+
+test('a stored scenario has its outcome once it was run', () => {
+  const scenario = {
+    id: 's-001',
+    story:
+      'You are admitted with dengue fever three weeks after you bought the policy.',
+    strategy: 'boundary',
+    frequency: 'common',
+    targetRuleIds: ['r-002'],
+    stake: 8000000,
+    facts: { daysSinceStart: 21 },
+  };
+  const outcome = {
+    scenarioId: 's-001',
+    result: 'bad',
+    stake: 8000000,
+    loss: 8000000,
+    decidingRuleId: 'r-002',
+    trace: [{ ruleId: 'r-002', fact: 'daysSinceStart', note: 'Excluded' }],
+  };
+
+  expect(StoredScenario.parse(scenario).outcome).toBeUndefined();
+  expect(StoredScenario.parse({ ...scenario, outcome }).outcome).toEqual(
+    outcome,
+  );
+  expect(Strategy.options).toContain(scenario.strategy);
+});
+
+test('an analysis counts its scenarios by result', () => {
+  const counts = {
+    clauses: 21,
+    rules: 18,
+    scenarios: 30,
+    fine: 9,
+    partlyBad: 6,
+    bad: 13,
+    undetermined: 2,
+  };
+  const analysis = { ownerUid: 'alice', status: 'comparing', meta: null };
+
+  expect(Analysis.parse({ ...analysis, counts }).counts).toEqual(counts);
 });
