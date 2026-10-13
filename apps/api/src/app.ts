@@ -31,7 +31,10 @@ app.use(async (c, next) => {
 
   try {
     c.set('uid', (await auth.verifyIdToken(token)).uid);
-  } catch {
+  } catch (err) {
+    // The code only: the message can quote the token. A code other than a
+    // bad or expired token points at our own setup, such as the project ID.
+    console.warn(`token rejected: ${(err as { code?: string }).code}`);
     return c.json(unauthenticated, 401);
   }
   await next();

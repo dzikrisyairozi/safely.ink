@@ -4,7 +4,11 @@ import { app } from './app';
 vi.mock('./firebase', () => ({
   auth: {
     verifyIdToken: async (token: string) => {
-      if (token !== 'valid-token') throw new Error('token rejected');
+      if (token !== 'valid-token') {
+        throw Object.assign(new Error(`cannot decode ${token}`), {
+          code: 'auth/argument-error',
+        });
+      }
       return { uid: 'alice' };
     },
   },
@@ -46,6 +50,20 @@ test('an unknown route is also 401 without a token', async () => {
   const res = await app.request('/v1/nothing-here');
 
   expect(res.status).toBe(401);
+});
+
+test('a rejected token is logged by reason, never by value', async () => {
+  const logged = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+  await app.request('/v1/whoami', {
+    headers: { Authorization: 'Bearer forged' },
+  });
+
+  expect(logged).toHaveBeenCalledWith(
+    expect.stringContaining('auth/argument-error'),
+  );
+  expect(JSON.stringify(logged.mock.calls)).not.toContain('forged');
+  logged.mockRestore();
 });
 
 test('a valid token reaches the route with the caller uid', async () => {
