@@ -88,3 +88,21 @@ test('a model that does not answer in time is an error, not a wait', async () =>
   vi.useRealTimers();
   model.hangs = false;
 });
+
+test('the repair gives up sooner than the rule writer, so the request still ends in time', async () => {
+  vi.useFakeTimers();
+  model.hangs = true;
+
+  const call = repairRules([], [], factSchema, document);
+  const failed = expect(call).rejects.toThrow(/did not answer/);
+  await vi.advanceTimersByTimeAsync(
+    config.limits.modelCallSeconds.repair * 1000,
+  );
+
+  await failed;
+  expect(config.limits.modelCallSeconds.repair).toBeLessThan(
+    config.limits.modelCallSeconds.rules,
+  );
+  vi.useRealTimers();
+  model.hangs = false;
+});

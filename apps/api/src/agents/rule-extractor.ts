@@ -103,8 +103,12 @@ effect:
 - charge: type "charge", with either amount or percent in the same way.
 - unmodeled: null.
 
-touches: the fact keys the rule depends on. For an unmodeled rule, the facts
-whose value would make the clause matter.
+touches: the fact keys the rule depends on. For an unmodeled rule, only the
+facts that are about that clause and nothing else, such as "treatment was
+judged medically necessary". A situation in which one of them is not neutral
+is reported as one nobody can decide. So never list a fact that differs from
+its neutral value in most situations, such as the days since the start or
+the amount claimed. If no fact is about that clause alone, touches is empty.
 
 Every fact in the message has a neutral value: its value in an uneventful
 situation, in which nothing goes against the user. A rule of any kind other
@@ -115,6 +119,17 @@ Use unmodeled when the clause depends on someone's discretion or on a vague
 term ("as determined by us", "reasonable", "at our sole discretion"), or when
 the facts in the message cannot express it. Then when is null and effect is
 null. Do not invent a condition for such a clause, and do not leave it out.
+
+A clause that states a fixed amount, a percentage or a number of days is not
+vague. Write it as a rule:
+- An amount the user always pays first (a deductible, an excess) is a limit
+  with effect "deduct" and that amount. Its condition is that there is
+  something to pay, such as the amount claimed being above 0.
+- A most that is paid (an annual limit, a sub-limit) is a limit with effect
+  "cap" and that amount. Its condition is the amount being above it.
+- Money that is not returned or must be paid in a named situation is a
+  charge, or a condition with effect "deny", whose condition is that
+  situation.
 
 Write one rule for each separate consequence. A clause can give several
 rules, and a rule can cite several clauses. Skip a clause that neither gives
@@ -204,6 +219,7 @@ async function ask(
   list: 'facts' | 'rules',
   entry: z.ZodType,
   message: object,
+  seconds: number,
 ): Promise<unknown[]> {
   const answer = await runAgent({
     name,
@@ -212,7 +228,7 @@ async function ask(
     schema: z.object({ [list]: z.array(entry) }),
     accept: z.object({ [list]: z.array(z.unknown()) }),
     parts: [{ text: JSON.stringify(message) }],
-    seconds: config.limits.modelCallSeconds.rules,
+    seconds,
   });
   return answer[list]!;
 }
@@ -223,11 +239,18 @@ export const proposeFacts = (
   pack: Pack,
   document: Document,
 ): Promise<unknown[]> =>
-  ask('fact_finder', FACTS_INSTRUCTION, 'facts', Fact, {
-    ...about(document),
-    factsThatUsuallyMatter: pack.facts,
-    clauses: wording(clauses),
-  });
+  ask(
+    'fact_finder',
+    FACTS_INSTRUCTION,
+    'facts',
+    Fact,
+    {
+      ...about(document),
+      factsThatUsuallyMatter: pack.facts,
+      clauses: wording(clauses),
+    },
+    config.limits.modelCallSeconds.facts,
+  );
 
 /** Call 2: rules over the fact schema. Unchecked. */
 export const proposeRules = (
@@ -235,11 +258,18 @@ export const proposeRules = (
   factSchema: FactSchema,
   document: Document,
 ): Promise<unknown[]> =>
-  ask('rule_writer', RULES_INSTRUCTION, 'rules', proposedRule, {
-    ...about(document),
-    facts: factSchema,
-    clauses: wording(clauses),
-  });
+  ask(
+    'rule_writer',
+    RULES_INSTRUCTION,
+    'rules',
+    proposedRule,
+    {
+      ...about(document),
+      facts: factSchema,
+      clauses: wording(clauses),
+    },
+    config.limits.modelCallSeconds.rules,
+  );
 
 const Answered = z.looseObject({ id: z.string() });
 
@@ -265,6 +295,7 @@ export async function repairRules(
         reasons: issues,
       })),
     },
+    config.limits.modelCallSeconds.repair,
   );
   // An entry that does not say which rule it corrects is of no use.
   return rules.flatMap((entry) => {

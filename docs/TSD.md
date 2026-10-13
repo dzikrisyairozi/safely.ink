@@ -251,6 +251,13 @@ is what is stored. After `running` the analysis waits at `comparing`.
 - The answer to each call only has to be a list. Every fact and every rule in it is
   checked on its own, so one entry that does not fit does not cost the others. A fact key
   must be a camelCase name, and at most 35 proposed facts are kept.
+- Time limits per call: facts 100 s, rules 240 s, repair 120 s. With the fuzzer's 90 s
+  the confirm request ends within 550 s.
+- An `unmodeled` rule lists in `touches` only facts about that clause alone, and none
+  when there is no such fact: stage 4 of `evaluate()` answers `undetermined` as soon as
+  one touched fact is not neutral. A clause with a fixed amount, percentage or number of
+  days is written as a rule (a deductible as `deduct`, an annual limit as `cap`), not as
+  `unmodeled`.
 - A rule of a kind other than `benefit` whose condition is true when every fact has its
   neutral value is invalid: it would make every scenario end badly.
 
