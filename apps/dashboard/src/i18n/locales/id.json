@@ -66,7 +66,76 @@
   },
   "newAnalysis": {
     "title": "Periksa dokumen",
-    "subtitle": "Unggah polis atau kontrak, lalu safely.ink akan mengujinya dengan berbagai skenario sulit.",
-    "comingSoon": "Fitur unggah belum tersedia."
+    "subtitle": "Unggah polis atau kontrak, lalu safely.ink akan mengujinya dengan berbagai skenario sulit."
+  },
+  "upload": {
+    "choose": "Pilih PDF atau foto halaman, atau letakkan di sini",
+    "limits": "Satu PDF, atau 1 sampai 30 gambar (JPEG, PNG, WebP, HEIC). Maksimal 30 MB dan 100 halaman.",
+    "pages": "Halaman, sesuai urutan baca",
+    "moveUp": "Naikkan {{name}}",
+    "moveDown": "Turunkan {{name}}",
+    "remove": "Hapus {{name}}",
+    "notices": {
+      "notLegalAdvice": "safely.ink bukan nasihat hukum. Kami menunjukkan di mana isi dokumen bisa merugikan Anda; pengacara yang menentukan artinya bagi Anda.",
+      "data": "Dokumen Anda hanya dapat dilihat oleh akun Anda. Berkas yang diunggah dihapus setelah 7 hari."
+    },
+    "start": "Periksa dokumen ini",
+    "reading": "Membaca dokumen Anda…",
+    "readingHint": "Ini bisa memakan waktu satu atau dua menit. Biarkan halaman ini terbuka.",
+    "errors": {
+      "unsupported_type": "Jenis berkas itu tidak didukung. Unggah satu PDF, atau gambar JPEG, PNG, WebP atau HEIC.",
+      "mixed_input": "Unggah satu PDF atau foto halaman, jangan keduanya.",
+      "too_many_files": "Anda dapat mengunggah hingga 30 gambar. Unggah dokumen utamanya saja.",
+      "too_large": "Unggahan melebihi 30 MB. Unggah dokumen utamanya saja.",
+      "too_many_pages": "Dokumen ini lebih dari 100 halaman. Unggah dokumen utamanya saja.",
+      "file_missing": "Salah satu berkas gagal diunggah. Silakan coba lagi.",
+      "daily_limit": "Anda dapat memeriksa 10 dokumen per hari. Batas ini diatur ulang pada {{resetAt}}.",
+      "failed": "Unggahan tidak berhasil. Periksa koneksi Anda lalu coba lagi."
+    }
+  },
+  "analysis": {
+    "uploadAgain": "Unggah lagi",
+    "uploadAnother": "Unggah dokumen lain",
+    "reading": {
+      "title": "Membaca dokumen Anda",
+      "description": "Kami sedang mencari pasal dan rinciannya. Halaman ini diperbarui dengan sendirinya."
+    },
+    "rejected": {
+      "title": "Bukan polis atau kontrak",
+      "description": "Ini tidak tampak seperti polis atau kontrak. safely.ink memeriksa dokumen yang mengatur hak dan kewajiban antara Anda dan pihak lain."
+    },
+    "failed": {
+      "title": "Pembacaan tidak selesai",
+      "description": "Terjadi kesalahan saat membaca dokumen. Tidak ada yang hilang di sisi Anda; silakan unggah lagi."
+    },
+    "unreadable": {
+      "title": "Beberapa halaman tidak terbaca",
+      "description": "Halaman {{pages}} buram, terpotong atau terlalu gelap. Anda dapat melanjutkan dengan sisanya, dan laporan akan ditandai tidak lengkap."
+    },
+    "confirm": {
+      "eyebrow": "Periksa temuan kami sebelum melanjutkan",
+      "facts": "{{pages}} halaman · bahasa {{language}}",
+      "docType": "Jenis dokumen",
+      "jurisdiction": "Negara hukum yang berlaku",
+      "otherCountry": "Negara lain",
+      "generalAnalysis": "Jenis ini diperiksa dengan aturan umum, dan laporannya akan diberi label analisis umum.",
+      "lawSkipped": "Kami belum membandingkan dengan hukum {{country}}. Skenario tetap dijalankan; hanya perbandingan hukum yang dilewati.",
+      "yourRole": "Anda pihak yang mana?",
+      "rolePlaceholder": "Misalnya: penyewa",
+      "submit": "Rincian ini sudah benar",
+      "failed": "Rincian tidak dapat disimpan. Silakan coba lagi."
+    },
+    "docTypes": {
+      "insurance": "Polis asuransi",
+      "loan": "Perjanjian pinjaman",
+      "employment": "Kontrak kerja",
+      "nda": "Perjanjian kerahasiaan",
+      "lease": "Perjanjian sewa",
+      "other": "Jenis kontrak lain"
+    },
+    "confirmed": {
+      "title": "Rincian dikonfirmasi",
+      "description": "Terima kasih. Langkah analisis berikutnya belum tersedia."
+    }
   }
 }
