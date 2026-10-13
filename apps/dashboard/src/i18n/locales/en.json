@@ -138,5 +138,67 @@
       "title": "Details confirmed",
       "description": "Thank you. The next steps of the analysis are not available yet."
     }
+  },
+  "rules": {
+    "eyebrow": "How we read your document",
+    "back": "Back to the analysis",
+    "empty": "The rules of this document are not ready yet.",
+    "appliesWhen": "Applies when",
+    "clause": "Clause {{number}}",
+    "clauseUnnumbered": "Clause",
+    "page": "page {{page}}",
+    "kinds": {
+      "benefit": {
+        "title": "What you get",
+        "description": "Something the document gives you or lets you do."
+      },
+      "exclusion": {
+        "title": "When it does not apply",
+        "description": "Situations in which you do not get a benefit."
+      },
+      "condition": {
+        "title": "What you must have done",
+        "description": "If you have not, it counts against you."
+      },
+      "deadline": {
+        "title": "Time limits on you",
+        "description": "Miss one and it counts against you."
+      },
+      "limit": {
+        "title": "Caps and deductions",
+        "description": "What reduces the amount you get."
+      },
+      "charge": {
+        "title": "What you may have to pay",
+        "description": "Fees and penalties, and what triggers them."
+      },
+      "unmodeled": {
+        "title": "Read these yourself",
+        "description": "These clauses matter, but they depend on a judgement or on vague wording, so we cannot test them. Read the clause."
+      }
+    },
+    "join": {
+      "all": "All of these:",
+      "any": "Any of these:",
+      "not": "Not this:"
+    },
+    "op": {
+      "eq": "{{value}}",
+      "ne": "not {{value}}",
+      "lt": "less than {{value}}",
+      "lte": "{{value}} or less",
+      "gt": "more than {{value}}",
+      "gte": "{{value}} or more",
+      "in": "one of: {{value}}"
+    },
+    "yes": "yes",
+    "no": "no",
+    "facts": {
+      "title": "The facts we look at",
+      "description": "Every rule above is written with these facts. Each test situation gives every one of them a value."
+    },
+    "clauses": {
+      "title": "The clauses"
+    }
   }
 }
