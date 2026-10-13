@@ -4,6 +4,7 @@ import proposedFacts from '../../test/fixtures/rules-facts.json';
 import proposedRules from '../../test/fixtures/rules-rules.json';
 import {
   BASE_FACTS,
+  MAX_FACTS,
   checkFacts,
   checkRules,
   demote,
@@ -141,4 +142,30 @@ test('nothing is kept of an entry with no summary or no real clause', () => {
 
   expect(demote({ id: 'r-1', draft: 'text' }, clauses, factSchema)).toBeNull();
   expect(demote({ id: 'r-2', draft: orphan }, clauses, factSchema)).toBeNull();
+});
+
+test('a fact whose key is not a plain camelCase name is dropped', () => {
+  const named = (key: string) => ({ ...facts[0]!, key });
+
+  const kept = checkFacts(
+    ['refund.days', '__proto__', 'Refund', 'refund days', 'refundDays2'].map(
+      named,
+    ),
+  );
+
+  expect(kept.slice(BASE_FACTS.length).map((fact) => fact.key)).toEqual([
+    'refundDays2',
+  ]);
+});
+
+test('no more facts are kept than the model was asked for', () => {
+  const many = Array.from({ length: MAX_FACTS + 5 }, (_, n) => ({
+    ...facts[0]!,
+    key: `fact${n}`,
+  }));
+
+  const kept = checkFacts(many).slice(BASE_FACTS.length);
+
+  expect(kept).toHaveLength(MAX_FACTS);
+  expect(kept.at(-1)!.key).toBe(`fact${MAX_FACTS - 1}`);
 });

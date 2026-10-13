@@ -52,6 +52,12 @@ export const BASE_FACTS: FactSchema = [
   },
 ];
 
+// The model is asked for no more facts than this, and no more are kept.
+export const MAX_FACTS = 35;
+// A fact key becomes a field name of every scenario, and it comes from a
+// model that read an untrusted document.
+const FACT_KEY = /^[a-z][A-Za-z0-9]*$/;
+
 /**
  * The fact schema of a document: the base facts, then the facts the model
  * proposed that fit their own definition. Pure, like everything here.
@@ -61,11 +67,15 @@ export function checkFacts(proposed: unknown[]): FactSchema {
   const own = proposed.flatMap((entry) => {
     const fact = Fact.safeParse(entry);
     if (!fact.success || taken.has(fact.data.key)) return [];
+    if (!FACT_KEY.test(fact.data.key)) return [];
     taken.add(fact.data.key);
     return [fact.data];
   });
   const broken = new Set(validateFactSchema(own).map((issue) => issue.id));
-  return [...BASE_FACTS, ...own.filter((fact) => !broken.has(fact.key))];
+  return [
+    ...BASE_FACTS,
+    ...own.filter((fact) => !broken.has(fact.key)).slice(0, MAX_FACTS),
+  ];
 }
 
 // A rule as the model returned it, under the ID that code gave it.

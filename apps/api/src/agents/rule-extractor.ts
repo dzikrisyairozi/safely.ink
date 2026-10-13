@@ -10,6 +10,7 @@ import { config } from '../config';
 import type { Pack } from '../packs';
 import {
   BASE_FACTS,
+  MAX_FACTS,
   type Invalid,
   type Proposal,
 } from '../pipeline/rule-check';
@@ -47,7 +48,7 @@ These facts already exist. Do not return them, and do not return another fact
 with the same meaning:
 ${BASE_FACTS.map((fact) => `- ${fact.key}: ${fact.description}`).join('\n')}
 
-Return at most 35 facts, and only facts that a clause of this document
+Return at most ${MAX_FACTS} facts, and only facts that a clause of this document
 depends on. Cover every clause that grants something, excludes,
 limits, charges, or sets a deadline or a condition. The message lists facts
 that usually matter in this kind of document; use the ones this document
