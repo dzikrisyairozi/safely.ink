@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ScoreWeights } from './engine/score';
 
 const Env = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
@@ -45,6 +46,34 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       SG: ['sso.agc.gov.sg', 'mas.gov.sg', 'mom.gov.sg'],
       AU: ['legislation.gov.au', 'asic.gov.au', 'fairwork.gov.au'],
     },
+
+    // Severity, grade and confidence numbers of TSD 5.7. A first guess, kept
+    // here so they can be tuned against real documents.
+    scoring: {
+      lossBands: [
+        { from: 0.8, value: 3 },
+        { from: 0.3, value: 2 },
+        { from: 0, value: 1 },
+      ],
+      lossWithoutStake: 3,
+      frequency: { common: 2, occasional: 1, rare: 0 },
+      law: { conflicts: 3, restricted: 2, permitted: 0, no_finding: 0 },
+      severityBands: [
+        { from: 6, value: 'critical' },
+        { from: 4, value: 'high' },
+        { from: 2, value: 'medium' },
+        { from: 0, value: 'low' },
+      ],
+      penalty: { critical: 20, high: 10, medium: 5, low: 2 },
+      gradeBands: [
+        { from: 90, value: 'A' },
+        { from: 75, value: 'B' },
+        { from: 60, value: 'C' },
+        { from: 40, value: 'D' },
+        { from: 0, value: 'F' },
+      ],
+      undeterminedShare: { high: 0.1, medium: 0.25 },
+    } satisfies ScoreWeights,
   });
 }
 
