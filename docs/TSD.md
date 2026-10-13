@@ -150,7 +150,7 @@ its own is written.
 
 ```
 analyses/{analysisId}
-  ownerUid, status, stage, error?, createdAt, updatedAt
+  ownerUid, status, stage, error?, createdAt, reservedAt, updatedAt
   meta: { docType, title, parties[], userRole, jurisdiction, lawChecked, language,
           pageCount, unreadablePages[] }
   factSchema: Fact[]
@@ -210,7 +210,7 @@ Request bodies are validated with the shared Zod schemas.
 `pipeline.ts` runs the stages in order, writes `status`, `stage` and `counts` to the
 analysis document after each step, and writes sub-collection documents as soon as they
 exist (so the UI updates live). A stage that throws sets `failed` with the stage name and
-gives back the daily slot of the day the analysis was created.
+gives back the daily slot of the day it was taken on (`reservedAt`).
 
 ### 5.1 Reader (agent, Pro)
 

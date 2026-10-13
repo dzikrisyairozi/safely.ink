@@ -257,6 +257,14 @@ const confirmation = {
 const confirm = (uid: string, analysisId: string, body = confirmation) =>
   post(`/v1/analyses/${analysisId}/confirm`, uid, body);
 
+test('a new analysis records when its daily slot was taken', async () => {
+  await create('alice', 'analysis-1');
+
+  const { reservedAt } = (await stored('analysis-1'))!;
+
+  expect(Date.now() - reservedAt.toDate().getTime()).toBeLessThan(60_000);
+});
+
 test('the owner confirms the details and the rules are derived', async () => {
   await create('alice', 'analysis-1');
 

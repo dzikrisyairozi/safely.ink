@@ -122,9 +122,11 @@ export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
           updatedAt: updatedAt(),
         })
         .catch(console.error);
-      // A failed run does not count against the day it was started on
-      // (F-LIVE-4), also when the status itself could not be stored.
-      await releaseDailySlot(data.ownerUid, data.createdAt.toDate());
+      // A failed run does not count against the day its slot was taken on
+      // (F-LIVE-4), also when the status itself could not be stored. An
+      // analysis from before reservedAt existed has only createdAt.
+      const reserved = data.reservedAt ?? data.createdAt;
+      await releaseDailySlot(data.ownerUid, reserved.toDate());
       return 'failed';
     }
   }

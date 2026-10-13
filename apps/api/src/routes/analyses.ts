@@ -72,6 +72,8 @@ analyses.post('/', async (c) => {
       ownerUid: uid,
       status: 'reading',
       meta: null,
+      // The day the slot counts against; a later stage gives that day back.
+      reservedAt: now,
       createdAt: updatedAt,
       updatedAt,
     });

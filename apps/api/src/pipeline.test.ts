@@ -210,3 +210,19 @@ test.each([
     ]);
   },
 );
+
+test('the slot is given back for the day it was taken, not the day of creation', async () => {
+  // Reserved just before midnight UTC, created just after.
+  await analysis.update({
+    reservedAt: Timestamp.fromDate(new Date('2026-10-11T23:59:59Z')),
+  });
+  await db.doc('users/alice/usage/2026-10-11').set({ started: 1, attempts: 1 });
+  rules.mockRejectedValue(new Error('model unavailable'));
+
+  await runPipeline('analysis-1');
+
+  const started = async (day: string) =>
+    (await db.doc(`users/alice/usage/${day}`).get()).data()?.started;
+  expect(await started('2026-10-11')).toBe(0);
+  expect(await started('2026-10-12')).toBe(1);
+});
