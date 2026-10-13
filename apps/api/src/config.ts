@@ -42,9 +42,9 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       // take what is left of confirmSeconds, between fuzz and fuzzMost: the
       // earlier calls seldom use their whole limit, and at 90 s the baseline
       // call did not answer in 1 run of 3.
-      // Measured on the 24-clause demo policy (2026-10-13): facts 66 to 78 s, rules
-      // 112 s to over 150 s, a fuzzer call 55 to 60 s. A repair of two rules
-      // did not answer in 60 s.
+      // Measured on the demo policy, whose 21 numbered clauses the Reader gives
+      // as 24 (2026-10-13): facts 66 to 78 s, rules 112 s to over 150 s, a
+      // fuzzer call 55 to 60 s. A repair of two rules did not answer in 60 s.
       modelCallSeconds: {
         read: 540,
         facts: 100,

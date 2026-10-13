@@ -7,6 +7,7 @@ import {
   Scenario,
   Strategy,
   type AnalysisStatus,
+  type Outcome,
 } from '@repo/api-types';
 import {
   proposeFacts,
@@ -207,7 +208,7 @@ async function runScenarios(analysis: DocumentReference) {
   }));
   await saveAll(analysis, 'scenarios', ran, true);
 
-  const count = (result: (typeof ran)[number]['outcome']['result']) =>
+  const count = (result: Outcome['result']) =>
     ran.filter(({ outcome }) => outcome.result === result).length;
   await analysis.update({
     'counts.fine': count('fine'),

@@ -270,7 +270,7 @@ is what is stored. After `running` the analysis waits at `comparing`.
 
 - Six calls side by side, none with a tool. Five return whole scenarios, one per
   strategy (baseline, overlap, definition, procedure, combination). Input: rules (ID,
-  kind, summary, condition), fact schema, the pack's seeds for that strategy, the user's
+  kind, summary, condition, the facts each touches), fact schema, the pack's seeds for that strategy, the user's
   role. The output schema is built from the fact schema of the document, so the model is
   asked for a value for every fact by name and type.
 - Boundary scenarios are built in code (`pipeline/boundary.ts`): for a rule

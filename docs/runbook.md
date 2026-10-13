@@ -110,6 +110,10 @@ The API verifies ID tokens with the project ID alone, so no service-account key 
 needed on a developer machine. `pnpm test` needs Java 21 (see CONTRIBUTING for the
 Windows `PATH` note).
 
+To try a whole run by hand, upload `apps/api/test/fixtures/demo-policy.pdf`, a made-up
+health policy. No test reads it. Its source is `demo-policy.md` next to it: when the
+wording changes, make the PDF again from that file, with text that can be selected.
+
 ## 3. Deploy
 
 Sign in once: `pnpm exec firebase login`.

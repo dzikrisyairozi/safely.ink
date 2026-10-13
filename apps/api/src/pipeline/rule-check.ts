@@ -94,7 +94,7 @@ const real = (clauseIds: string[], clauses: Clause[]) =>
   clauseIds.filter((id) => clauses.some((clause) => clause.id === id));
 
 // The kinds that end a scenario as bad on their own (TSD 5.4, stages 2, 3).
-const DENIES = ['exclusion', 'condition', 'deadline'];
+const DENIES: Rule['kind'][] = ['exclusion', 'condition', 'deadline'];
 
 /**
  * Sorts proposed rules into those that can be stored and those to send back
