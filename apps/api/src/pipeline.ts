@@ -1,10 +1,19 @@
 import { FieldValue, type DocumentReference } from 'firebase-admin/firestore';
-import { AnalysisMeta, Clause, type AnalysisStatus } from '@repo/api-types';
+import {
+  AnalysisMeta,
+  Clause,
+  FactSchema,
+  Rule,
+  Scenario,
+  type AnalysisStatus,
+} from '@repo/api-types';
 import {
   proposeFacts,
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { evaluate } from './engine/evaluate';
+import { validateScenarios } from './engine/validate';
 import { db } from './firebase';
 import { packFor } from './packs';
 import {
@@ -88,15 +97,56 @@ async function extractRules(analysis: DocumentReference, meta: AnalysisMeta) {
   });
 }
 
+// Rules in the order of their IDs, which is the order evaluate() decides in.
+const storedRules = async (analysis: DocumentReference) =>
+  (await analysis.collection('rules').get()).docs.map((doc) =>
+    Rule.parse(doc.data()),
+  );
+
+// The outcome of every scenario is decided here, by code (F-RUN-2). It works
+// from what is stored, so running it again on the same analysis gives the
+// same result.
+async function runScenarios(analysis: DocumentReference) {
+  const rules = await storedRules(analysis);
+  const factSchema = FactSchema.parse(
+    (await analysis.get()).data()!.factSchema,
+  );
+  const scenarios = (await analysis.collection('scenarios').get()).docs.map(
+    (doc) => Scenario.parse(doc.data()),
+  );
+  const [issue] = validateScenarios(scenarios, rules, factSchema);
+  if (issue) throw new Error(`Scenario ${issue.id}: ${issue.message}`);
+
+  const ran = scenarios.map((scenario) => ({
+    ...scenario,
+    outcome: evaluate(rules, factSchema, scenario),
+  }));
+  await saveAll(analysis, 'scenarios', ran);
+
+  const count = (result: (typeof ran)[number]['outcome']['result']) =>
+    ran.filter(({ outcome }) => outcome.result === result).length;
+  await analysis.update({
+    'counts.fine': count('fine'),
+    'counts.partlyBad': count('partly_bad'),
+    'counts.bad': count('bad'),
+    'counts.undetermined': count('undetermined'),
+    updatedAt: updatedAt(),
+  });
+}
+
 type Stage = {
   status: AnalysisStatus;
   run: (analysis: DocumentReference, meta: AnalysisMeta) => Promise<void>;
+  // The status when the stage is done: the next stage, or where the
+  // analysis waits for a stage that is not built yet.
+  next: AnalysisStatus;
 };
 
-// In the order they run. A later milestone adds its stage to the end.
-const STAGES: Stage[] = [{ status: 'extracting_rules', run: extractRules }];
-// Where an analysis waits when every stage built so far is done.
-const AFTER_STAGES: AnalysisStatus = 'fuzzing';
+// In the order they run.
+const STAGES: Stage[] = [
+  { status: 'extracting_rules', run: extractRules, next: 'fuzzing' },
+  { status: 'running', run: runScenarios, next: 'comparing' },
+];
 
 /**
  * Runs the stages from the current status of the analysis on, and writes
@@ -107,11 +157,11 @@ export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
   const data = (await analysis.get()).data()!;
   let status: AnalysisStatus = data.status;
 
-  for (const [n, stage] of STAGES.entries()) {
+  for (const stage of STAGES) {
     if (stage.status !== status) continue;
     try {
       await stage.run(analysis, AnalysisMeta.parse(data.meta));
-      status = STAGES[n + 1]?.status ?? AFTER_STAGES;
+      status = stage.next;
       await analysis.update({ status, updatedAt: updatedAt() });
     } catch (err) {
       console.error(err);

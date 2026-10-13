@@ -1,6 +1,6 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import { Timestamp } from 'firebase-admin/firestore';
-import type { Fact } from '@repo/api-types';
+import { FactSchema, Rule, StoredScenario, type Fact } from '@repo/api-types';
 import proposedFacts from '../test/fixtures/rules-facts.json';
 import proposedRules from '../test/fixtures/rules-rules.json';
 import {
@@ -8,6 +8,7 @@ import {
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { evaluate } from './engine/evaluate';
 import { db } from './firebase';
 import { runPipeline } from './pipeline';
 import { BASE_FACTS } from './pipeline/rule-check';
@@ -225,4 +226,94 @@ test('the slot is given back for the day it was taken, not the day of creation',
     (await db.doc(`users/alice/usage/${day}`).get()).data()?.started;
   expect(await started('2026-10-11')).toBe(0);
   expect(await started('2026-10-12')).toBe(1);
+});
+
+// From here on the analysis has its rules, and scenarios wait to be run.
+const factSchema = [...BASE_FACTS, ...(proposedFacts.facts as Fact[])];
+const uneventful = Object.fromEntries(
+  factSchema.map((fact) => [fact.key, fact.neutral]),
+);
+const scenario = (id: string, targetRuleId: string, facts: object) => ({
+  id,
+  story: 'You are admitted to hospital for four days.',
+  strategy: 'overlap',
+  frequency: 'common',
+  targetRuleIds: [targetRuleId],
+  stake: 5_000_000,
+  facts: { ...uneventful, inpatientCost: 5_000_000, ...facts },
+});
+const waiting = [
+  scenario('s-001', 'r-001', { daysSinceStart: 200 }),
+  scenario('s-002', 'r-002', { claimIsForIllness: true, daysSinceStart: 10 }),
+  scenario('s-003', 'r-003', { treatmentPlace: 'abroad' }),
+];
+const storedScenarios = async () =>
+  (await analysis.collection('scenarios').get()).docs.map((doc) =>
+    StoredScenario.parse(doc.data()),
+  );
+
+async function readyToRun(
+  scenarios: ({ id: string } & Record<string, unknown>)[],
+) {
+  await analysis.update({ status: 'running', factSchema });
+  for (const [n, rule] of proposedRules.rules.entries()) {
+    const id = `r-00${n + 1}`;
+    await analysis
+      .collection('rules')
+      .doc(id)
+      .set({ ...rule, id });
+  }
+  for (const item of scenarios) {
+    await analysis.collection('scenarios').doc(item.id).set(item);
+  }
+}
+
+test('every scenario is run by code and gets one outcome with its trace', async () => {
+  await readyToRun(waiting);
+
+  expect(await runPipeline('analysis-1')).toBe('comparing');
+
+  expect(
+    (await storedScenarios()).map(({ id, outcome }) => [
+      id,
+      outcome?.result,
+      outcome?.decidingRuleId,
+      outcome?.loss,
+    ]),
+  ).toEqual([
+    ['s-001', 'fine', null, 0],
+    ['s-002', 'bad', 'r-002', 5_000_000],
+    ['s-003', 'undetermined', 'r-003', 0],
+  ]);
+  expect((await storedScenarios())[1]!.outcome!.trace).toContainEqual(
+    expect.objectContaining({ ruleId: 'r-002' }),
+  );
+  expect(await stored()).toMatchObject({
+    status: 'comparing',
+    counts: { clauses: 3, fine: 1, partlyBad: 0, bad: 1, undetermined: 1 },
+  });
+  expect(facts).not.toHaveBeenCalled();
+});
+
+test('running the stored rules and scenarios again gives the same outcomes', async () => {
+  await readyToRun(waiting);
+  await runPipeline('analysis-1');
+
+  const again = (await analysis.collection('rules').get()).docs.map((doc) =>
+    Rule.parse(doc.data()),
+  );
+  const schema = FactSchema.parse((await stored())!.factSchema);
+
+  for (const { outcome, ...ran } of await storedScenarios()) {
+    expect(evaluate(again, schema, ran)).toEqual(outcome);
+  }
+});
+
+test('a stored scenario that does not fit the facts fails the run, by name', async () => {
+  await readyToRun([{ ...waiting[0]!, facts: { inpatientCost: 5_000_000 } }]);
+
+  expect(await runPipeline('analysis-1')).toBe('failed');
+
+  expect(await stored()).toMatchObject({ status: 'failed', stage: 'running' });
+  expect(await startedOnCreationDay()).toBe(0);
 });
