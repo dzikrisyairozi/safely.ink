@@ -29,7 +29,7 @@ export default defineConfig([
         {
           patterns: [
             {
-              regex: '^(?!\\./|@repo/api-types$)',
+              regex: '^(?!\\./[^.]|@repo/api-types$)',
               message:
                 'engine/ may import only @repo/api-types and its own files.',
             },

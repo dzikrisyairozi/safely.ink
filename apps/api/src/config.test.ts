@@ -57,7 +57,14 @@ test('the scoring weights give the grade TSD 5.7 works out by hand', () => {
         'r-1': {
           status: 'restricted',
           reasoning: '',
-          citations: [],
+          citations: [
+            {
+              instrument: 'Insurance Act 1966',
+              section: 's 25(5)',
+              quote: 'An insurer may not rely on the term.',
+              url: 'https://example.com/insurance-act',
+            },
+          ],
           error: null,
         },
       },

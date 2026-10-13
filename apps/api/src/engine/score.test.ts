@@ -44,6 +44,13 @@ type Case = {
   law?: LegalFinding['status'];
 };
 
+const citation = {
+  instrument: 'Insurance Act 1966',
+  section: 's 25(5)',
+  quote: 'An insurer may not rely on the term.',
+  url: 'https://example.com/insurance-act',
+};
+
 // One scenario per case, numbered s-1, s-2, … in order.
 function input(cases: Case[], meta: Partial<ScoreInput['meta']> = {}) {
   const built: ScoreInput = {
@@ -83,7 +90,7 @@ function input(cases: Case[], meta: Partial<ScoreInput['meta']> = {}) {
       built.findings[c.rule] = {
         status: c.law,
         reasoning: '',
-        citations: [],
+        citations: c.law === 'no_finding' ? [] : [citation],
         error: null,
       };
     }
