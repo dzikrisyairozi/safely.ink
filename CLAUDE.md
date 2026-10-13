@@ -87,7 +87,6 @@ as complete until you have run:
 - `pnpm type-check` (TypeScript strict mode)
 - `pnpm lint` (ESLint across all packages)
 - `pnpm test` (full test suite)
-- For Rust changes: `cargo check && cargo clippy -- -D warnings && cargo test` inside `apps/api`
 
 If any of these fail, fix the errors before reporting completion. Never say
 "Done!" with errors outstanding. Ask yourself: "Would a staff engineer
@@ -272,6 +271,12 @@ modifying a shared package, verify downstream consumers still build:
 
 ## Project Reference
 
+Policy Police is a policy fuzzer: it reads a policy or contract, turns it into rules,
+generates tricky scenarios, runs them through a deterministic engine, and compares the
+outcomes with what a reasonable person expects and what the law allows. Product,
+functional and technical specifications are in `docs/PRD.md`, `docs/FSD.md` and
+`docs/TSD.md`. Read the relevant one before changing behaviour.
+
 ### Commands
 
 #### Root (runs across all workspaces via Turborepo)
@@ -280,103 +285,88 @@ modifying a shared package, verify downstream consumers still build:
 pnpm dev              # Start all apps
 pnpm build            # Build all packages
 pnpm lint             # Lint all packages
-pnpm lint:fix         # Auto-fix lint issues
+pnpm lint:check       # Lint with zero warnings allowed
 pnpm type-check       # TypeScript type checking
 pnpm format           # Format with Prettier
 pnpm format:check     # Check formatting
 pnpm check-all        # type-check + lint + format:check
 pnpm test             # Run tests for every workspace that defines one
-                       # (currently: apps/api, apps/dashboard, packages/ui —
-                       # apps/web and apps/docs have no test script yet, so
-                       # turbo silently skips them rather than failing)
+                       # (apps/api, apps/dashboard, packages/api-types,
+                       # packages/ui — apps/web has no test script, so turbo
+                       # skips it rather than failing)
 pnpm clean            # Clean build artifacts
 ```
+
+A workspace only takes part in a gate if it defines a script with that exact name.
 
 #### Per-app dev servers
 
 ```bash
-pnpm dev:web          # Next.js web → http://localhost:3000
-pnpm dev:api          # Rust API → http://localhost:3001
-pnpm dev:docs         # Docs → http://localhost:3002
-pnpm dev:dashboard    # Dashboard → http://localhost:5174
-```
-
-#### Rust API (run inside `apps/api`)
-
-```bash
-cargo test            # Run tests
-cargo test <name>     # Run a single test
-cargo clippy -- -D warnings   # Lint
-cargo check           # Fast compile check
-```
-
-#### Database (from root)
-
-```bash
-pnpm db:migrate       # Run migrations
-pnpm db:seed          # Seed database
-pnpm db:reset         # Reset database
-pnpm db:studio        # Open DB studio
-```
-
-#### TypeScript type generation from Rust
-
-```bash
-pnpm db:generate      # Regenerates @repo/api-types from Rust structs (via ts-rs)
+pnpm dev:web          # Next.js landing → http://localhost:3000
+pnpm dev:api          # TypeScript API  → http://localhost:3001
+pnpm dev:dashboard    # Product app     → http://localhost:5174
 ```
 
 ### Architecture
 
-This is a **Turborepo + pnpm workspaces** monorepo with four apps and six shared packages.
+This is a **Turborepo + pnpm workspaces** monorepo with three apps and six shared
+packages. Everything deploys to Google Cloud (hackathon requirement): the API on Cloud
+Run, the front ends on Firebase.
 
 #### Apps
 
 | App              | Tech                                               | Port |
 | ---------------- | -------------------------------------------------- | ---- |
 | `apps/web`       | Next.js 16, React 19, Three.js, Framer Motion      | 3000 |
-| `apps/api`       | Rust, Axum, SQLx, PostgreSQL                       | 3001 |
-| `apps/docs`      | Next.js 16, Fumadocs (MDX)                         | 3002 |
+| `apps/api`       | TypeScript, Hono, run with tsx (no compile step)   | 3001 |
 | `apps/dashboard` | Vite, React, TanStack Router, React Query, Zustand | 5174 |
 
 #### Shared Packages
 
 | Package                   | Purpose                                                           |
 | ------------------------- | ----------------------------------------------------------------- |
+| `@repo/api-types`         | Zod schemas and inferred types shared by API and dashboard        |
 | `@repo/ui`                | 40+ shadcn/ui components (Radix UI + Tailwind)                    |
 | `@repo/i18n`              | i18next config, provider, and locale files (English + Indonesian) |
-| `@repo/api-types`         | TypeScript types auto-generated from Rust via `ts-rs`             |
 | `@repo/tailwind-config`   | Shared Tailwind v4 theme and global CSS                           |
 | `@repo/eslint-config`     | ESLint configs: `base`, `next-js`, `react-internal`               |
 | `@repo/typescript-config` | TSConfigs: `base`, `nextjs`, `react-library`                      |
 
-#### Type Safety Pipeline (Rust → TypeScript)
-
-The Rust API uses `ts-rs` macros to derive TypeScript types from Rust structs. Running `pnpm db:generate` exports these to `@repo/api-types`, which all frontend apps consume. When modifying Rust API types, regenerate before updating frontend code.
-
 #### Key Design Patterns
 
+- **Types:** define a shape once as a Zod schema in `@repo/api-types` and infer the
+  TypeScript type from it. Do not redeclare the same shape in an app.
+- **Outcomes are decided by code, never by a model.** The engine in
+  `apps/api/src/engine` is pure functions with no I/O and no model calls. Models read
+  documents, propose rules and scenarios, and research law; they do not adjudicate.
+- **Evidence or silence:** a rule must reference a clause that exists; a legal citation
+  is shown only if its quote was found in the fetched source text.
 - **Frontend data fetching:** React Query for server state; Zustand for local/UI state
-- **Routing (dashboard):** TanStack Router (file-based, type-safe)
+- **Routing (dashboard):** TanStack Router (file-based, type-safe). `routeTree.gen.ts`
+  is regenerated only by `vite dev` / `vite build`, so run the dashboard build after
+  adding or removing a route and before `type-check`.
 - **Styling:** Tailwind CSS v4 shared via `@repo/tailwind-config`; components via `@repo/ui`
-- **i18n:** Wrap apps in the `@repo/i18n` provider; add translations to both `en` and `id` locale files
-- **API CORS:** Configured in Axum middleware; `NEXT_PUBLIC_API_URL` must be set in web `.env`
+- **i18n:** every UI string goes through `t()`; add keys to both `en` and `id` locale
+  files (the dashboard has a parity test that fails otherwise)
+- **Formatting:** Prettier with semicolons, single quotes, LF line endings
 
 #### Environment Variables
 
-API (`apps/api/.env`):
+API (`apps/api`):
 
 ```
-DATABASE_URL=postgresql://postgres:password@localhost:5432/monorepo_starter
-HOST=0.0.0.0
 PORT=3001
-RUST_LOG=api=debug,tower_http=debug,sqlx=warn
 ```
 
 Web (`apps/web/.env`):
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:5174
 ```
+
+Variables for Gemini, Firebase and Cloud Storage are listed in `docs/TSD.md` section 8
+and are added with the features that use them.
 
 ### Commit Convention
 

@@ -135,7 +135,7 @@ type Condition =
   | {
       fact: string;
       op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte' | 'in';
-      value: unknown;
+      value: number | boolean | string | string[];
     };
 
 export const Rule = z.object({
