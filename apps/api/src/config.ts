@@ -35,6 +35,10 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       analysesPerUserPerDay: 10,
       // Counts the runs whose slot was given back too, so those have a limit.
       attemptsPerUserPerDay: 30,
+      // How long one call to a model may take. Cloud Run ends a request after
+      // 600 s: the Reader's calls run side by side in one request, the three
+      // of the rules stage run one after the other.
+      modelCallSeconds: { read: 540, rules: 150 },
     },
 
     // Official legal sources per jurisdiction. `*` stands for one host label.

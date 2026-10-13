@@ -127,6 +127,7 @@ async function readWindow(
     instruction: INSTRUCTION,
     schema: ReaderOutput,
     parts: [...document, { text: request }],
+    seconds: config.limits.modelCallSeconds.read,
   });
   return withinWindow(reading, window);
 }

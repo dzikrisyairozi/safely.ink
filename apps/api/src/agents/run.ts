@@ -18,6 +18,7 @@ type Call<Schema extends z.ZodObject, Accept extends z.ZodType> = {
   // schema because the caller checks the rest itself.
   accept?: Accept;
   parts: Part[];
+  seconds: number; // how long to wait for the answer
 };
 
 /**
@@ -34,6 +35,7 @@ export async function runAgent<
   schema,
   accept,
   parts,
+  seconds,
 }: Call<Schema, Accept>): Promise<z.infer<Accept>> {
   const apiKey = config.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set.');
@@ -47,13 +49,29 @@ export async function runAgent<
   });
   const runner = new InMemoryRunner({ agent, appName: name });
 
-  let answer = '';
-  for await (const event of runner.runEphemeral({
-    userId: name,
-    newMessage: { role: 'user', parts },
-  })) {
-    if (isFinalResponse(event)) answer = stringifyContent(event);
-  }
+  const finalAnswer = async () => {
+    let text = '';
+    for await (const event of runner.runEphemeral({
+      userId: name,
+      newMessage: { role: 'user', parts },
+    })) {
+      if (isFinalResponse(event)) text = stringifyContent(event);
+    }
+    return text;
+  };
+  // A call that hangs must end inside the request, so the stage fails and
+  // the analysis is not left waiting (TSD 9). runEphemeral takes no abort
+  // signal: the call that lost is not cancelled, only no longer waited for.
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`The ${name} did not answer in ${seconds} s.`)),
+      seconds * 1000,
+    );
+  });
+  const answer = await Promise.race([finalAnswer(), timeout]).finally(() =>
+    clearTimeout(timer),
+  );
   // ADK can end with an empty answer and no error (ADR 3).
   if (!answer.trim()) throw new Error(`The ${name} returned an empty answer.`);
   return (accept ?? schema).parse(JSON.parse(answer)) as z.infer<Accept>;

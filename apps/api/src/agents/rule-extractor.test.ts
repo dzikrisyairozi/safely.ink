@@ -2,16 +2,18 @@ import { expect, test, vi } from 'vitest';
 import proposedFacts from '../../test/fixtures/rules-facts.json';
 import proposedRules from '../../test/fixtures/rules-rules.json';
 import { checkFacts } from '../pipeline/rule-check';
+import { config } from '../config';
 import { packFor } from '../packs';
 import { proposeFacts, proposeRules, repairRules } from './rule-extractor';
 
 // Only the model is replaced: it answers with whatever text a test gives it.
-const model = vi.hoisted(() => ({ answer: '' }));
+const model = vi.hoisted(() => ({ answer: '', hangs: false }));
 vi.mock('@google/adk', () => ({
   Gemini: class {},
   LlmAgent: class {},
   InMemoryRunner: class {
     async *runEphemeral() {
+      if (model.hangs) await new Promise(() => {});
       yield {};
     }
   },
@@ -70,4 +72,19 @@ test('an answer that is not a list of rules is an error', async () => {
   answers({ rules: 'none' });
 
   await expect(proposeRules([], factSchema, document)).rejects.toThrow();
+});
+
+test('a model that does not answer in time is an error, not a wait', async () => {
+  vi.useFakeTimers();
+  model.hangs = true;
+
+  const call = proposeRules([], factSchema, document);
+  const failed = expect(call).rejects.toThrow(/did not answer/);
+  await vi.advanceTimersByTimeAsync(
+    config.limits.modelCallSeconds.rules * 1000,
+  );
+
+  await failed;
+  vi.useRealTimers();
+  model.hangs = false;
 });

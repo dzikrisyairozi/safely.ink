@@ -211,6 +211,7 @@ async function ask(
     schema: z.object({ [list]: z.array(entry) }),
     accept: z.object({ [list]: z.array(z.unknown()) }),
     parts: [{ text: JSON.stringify(message) }],
+    seconds: config.limits.modelCallSeconds.rules,
   });
   return answer[list]!;
 }

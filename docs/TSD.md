@@ -444,7 +444,8 @@ tokens on every route but `/health`. CORS allows the dashboard origin only.
 - Upload 30 MB / 100 pages; 40 scenarios; 10 analyses per user per day (transaction on
   `users/{uid}/usage`).
 - Cloud Run `max-instances 5`; budget alert on the project.
-- Per-call model timeout and one retry with backoff; a stage fails after the retry.
+- Per-call model timeout (`limits.modelCallSeconds`); a stage fails when a call times out.
+  There is no retry: a second wait does not fit in one request next to the first.
 
 ## 9. Testing
 
