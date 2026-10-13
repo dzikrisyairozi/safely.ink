@@ -59,6 +59,9 @@ function effectProblem({ kind, effect }: Rule): string | null {
   if (!effect || !allowed.includes(effect.type)) {
     return `A ${kind} rule needs an effect of type ${allowed.join(' or ')}`;
   }
+  if (effect.amount !== null && effect.percent !== null) {
+    return `A ${kind} rule takes an amount or a percent, not both`;
+  }
   const amount = effect.amount ?? effect.percent;
   return amount === null || amount < 0
     ? `A ${kind} rule needs an amount or percent of zero or more`

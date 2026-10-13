@@ -208,6 +208,14 @@ test.each<{ name: string; rule: Rule; message: RegExp }>([
     message: /amount/,
   },
   {
+    name: 'an amount and a percent together',
+    rule: rule({
+      kind: 'limit',
+      effect: { type: 'deduct', amount: 10, percent: 50 },
+    }),
+    message: /not both/,
+  },
+  {
     name: 'a negative amount',
     rule: rule({
       kind: 'limit',
