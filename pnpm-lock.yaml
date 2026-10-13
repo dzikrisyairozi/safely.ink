@@ -110,7 +110,7 @@ importers:
   apps/dashboard:
     dependencies:
       '@repo/api-types':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/api-types
       '@repo/i18n':
         specifier: workspace:*
