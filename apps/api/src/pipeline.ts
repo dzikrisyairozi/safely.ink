@@ -31,16 +31,20 @@ import { releaseDailySlot } from './usage';
 
 const BATCH = 500; // Firestore's limit of writes in one batch
 
-/** Stores each item in a sub-collection of the analysis, under its ID. */
+/**
+ * Stores each item in a sub-collection of the analysis, under its ID. With
+ * `merge`, fields of a stored document that the item does not have stay.
+ */
 export async function saveAll(
   analysis: DocumentReference,
   name: string,
   items: { id: string }[],
+  merge = false,
 ) {
   for (let from = 0; from < items.length; from += BATCH) {
     const batch = db.batch();
     for (const item of items.slice(from, from + BATCH)) {
-      batch.set(analysis.collection(name).doc(item.id), item);
+      batch.set(analysis.collection(name).doc(item.id), item, { merge });
     }
     await batch.commit();
   }
@@ -195,11 +199,13 @@ async function runScenarios(analysis: DocumentReference) {
   const [issue] = validateScenarios(scenarios, rules, factSchema);
   if (issue) throw new Error(`Scenario ${issue.id}: ${issue.message}`);
 
+  // Only the outcome is written: what a later stage adds to a scenario is
+  // not this stage's to replace.
   const ran = scenarios.map((scenario) => ({
-    ...scenario,
+    id: scenario.id,
     outcome: evaluate(rules, factSchema, scenario),
   }));
-  await saveAll(analysis, 'scenarios', ran);
+  await saveAll(analysis, 'scenarios', ran, true);
 
   const count = (result: (typeof ran)[number]['outcome']['result']) =>
     ran.filter(({ outcome }) => outcome.result === result).length;

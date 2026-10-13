@@ -319,6 +319,20 @@ test('running the stored rules and scenarios again gives the same outcomes', asy
   }
 });
 
+test('the run adds the outcome and leaves the rest of a scenario as it was', async () => {
+  const expectation = { result: 'fine', reason: 'An accident is covered.' };
+  await readyToRun([{ ...waiting[0]!, expectation }]);
+
+  await runPipeline('analysis-1');
+
+  const doc = await analysis.collection('scenarios').doc('s-001').get();
+  expect(doc.data()).toMatchObject({
+    expectation,
+    story: waiting[0]!.story,
+    outcome: { result: 'fine' },
+  });
+});
+
 test('a stored scenario that does not fit the facts fails the run, by name', async () => {
   await readyToRun([{ ...waiting[0]!, facts: { inpatientCost: 5_000_000 } }]);
 
