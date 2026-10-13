@@ -1,14 +1,8 @@
-import {
-  Gemini,
-  InMemoryRunner,
-  isFinalResponse,
-  LlmAgent,
-  stringifyContent,
-} from '@google/adk';
 import { FileState, GoogleGenAI, type Part } from '@google/genai';
 import { ReaderOutput } from '@repo/api-types';
 import { config } from '../config';
 import type { Upload } from '../uploads';
+import { runAgent } from './run';
 
 const WINDOW = 40; // pages read in one call (TSD 5.1)
 
@@ -120,31 +114,19 @@ export function mergeReadings(readings: ReaderOutput[]): ReaderOutput {
 }
 
 async function readWindow(
-  apiKey: string,
   document: Part[],
   window: PageWindow,
   pageCount: number,
 ): Promise<ReaderOutput> {
-  const agent = new LlmAgent({
-    name: 'reader',
-    model: new Gemini({ model: config.models.pro, apiKey }),
-    instruction: INSTRUCTION,
-    outputSchema: ReaderOutput,
-    generateContentConfig: { temperature: 0, maxOutputTokens: 65536 },
-  });
-  const runner = new InMemoryRunner({ agent, appName: 'reader' });
-
   const request = `The document has ${pageCount} pages. Extract the clauses and unreadable pages of pages ${window.from} to ${window.to}.`;
-  let answer = '';
-  for await (const event of runner.runEphemeral({
-    userId: 'reader',
-    newMessage: { role: 'user', parts: [...document, { text: request }] },
-  })) {
-    if (isFinalResponse(event)) answer = stringifyContent(event);
-  }
-  // ADK can end with an empty answer and no error (ADR 3).
-  if (!answer.trim()) throw new Error('The Reader returned an empty answer.');
-  return withinWindow(ReaderOutput.parse(JSON.parse(answer)), window);
+  const reading = await runAgent({
+    name: 'reader',
+    model: config.models.pro,
+    instruction: INSTRUCTION,
+    schema: ReaderOutput,
+    parts: [...document, { text: request }],
+  });
+  return withinWindow(reading, window);
 }
 
 /** Reads the document into details and clauses. The result is unchecked. */
@@ -191,7 +173,7 @@ export async function readDocument(
 
     const readings = await Promise.all(
       pageWindows(pageCount).map((window) =>
-        readWindow(apiKey, document, window, pageCount),
+        readWindow(document, window, pageCount),
       ),
     );
     return mergeReadings(readings);
