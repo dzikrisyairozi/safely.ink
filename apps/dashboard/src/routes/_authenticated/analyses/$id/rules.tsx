@@ -21,6 +21,7 @@ function RulesPage() {
   if (failed) return <GeneralError />;
   // Missing, or someone else's.
   if (analysis === null) return <NotFoundError />;
+  if (rules === null || clauses === null) return <GeneralError />;
 
   return (
     <>

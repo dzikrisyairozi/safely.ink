@@ -13,9 +13,10 @@ const readable = (option: string) => option.replaceAll('_', ' ');
 export function conditionLines(
   condition: Condition,
   factSchema: FactSchema,
+  language = 'en', // for the grouping of numbers
 ): ConditionLine {
   const lines = (conditions: Condition[]) =>
-    conditions.map((inner) => conditionLines(inner, factSchema));
+    conditions.map((inner) => conditionLines(inner, factSchema, language));
 
   if ('all' in condition) return { join: 'all', lines: lines(condition.all) };
   if ('any' in condition) return { join: 'any', lines: lines(condition.any) };
@@ -29,7 +30,7 @@ export function conditionLines(
     value: Array.isArray(value)
       ? value.map(readable).join(', ')
       : typeof value === 'number'
-        ? [value.toLocaleString('en'), fact?.unit].filter(Boolean).join(' ')
+        ? [value.toLocaleString(language), fact?.unit].filter(Boolean).join(' ')
         : typeof value === 'string'
           ? readable(value)
           : value,

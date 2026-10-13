@@ -96,3 +96,13 @@ test('a fact that is not in the schema shows its key', () => {
     conditionLines({ fact: 'mood', op: 'eq', value: 'bad' }, facts),
   ).toEqual({ fact: 'mood', op: 'eq', value: 'bad' });
 });
+
+test('a number is grouped the way the language of the screen does it', () => {
+  expect(
+    conditionLines(
+      { fact: 'amountClaimed', op: 'gt', value: 1000000 },
+      facts,
+      'id',
+    ),
+  ).toMatchObject({ value: '1.000.000 IDR' });
+});

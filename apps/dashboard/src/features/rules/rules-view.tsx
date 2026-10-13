@@ -69,7 +69,7 @@ function RuleItem({
   clauses: Clause[];
   factSchema: FactSchema;
 }) {
-  const { t } = useTranslation('dashboard');
+  const { t, i18n } = useTranslation('dashboard');
   const cited = clauses.filter((clause) => rule.clauseIds.includes(clause.id));
 
   return (
@@ -78,7 +78,9 @@ function RuleItem({
       {rule.when && (
         <div className="text-sm">
           <p className="text-muted-foreground">{t('rules.appliesWhen')}</p>
-          <Condition line={conditionLines(rule.when, factSchema)} />
+          <Condition
+            line={conditionLines(rule.when, factSchema, i18n.language)}
+          />
         </div>
       )}
       <p className="flex flex-wrap gap-x-4 font-mono text-xs">

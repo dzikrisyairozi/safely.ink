@@ -190,3 +190,9 @@ test('a failed rules stage names the stage', () => {
   );
   expect(screen.getByRole('link', { name: 'Upload it again' })).toBeTruthy();
 });
+
+test('one rule is not called "1 rules"', () => {
+  show(analysis({ status: 'fuzzing', counts: { clauses: 3, rules: 1 } }));
+
+  expect(screen.getByText(/1 rule in it/)).toBeTruthy();
+});

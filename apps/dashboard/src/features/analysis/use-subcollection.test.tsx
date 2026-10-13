@@ -66,3 +66,17 @@ test('another analysis never shows the documents of the previous one', () => {
   expect(result.current).toBeUndefined();
   expect(unsubscribe).toHaveBeenCalledTimes(1);
 });
+
+test('a listener that fails gives null, which is not an empty list', () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  const { result } = renderHook(() =>
+    useSubcollection('analysis-1', 'clauses', Clause),
+  );
+  const onError = vi.mocked(onSnapshot).mock.calls.at(-1)![2] as unknown as (
+    error: Error,
+  ) => void;
+
+  act(() => onError(new Error('unavailable')));
+
+  expect(result.current).toBeNull();
+});

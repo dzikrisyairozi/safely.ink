@@ -146,7 +146,8 @@
     },
     "rulesReady": {
       "title": "Kami telah membaca dokumen Anda",
-      "description": "Kami menemukan {{count}} aturan di dalamnya. Langkah berikutnya adalah mengujinya terhadap situasi nyata, dan itu belum tersedia.",
+      "description_one": "Kami menemukan {{count}} aturan di dalamnya. Langkah berikutnya adalah mengujinya terhadap situasi nyata, dan itu belum tersedia.",
+      "description_other": "Kami menemukan {{count}} aturan di dalamnya. Langkah berikutnya adalah mengujinya terhadap situasi nyata, dan itu belum tersedia.",
       "link": "Cara kami membaca dokumen Anda"
     }
   },
