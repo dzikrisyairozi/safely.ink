@@ -4,7 +4,7 @@ import policy from '../../test/fixtures/reader-policy.json';
 import receipt from '../../test/fixtures/reader-receipt.json';
 import { app } from '../app';
 import { bucket, db } from '../firebase';
-import { readDocument } from '../pipeline/reader';
+import { readDocument } from '../agents/reader';
 
 // Run through `pnpm test`: Firestore and Storage are the emulators. Only the
 // token check and the model are replaced.
@@ -12,7 +12,7 @@ vi.mock('../firebase', async (original) => ({
   ...(await original<typeof import('../firebase')>()),
   auth: { verifyIdToken: async (token: string) => ({ uid: token }) },
 }));
-vi.mock('../pipeline/reader');
+vi.mock('../agents/reader');
 
 const reader = vi.mocked(readDocument);
 // The tests upload a single page, so the fixture's clauses are put on it.

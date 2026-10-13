@@ -10,7 +10,7 @@ import {
 import { config } from '../config';
 import { failure } from '../failure';
 import { db } from '../firebase';
-import { readDocument } from '../pipeline/reader';
+import { readDocument } from '../agents/reader';
 import { checkReading } from '../pipeline/reader-check';
 import { loadUploads, type UploadError } from '../uploads';
 import { nextReset, releaseDailySlot, reserveDailySlot } from '../usage';
