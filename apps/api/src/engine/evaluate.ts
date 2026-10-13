@@ -8,7 +8,7 @@ import type {
 
 type Facts = Scenario['facts'];
 
-function holds(condition: Condition, facts: Facts): boolean {
+export function holds(condition: Condition, facts: Facts): boolean {
   if ('all' in condition) return condition.all.every((c) => holds(c, facts));
   if ('any' in condition) return condition.any.some((c) => holds(c, facts));
   if ('not' in condition) return !holds(condition.not, facts);

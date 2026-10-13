@@ -169,3 +169,16 @@ test('no more facts are kept than the model was asked for', () => {
   expect(kept).toHaveLength(MAX_FACTS);
   expect(kept.at(-1)!.key).toBe(`fact${MAX_FACTS - 1}`);
 });
+
+test('a rule against the user that is true when nothing happened is sent back', () => {
+  const always = { fact: 'daysSinceStart', op: 'gte', value: 0 };
+  const draft = { ...exclusion, when: always, touches: ['daysSinceStart'] };
+
+  const { valid, invalid } = check([{ ...benefit, when: always }, draft]);
+
+  // A benefit may well apply in an uneventful situation.
+  expect(valid.map((rule) => rule.id)).toEqual(['r-001']);
+  expect(invalid).toEqual([
+    { id: 'r-002', draft, issues: [expect.stringMatching(/wrong way round/)] },
+  ]);
+});

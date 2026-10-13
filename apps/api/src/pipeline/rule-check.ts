@@ -6,6 +6,7 @@ import {
   type FactSchema,
   type Rule,
 } from '@repo/api-types';
+import { holds } from '../engine/evaluate';
 import { validateFactSchema, validateRules } from '../engine/validate';
 
 // Facts every document has (TSD 3.2). Defined here, never by the model.
@@ -126,6 +127,20 @@ export function checkRules(
     factSchema,
   )) {
     issues.set(id, [...(issues.get(id) ?? []), message]);
+  }
+  // A rule against the user that already applies when nothing has happened
+  // would make every scenario end badly. The usual cause is a condition
+  // written the wrong way round.
+  const uneventful = Object.fromEntries(
+    factSchema.map((fact) => [fact.key, fact.neutral]),
+  );
+  for (const { id, kind, when } of candidates) {
+    if (issues.has(id) || kind === 'benefit' || !when) continue;
+    if (holds(when, uneventful)) {
+      issues.set(id, [
+        'The condition is true when every fact has its neutral value. It may be the wrong way round.',
+      ]);
+    }
   }
   const valid = candidates.filter((rule) => !issues.has(rule.id));
   for (const [id, found] of issues) {
