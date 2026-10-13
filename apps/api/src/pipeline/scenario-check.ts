@@ -80,6 +80,9 @@ export function checkScenarios(
       .filter((scenario) => scenario.strategy === 'baseline')
       .slice(0, BASELINE_KEPT)
       .forEach(keep);
+    // A boundary says something only next to its neighbours: cut the one
+    // just outside a limit and the two that are left both end the same way.
+    all.filter((scenario) => scenario.strategy === 'boundary').forEach(keep);
     // The cap must not take the only scenario of a rule that can hurt the
     // user (F-FUZZ-3).
     for (const { id } of againstUser) {

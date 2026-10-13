@@ -148,6 +148,18 @@ test('over the cap, baseline scenarios stay and every strategy has a turn', () =
   expect(count('procedure')).toBeGreaterThanOrEqual(2);
 });
 
+test('over the cap, the boundaries stay together', () => {
+  const strategies: Strategy[] = ['procedure', 'overlap', 'boundary'];
+  const proposals = strategies.flatMap((strategy) =>
+    Array.from({ length: 15 }, () => proposal(strategy)),
+  );
+  const { scenarios } = check(proposals, 20);
+
+  expect(
+    scenarios.filter((scenario) => scenario.strategy === 'boundary'),
+  ).toHaveLength(15);
+});
+
 test('a short list is kept as it is', () => {
   const proposals = Array.from({ length: 7 }, () => proposal('definition'));
 
