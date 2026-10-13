@@ -1,13 +1,3 @@
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * Monorepo Fullstack Starter — Web (Landing Page)
- *
- * @author  Dzikri Syairozi <dzikrisyairozi@gmail.com>
- * @see     https://github.com/dzikrisyairozi/monorepo-fullstack-starter
- * @license MIT
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 import type { Metadata } from 'next';
 import { Outfit, Instrument_Serif } from 'next/font/google';
 import { cookies } from 'next/headers';
@@ -27,31 +17,29 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://web-starter.dzikrisyairozi.com'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  ),
   title: {
-    default: 'Premium Landing Page',
-    template: '%s | Premium Landing Page',
+    default: 'Policy Police',
+    template: '%s | Policy Police',
   },
   description:
-    'A stunning 3D Next.js landing page built with modern web technologies.',
-  authors: [
-    { name: 'Dzikri Syairozi', url: 'https://github.com/dzikrisyairozi' },
-  ],
+    'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    siteName: 'Premium Landing Page',
-    title: 'Premium Landing Page',
+    siteName: 'Policy Police',
+    title: 'Policy Police',
     description:
-      'A stunning 3D Next.js landing page built with modern web technologies.',
+      'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Premium Landing Page',
+    title: 'Policy Police',
     description:
-      'A stunning 3D Next.js landing page built with modern web technologies.',
-    creator: '@dzikrisyairozi',
+      'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
   },
   icons: {
     icon: '/favicon/favicon.ico',

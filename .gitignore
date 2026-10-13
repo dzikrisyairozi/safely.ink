@@ -18,18 +18,12 @@ coverage
 # Turbo
 .turbo
 
-# Vercel
-.vercel
-
 # Build Outputs
 .next/
 out/
 build
 dist
-**/target/
 
-# Rust / ts-rs generated bindings
-apps/api/bindings/
 
 
 # Debug
@@ -46,10 +40,7 @@ yarn-error.log*
 
 .serena/
 
-# tasks/ is per-feature execution scratch (task checklists, status) with no
-# lasting value once a PR merges, so it's gitignored. spec/ is deliberately
-# NOT gitignored - it documents lasting design decisions (scope, acceptance
-# criteria, rationale) worth keeping in history alongside the code it
-# describes, unlike a todo list.
+# spec/ and tasks/ are per-feature working scratch (specs, plans, checklists).
+# Lasting design decisions live in docs/.
 /tasks/
 /spec/

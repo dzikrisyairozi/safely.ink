@@ -30,23 +30,13 @@ describe('AppHeader', () => {
     expect(screen.getByText('Type a command or search...')).toBeTruthy();
   });
 
-  it('slots extra content between Search and ThemeSwitch', () => {
+  it('offers a language switcher', () => {
     render(
       <Providers>
-        <AppHeader extra={<div data-testid="extra">Extra</div>} />
+        <AppHeader />
       </Providers>,
     );
 
-    expect(screen.getByTestId('extra')).toBeTruthy();
-  });
-
-  it('passes nav through to the header', () => {
-    render(
-      <Providers>
-        <AppHeader nav={<nav data-testid="nav">Nav</nav>} />
-      </Providers>,
-    );
-
-    expect(screen.getByTestId('nav')).toBeTruthy();
+    expect(screen.getByLabelText('Switch language')).toBeTruthy();
   });
 });

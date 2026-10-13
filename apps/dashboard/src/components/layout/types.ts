@@ -6,12 +6,6 @@ export type NavUser = {
   avatar: string;
 };
 
-export type Team = {
-  name: string;
-  logo: React.ElementType;
-  plan: string;
-};
-
 type BaseNavItem = {
   /** i18n key, resolved with t() at render time - never a literal string. */
   title: string;
@@ -39,6 +33,5 @@ export type NavGroup = {
 
 export type SidebarData = {
   user: NavUser;
-  teams: Team[];
   navGroups: NavGroup[];
 };

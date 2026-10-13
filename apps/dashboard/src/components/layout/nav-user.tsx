@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import { ChevronsUpDown, LogOut, Settings } from 'lucide-react';
+import { ChevronsUpDown, LogOut } from 'lucide-react';
 import { useTranslation } from '@repo/i18n';
 import {
   Avatar,
@@ -10,7 +9,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -77,15 +75,6 @@ export function NavUser({ user }: { user: NavUserData }) {
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link to="/settings">
-                  <Settings />
-                  {t('nav.settings')}
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
