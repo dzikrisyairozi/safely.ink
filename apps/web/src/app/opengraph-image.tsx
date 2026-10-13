@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'Premium Landing Page';
+export const alt = 'Policy Police';
 export const size = {
   width: 1200,
   height: 630,
@@ -44,7 +44,7 @@ export default async function Image() {
             textTransform: 'uppercase',
           }}
         >
-          Monorepo Full-Stack Starter
+          Policy fuzzer
         </div>
         <div
           style={{
@@ -57,7 +57,7 @@ export default async function Image() {
             lineHeight: 1.1,
           }}
         >
-          Premium Landing Page
+          Policy Police
         </div>
         <div
           style={{
@@ -68,7 +68,7 @@ export default async function Image() {
             lineHeight: 1.4,
           }}
         >
-          A stunning 3D Next.js landing page built with modern web technologies.
+          Stress-test any policy or contract before you sign.
         </div>
       </div>
     </div>,
