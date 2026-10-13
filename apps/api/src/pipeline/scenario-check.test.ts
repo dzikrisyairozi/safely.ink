@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import type { FactSchema, Rule, Strategy } from '@repo/api-types';
-import { checkScenarios } from './scenario-check';
+import { checkScenarios, type Proposal } from './scenario-check';
 
 const factSchema: FactSchema = [
   {
@@ -50,7 +50,7 @@ const proposal = (strategy: Strategy, change: object = {}) => ({
     ...change,
   },
 });
-const check = (proposals: ReturnType<typeof proposal>[], cap = 40) =>
+const check = (proposals: Proposal[], cap = 40) =>
   checkScenarios(proposals, rules, factSchema, cap);
 
 test('a scenario that fits is kept and numbered by code', () => {
@@ -94,8 +94,8 @@ test.each([
 
 test('an answer that is not a scenario at all is dropped', () => {
   const { scenarios, dropped } = check([
-    { strategy: 'overlap', entry: null as never },
-    { strategy: 'overlap', entry: 'a story' as never },
+    { strategy: 'overlap', entry: null },
+    { strategy: 'overlap', entry: 'a story' },
     proposal('overlap'),
   ]);
 

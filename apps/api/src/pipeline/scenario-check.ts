@@ -7,7 +7,7 @@ import {
 import { validateScenarios } from '../engine/validate';
 
 // A scenario as a call returned it, with the strategy the call was for.
-export type Proposal = { strategy: Strategy; entry: object };
+export type Proposal = { strategy: Strategy; entry: unknown };
 
 const Draft = Scenario.omit({ id: true });
 const MAX_STORY = 600; // characters; three sentences fit well inside
@@ -32,7 +32,7 @@ export function checkScenarios(
   const drafts: Scenario[] = [];
   for (const [n, { strategy, entry }] of proposals.entries()) {
     // The strategy is the one of the call, whatever the entry says.
-    const draft = Draft.safeParse({ ...entry, strategy });
+    const draft = Draft.safeParse({ ...(entry as object), strategy });
     const story = draft.data?.story.trim() ?? '';
     if (!draft.success) {
       dropped.push(`${strategy}: ${draft.error.issues[0]?.message}`);
