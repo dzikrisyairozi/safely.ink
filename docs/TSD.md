@@ -320,7 +320,8 @@ scenario ID), legal findings (by rule ID) and the analysis meta.
 - Grade: start at 100; minus 20 / 10 / 5 / 2 per critical / high / medium / low trap;
   A ≥ 90, B ≥ 75, C ≥ 60, D ≥ 40, else F.
 - Confidence: `high` if undetermined share < 10% and no unreadable pages, `medium` < 25%,
-  else `low`. The general pack caps confidence at `medium`.
+  else `low`. The general pack caps confidence at `medium`. A run with no outcomes is
+  `low`: nothing tested is not the same as nothing found.
 - Trap titles and "what you can do" text are written by one final Flash call from the
   structured trap data; the numbers above are never produced by the model.
 

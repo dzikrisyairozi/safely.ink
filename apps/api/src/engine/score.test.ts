@@ -325,7 +325,7 @@ test.each<{
   meta?: Partial<ScoreInput['meta']>;
   confidence: string;
 }>([
-  { name: 'nothing tested', cases: [], confidence: 'high' },
+  { name: 'nothing tested', cases: [], confidence: 'low' },
   { name: '1 of 11 unclear', cases: unclear(1, 11), confidence: 'high' },
   { name: '1 of 10 unclear', cases: unclear(1, 10), confidence: 'medium' },
   { name: '6 of 25 unclear', cases: unclear(6, 25), confidence: 'medium' },

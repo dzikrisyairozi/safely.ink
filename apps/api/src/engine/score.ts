@@ -117,7 +117,8 @@ export function score(input: ScoreInput, weights: ScoreWeights): ScoreResult {
   );
 
   const undetermined = outcomes.filter((o) => o.result === 'undetermined');
-  const share = outcomes.length ? undetermined.length / outcomes.length : 0;
+  // Nothing tested counts as everything unclear, not as nothing unclear.
+  const share = outcomes.length ? undetermined.length / outcomes.length : 1;
   const complete = meta.unreadablePages.length === 0;
   // The general pack has no tuned seeds, so it never claims high confidence.
   const tuned = meta.docType !== 'other';
