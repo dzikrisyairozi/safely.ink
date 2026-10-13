@@ -177,3 +177,36 @@ test('a document that gives no rule at all fails instead of moving on empty', as
 
   expect(await stored()).toMatchObject({ stage: 'extracting_rules' });
 });
+
+test.each([
+  {
+    name: 'cites only a clause that does not exist',
+    answer: { ...exclusion, clauseIds: ['c-999'] },
+  },
+  {
+    name: 'still does not fit and cites only a clause that does not exist',
+    answer: { ...unknownFact, clauseIds: ['c-999'] },
+  },
+  {
+    name: 'still does not fit and has lost its summary',
+    answer: { ...unknownFact, summary: '' },
+  },
+])(
+  'a repair answer that $name leaves the rule as it was written, unmodeled',
+  async ({ answer }) => {
+    rules.mockResolvedValue([benefit, unknownFact]);
+    repair.mockResolvedValue([{ id: 'r-002', draft: answer }]);
+
+    expect(await runPipeline('analysis-1')).toBe('fuzzing');
+
+    expect(await storedRules()).toMatchObject([
+      { id: 'r-001', kind: 'benefit' },
+      {
+        id: 'r-002',
+        kind: 'unmodeled',
+        summary: exclusion!.summary,
+        clauseIds: ['c-002'],
+      },
+    ]);
+  },
+);

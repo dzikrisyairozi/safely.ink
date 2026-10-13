@@ -64,13 +64,19 @@ async function extractRules(analysis: DocumentReference, meta: AnalysisMeta) {
       id,
       draft: answers.find((answer) => answer.id === id)?.draft ?? draft,
     }));
-    const second = checkRules(again, clauses, factSchema);
-    rules.push(
-      ...second.valid,
-      ...second.invalid.flatMap(
-        (proposal) => demote(proposal, clauses, factSchema) ?? [],
-      ),
-    );
+    const repaired = checkRules(again, clauses, factSchema).valid;
+    rules.push(...repaired);
+
+    // What the repair did not fix is kept as unmodeled. The answer can be
+    // worse than the rule it was meant to correct, so the rule as it was
+    // first written is the fallback.
+    for (const [n, original] of first.invalid.entries()) {
+      if (repaired.some((rule) => rule.id === original.id)) continue;
+      const kept =
+        demote(again[n]!, clauses, factSchema) ??
+        demote(original, clauses, factSchema);
+      if (kept) rules.push(kept);
+    }
     rules.sort((a, b) => a.id.localeCompare(b.id));
   }
   if (rules.length === 0) throw new Error('The clauses gave no rule.');

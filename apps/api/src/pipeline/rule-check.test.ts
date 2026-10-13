@@ -53,7 +53,7 @@ test('a fact that does not fit its own definition is dropped', () => {
 });
 
 test('rules that fit get an ID in the order they came', () => {
-  const { valid, invalid, discarded } = check(proposedRules.rules);
+  const { valid, invalid } = check(proposedRules.rules);
 
   expect(valid.map((rule) => [rule.id, rule.kind])).toEqual([
     ['r-001', 'benefit'],
@@ -61,17 +61,15 @@ test('rules that fit get an ID in the order they came', () => {
     ['r-003', 'unmodeled'],
   ]);
   expect(invalid).toEqual([]);
-  expect(discarded).toEqual([]);
 });
 
 test('a rule that cites no existing clause is discarded', () => {
   const orphan = { ...exclusion, clauseIds: ['c-999'] };
 
-  const { valid, invalid, discarded } = check([benefit, orphan]);
+  const { valid, invalid } = check([benefit, orphan]);
 
   expect(valid.map((rule) => rule.id)).toEqual(['r-001']);
   expect(invalid).toEqual([]);
-  expect(discarded).toEqual(['r-002']);
 });
 
 test('a rule keeps its real clause and loses the unknown one', () => {

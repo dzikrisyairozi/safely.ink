@@ -77,18 +77,21 @@ export const numbered = (drafts: unknown[]): Proposal[] =>
     draft,
   }));
 
+// The cited clauses that are clauses of the document.
+const real = (clauseIds: string[], clauses: Clause[]) =>
+  clauseIds.filter((id) => clauses.some((clause) => clause.id === id));
+
 /**
- * Sorts proposed rules into those that can be stored, those to send back
- * with the reason, and those that cite no clause of the document (F-RULE-1).
+ * Sorts proposed rules into those that can be stored and those to send back
+ * with the reason. A rule that cites no clause of the document is in
+ * neither (F-RULE-1).
  */
 export function checkRules(
   proposals: Proposal[],
   clauses: Clause[],
   factSchema: FactSchema,
-): { valid: Rule[]; invalid: Invalid[]; discarded: string[] } {
-  const exists = new Set(clauses.map((clause) => clause.id));
+): { valid: Rule[]; invalid: Invalid[] } {
   const invalid: Invalid[] = [];
-  const discarded: string[] = [];
   const candidates: Rule[] = [];
 
   for (const { id, draft } of proposals) {
@@ -100,9 +103,9 @@ export function checkRules(
       invalid.push({ id, draft, issues });
       continue;
     }
-    const clauseIds = parsed.data.clauseIds.filter((c) => exists.has(c));
-    if (clauseIds.length === 0) discarded.push(id);
-    else candidates.push({ ...parsed.data, id, clauseIds });
+    const clauseIds = real(parsed.data.clauseIds, clauses);
+    if (clauseIds.length > 0)
+      candidates.push({ ...parsed.data, id, clauseIds });
   }
 
   const issues = new Map<string, string[]>();
@@ -120,7 +123,7 @@ export function checkRules(
   }
   invalid.sort((a, b) => a.id.localeCompare(b.id));
 
-  return { valid, invalid, discarded };
+  return { valid, invalid };
 }
 
 // What is left of a rule when its condition is given up.
@@ -143,9 +146,7 @@ export function demote(
   const kept = Kept.safeParse(draft);
   if (!kept.success) return null;
 
-  const clauseIds = kept.data.clauseIds.filter((c) =>
-    clauses.some((clause) => clause.id === c),
-  );
+  const clauseIds = real(kept.data.clauseIds, clauses);
   if (clauseIds.length === 0) return null;
 
   return {
