@@ -7,9 +7,6 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
-    "@repo/db#build": {
-      "outputs": ["dist/**", "src/generated/**"]
-    },
     "lint": {
       "dependsOn": ["^lint"]
     },
@@ -38,28 +35,6 @@
     "dev": {
       "cache": false,
       "persistent": true
-    },
-    "db:generate": {
-      "cache": false
-    },
-    "db:push": {
-      "cache": false,
-      "dependsOn": ["db:generate"]
-    },
-    "db:migrate": {
-      "cache": false,
-      "dependsOn": ["db:generate"]
-    },
-    "db:studio": {
-      "cache": false,
-      "persistent": true
-    },
-    "db:seed": {
-      "cache": false,
-      "dependsOn": ["db:generate"]
-    },
-    "db:reset": {
-      "cache": false
     }
   }
 }

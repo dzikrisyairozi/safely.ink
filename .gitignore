@@ -18,18 +18,12 @@ coverage
 # Turbo
 .turbo
 
-# Vercel
-.vercel
-
 # Build Outputs
 .next/
 out/
 build
 dist
-**/target/
 
-# Rust / ts-rs generated bindings
-apps/api/bindings/
 
 
 # Debug
