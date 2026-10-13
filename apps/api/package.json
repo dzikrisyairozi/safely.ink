@@ -17,6 +17,7 @@
     "@repo/api-types": "workspace:*",
     "firebase-admin": "^14.5.0",
     "hono": "^4.13.13",
+    "pdf-lib": "^1.17.1",
     "tsx": "^4.23.15",
     "zod": "^4.6.2"
   },
