@@ -1,0 +1,33 @@
+{
+  "rules": [
+    {
+      "kind": "benefit",
+      "summary": "The insurer pays inpatient costs according to the benefits table.",
+      "clauseIds": ["c-001"],
+      "when": { "fact": "inpatientCost", "op": "gt", "value": 0 },
+      "effect": { "type": "grant", "amount": null, "percent": null },
+      "touches": ["inpatientCost"]
+    },
+    {
+      "kind": "exclusion",
+      "summary": "An illness that starts in the first 30 days of the policy is not paid.",
+      "clauseIds": ["c-002"],
+      "when": {
+        "all": [
+          { "fact": "claimIsForIllness", "op": "eq", "value": true },
+          { "fact": "daysSinceStart", "op": "lt", "value": 30 }
+        ]
+      },
+      "effect": { "type": "deny", "amount": null, "percent": null },
+      "touches": ["claimIsForIllness", "daysSinceStart"]
+    },
+    {
+      "kind": "unmodeled",
+      "summary": "Indonesian law governs the policy, which decides where a dispute is heard.",
+      "clauseIds": ["c-003"],
+      "when": null,
+      "effect": null,
+      "touches": ["treatmentPlace"]
+    }
+  ]
+}
