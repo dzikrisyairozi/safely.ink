@@ -9,20 +9,13 @@ import { NavGroup } from './nav-group';
 import { NavUser } from './nav-user';
 import { AppTitle } from './app-title';
 import { sidebarData } from './data/sidebar-data';
-import { type Collapsible, type Variant } from '../../context/layout-provider';
 import { useCurrentUser } from '../../hooks/use-current-user';
 
-export function AppSidebar({
-  variant,
-  collapsible,
-}: {
-  variant: Variant;
-  collapsible: Collapsible;
-}) {
+export function AppSidebar() {
   const user = useCurrentUser();
 
   return (
-    <Sidebar collapsible={collapsible} variant={variant}>
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
         <AppTitle className="p-2" />
       </SidebarHeader>
