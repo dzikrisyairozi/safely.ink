@@ -3,6 +3,7 @@ import { AppHeader } from '../../../components/layout/app-header';
 import { Main } from '../../../components/layout/main';
 import { AnalysisView } from '../../../features/analysis/analysis-view';
 import { useAnalysis } from '../../../features/analysis/use-analysis';
+import { GeneralError } from '../../../features/errors/general-error';
 import { NotFoundError } from '../../../features/errors/not-found-error';
 import { api } from '../../../lib/api';
 
@@ -12,8 +13,9 @@ export const Route = createFileRoute('/_authenticated/analyses/$id')({
 
 function AnalysisPage() {
   const { id } = Route.useParams();
-  const { data: analysis } = useAnalysis(id);
+  const { analysis, failed } = useAnalysis(id);
 
+  if (failed) return <GeneralError />;
   // Missing, or someone else's.
   if (analysis === null) return <NotFoundError />;
 
