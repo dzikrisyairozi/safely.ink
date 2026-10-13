@@ -80,3 +80,14 @@ test('the scoring weights give the grade TSD 5.7 works out by hand', () => {
     confidence: 'high',
   });
 });
+
+test('the calls of the confirm request end before Cloud Run ends the request', () => {
+  const { modelCallSeconds: call, confirmSeconds } = loadConfig({}).limits;
+
+  // One after the other, each at its limit; the fuzzer then has its least.
+  expect(call.facts + call.rules + call.repair + call.fuzz).toBeLessThanOrEqual(
+    confirmSeconds,
+  );
+  expect(call.fuzzMost).toBeGreaterThanOrEqual(call.fuzz);
+  expect(confirmSeconds).toBeLessThan(600);
+});
