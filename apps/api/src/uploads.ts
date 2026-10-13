@@ -80,13 +80,19 @@ export async function loadUploads(
   }));
 
   // Sizes first, so an oversized upload is refused without downloading it.
-  let total = 0;
-  for (const { object } of objects) {
-    const [exists] = await object.exists();
-    if (!exists) return { ok: false, code: 'file_missing' };
-    const [metadata] = await object.getMetadata();
-    total += Number(metadata.size);
-  }
+  const sizes = await Promise.all(
+    objects.map(({ object }) =>
+      object.getMetadata().then(
+        ([metadata]) => Number(metadata.size),
+        (err: { code?: number }) => {
+          if (err.code === 404) return null; // never uploaded
+          throw err;
+        },
+      ),
+    ),
+  );
+  if (sizes.includes(null)) return { ok: false, code: 'file_missing' };
+  const total = sizes.reduce<number>((sum, size) => sum + (size ?? 0), 0);
   if (total > config.limits.uploadMaxBytes)
     return { ok: false, code: 'too_large' };
 
