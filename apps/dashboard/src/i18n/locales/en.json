@@ -104,10 +104,6 @@
       "title": "Not a policy or contract",
       "description": "This doesn't look like a policy or contract. safely.ink checks documents that set out rights and obligations between you and another party."
     },
-    "failed": {
-      "title": "Reading did not finish",
-      "description": "Something went wrong while reading the document. Nothing was lost on your side; please upload it again."
-    },
     "unreadable": {
       "title": "Some pages could not be read",
       "description": "Page {{pages}} is blurred, cut off or too dark. You can continue with the rest, and the report will be marked as incomplete."
@@ -134,9 +130,24 @@
       "terms": "Terms and conditions",
       "other": "Another kind of contract"
     },
-    "confirmed": {
-      "title": "Details confirmed",
-      "description": "Thank you. The next steps of the analysis are not available yet."
+    "failed": {
+      "reading": {
+        "title": "Reading did not finish",
+        "description": "Something went wrong while reading the document. Nothing was lost on your side; please upload it again."
+      },
+      "rules": {
+        "title": "The rules could not be worked out",
+        "description": "Something went wrong while we turned the clauses into rules. This run does not count against your daily limit; please upload the document again."
+      }
+    },
+    "extractingRules": {
+      "title": "Working out the rules",
+      "description": "We are turning the clauses into rules that can be tested. This can take a minute or two. This page updates on its own."
+    },
+    "rulesReady": {
+      "title": "We have read your document",
+      "description": "We found {{count}} rules in it. Testing them against real-life situations is the next step, and it is not available yet.",
+      "link": "How we read your document"
     }
   },
   "rules": {

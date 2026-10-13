@@ -33,7 +33,9 @@ const analysis = (changes: Partial<Analysis> = {}): Analysis => ({
   ...changes,
 });
 const show = (shown: Analysis, onConfirm = vi.fn(async () => {})) => {
-  render(<AnalysisView analysis={shown} onConfirm={onConfirm} />);
+  render(
+    <AnalysisView id="analysis-1" analysis={shown} onConfirm={onConfirm} />,
+  );
   return onConfirm;
 };
 const confirmButton = () =>
@@ -161,9 +163,30 @@ test('a failed reading says so and offers to upload again', () => {
   expect(screen.getByRole('link', { name: 'Upload it again' })).toBeTruthy();
 });
 
-test('after confirmation the form is gone', () => {
+test('after confirmation the form is gone and the rules are being worked out', () => {
   show(analysis({ status: 'extracting_rules' }));
 
-  expect(screen.getByRole('heading').textContent).toBe('Details confirmed');
+  expect(screen.getByRole('heading').textContent).toBe('Working out the rules');
   expect(screen.queryByRole('button')).toBeNull();
+  expect(screen.queryByRole('link')).toBeNull();
+});
+
+test('once the rules exist their number is shown with the way to read them', () => {
+  show(analysis({ status: 'fuzzing', counts: { clauses: 40, rules: 17 } }));
+
+  expect(screen.getByText(/17 rules/)).toBeTruthy();
+  expect(
+    screen
+      .getByRole('link', { name: 'How we read your document' })
+      .getAttribute('href'),
+  ).toBe('/analyses/$id/rules');
+});
+
+test('a failed rules stage names the stage', () => {
+  show(analysis({ status: 'failed', stage: 'extracting_rules' }));
+
+  expect(screen.getByRole('heading').textContent).toBe(
+    'The rules could not be worked out',
+  );
+  expect(screen.getByRole('link', { name: 'Upload it again' })).toBeTruthy();
 });

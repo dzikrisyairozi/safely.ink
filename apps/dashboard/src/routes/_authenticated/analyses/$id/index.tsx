@@ -25,6 +25,7 @@ function AnalysisPage() {
       <Main>
         {analysis && (
           <AnalysisView
+            id={id}
             analysis={analysis}
             onConfirm={async (details) => {
               await api(`/v1/analyses/${id}/confirm`, {

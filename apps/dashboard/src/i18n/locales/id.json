@@ -104,10 +104,6 @@
       "title": "Bukan polis atau kontrak",
       "description": "Ini tidak tampak seperti polis atau kontrak. safely.ink memeriksa dokumen yang mengatur hak dan kewajiban antara Anda dan pihak lain."
     },
-    "failed": {
-      "title": "Pembacaan tidak selesai",
-      "description": "Terjadi kesalahan saat membaca dokumen. Tidak ada yang hilang di sisi Anda; silakan unggah lagi."
-    },
     "unreadable": {
       "title": "Beberapa halaman tidak terbaca",
       "description": "Halaman {{pages}} buram, terpotong atau terlalu gelap. Anda dapat melanjutkan dengan sisanya, dan laporan akan ditandai tidak lengkap."
@@ -134,9 +130,24 @@
       "terms": "Syarat dan ketentuan",
       "other": "Jenis kontrak lain"
     },
-    "confirmed": {
-      "title": "Rincian dikonfirmasi",
-      "description": "Terima kasih. Langkah analisis berikutnya belum tersedia."
+    "failed": {
+      "reading": {
+        "title": "Pembacaan tidak selesai",
+        "description": "Terjadi kesalahan saat membaca dokumen. Tidak ada yang hilang di sisi Anda; silakan unggah lagi."
+      },
+      "rules": {
+        "title": "Aturan tidak dapat disusun",
+        "description": "Terjadi kesalahan saat kami mengubah klausul menjadi aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+      }
+    },
+    "extractingRules": {
+      "title": "Menyusun aturan",
+      "description": "Kami sedang mengubah klausul menjadi aturan yang dapat diuji. Ini bisa memakan waktu satu atau dua menit. Halaman ini diperbarui dengan sendirinya."
+    },
+    "rulesReady": {
+      "title": "Kami telah membaca dokumen Anda",
+      "description": "Kami menemukan {{count}} aturan di dalamnya. Langkah berikutnya adalah mengujinya terhadap situasi nyata, dan itu belum tersedia.",
+      "link": "Cara kami membaca dokumen Anda"
     }
   },
   "rules": {
