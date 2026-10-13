@@ -7,9 +7,6 @@ dist/
 build/
 coverage/
 
-# Prisma generated files
-packages/db/src/generated/
-
 # Logs
 *.log
 logs/
@@ -31,7 +28,6 @@ logs/
 # Generated files
 routeTree.gen.ts
 next-env.d.ts
-.source/
 *.tsbuildinfo
 .next/
 .turbo/

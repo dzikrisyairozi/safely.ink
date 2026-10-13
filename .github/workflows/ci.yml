@@ -1,11 +1,10 @@
 name: CI/CD Pipeline
 
-# PRs only -- a merged PR already passed here, so push-to-branch runs were
-# pure duplicates. Feature PRs target staging; staging -> main is the
-# release PR. Tags don't run CI: release.yml ships what main verified.
+# Release PRs only. Feature PRs target staging and are checked locally;
+# staging -> main is the release PR and the only place CI runs.
 on:
   pull_request:
-    branches: [staging, main]
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore: ['**.md', 'docs/**']
   workflow_dispatch:
@@ -18,6 +17,9 @@ env:
   NODE_VERSION: '24'
   PNPM_VERSION: '9.0.0'
   TURBO_TELEMETRY_DISABLED: 1
+  # The web build refuses to run without these; CI only needs placeholders.
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+  NEXT_PUBLIC_APP_URL: http://localhost:5174
 
 jobs:
   # Single comprehensive job with all checks
@@ -45,14 +47,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Update lockfile if needed
-        run: |
-          if [ -f pnpm-lock.yaml ]; then
-            echo "Lockfile exists, checking compatibility..."
-            pnpm install --lockfile-only
-          fi
+        run: pnpm install --frozen-lockfile
 
       - name: Build packages
         run: pnpm run build

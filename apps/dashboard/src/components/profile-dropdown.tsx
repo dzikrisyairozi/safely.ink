@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import { LogOut, Settings, UserCog } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useTranslation } from '@repo/i18n';
 import { Button } from '@repo/ui/components/ui/button';
 import {
@@ -11,7 +10,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -44,21 +42,6 @@ export function ProfileDropdown() {
               <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-              <Link to="/settings">
-                <UserCog />
-                {t('profileDropdown.profile')}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/settings">
-                <Settings />
-                {t('profileDropdown.settings')}
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"

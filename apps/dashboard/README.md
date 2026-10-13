@@ -1,104 +1,31 @@
-# Dashboard
+# dashboard
 
-A Vite + React + TanStack Router admin dashboard, part of the
-[monorepo-fullstack-starter](../../README.md) workspace. Feature parity is modeled on
-[shadcn-admin](https://github.com/satnaing/shadcn-admin), rebuilt against this repo's own
-amber/Outfit theme and `@repo/ui` component set (no vendored `theme.css` or copied
-`components/ui/*`). The `/chats` surface is an AI-native chat UI inspired by
-[beautifului.dev](https://www.beautifului.dev/) — see [Chat](#chat) below for the exact scope
-of that inspiration.
-
-## Getting started
+The Policy Police product app: sign in, upload a document, watch the run, read the report.
+Vite, React, TanStack Router (file-based), React Query, Zustand, `@repo/ui`, `@repo/i18n`.
 
 ```bash
-pnpm install
 pnpm dev:dashboard    # http://localhost:5174
-```
-
-```bash
 pnpm --filter dashboard type-check
 pnpm --filter dashboard lint
 pnpm --filter dashboard test
 pnpm --filter dashboard build
 ```
 
-Or from the repo root: `pnpm type-check`, `pnpm lint`, `pnpm test`, `pnpm build` (all four run
-across every workspace via Turborepo).
+## Current state
 
-## Mock authentication
+This is the application shell only. Screens and behaviour are specified in
+[`docs/FSD.md`](../../docs/FSD.md); the build-out is in [`docs/TSD.md`](../../docs/TSD.md) section 7.
 
-**There is no real backend behind sign-in.** `sign-in`, `sign-in-2`, and `sign-up` all accept
-any email/password combination and call `useAuthStore.signIn()` with a hardcoded user
-(`Jane Doe`) and a literal `'mock_token'` string — see
-`src/features/auth/sign-in/components/user-auth-form.tsx`. The token is persisted to a cookie
-and is what `_authenticated/route.tsx` checks before allowing access; there is no JWT
-validation, no expiry check beyond the cookie's own max-age, and no call to `apps/api`. Treat
-every "authenticated" page in this app as a UI shell over fixture data, not a real auth
-boundary. Wiring this up to `apps/api`'s real auth is out of scope for this starter and left
-as an integration exercise.
+**Sign-in is a mock.** Any email and password is accepted and a placeholder token is stored
+in a cookie (`src/features/auth/sign-in/components/user-auth-form.tsx`,
+`src/stores/auth-store.ts`). It is not an auth boundary. It is replaced by Firebase Auth
+with Google sign-in.
 
-All list data (Users, Tasks) is seeded once from `@faker-js/faker` with a fixed seed and
-committed as static fixtures — it does not come from a database and does not persist writes
-across a reload.
+## Conventions
 
-## Route map
-
-| Route                                                                                                    | Feature              | Notes                                                                   |
-| -------------------------------------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------- |
-| `/`                                                                                                      | `features/dashboard` | Overview cards, chart, recent sales, analytics                          |
-| `/tasks`                                                                                                 | `features/tasks`     | Data table: sort, filter, bulk actions, CSV import                      |
-| `/apps`                                                                                                  | `features/apps`      | Static integrations grid                                                |
-| `/chats`                                                                                                 | `features/chats`     | See [Chat](#chat)                                                       |
-| `/users`                                                                                                 | `features/users`     | Data table: sort, filter, bulk actions, invite                          |
-| `/sandbox`                                                                                               | —                    | Every `@repo/ui` component, one page, for visual QA                     |
-| `/settings`, `/settings/account`, `/settings/appearance`, `/settings/notifications`, `/settings/display` | `features/settings`  | Tabbed settings shell                                                   |
-| `/help-center`                                                                                           | —                    | Static help content                                                     |
-| `(auth)/sign-in`, `/sign-in-2`, `/sign-up`, `/forgot-password`, `/otp`                                   | `features/auth`      | Unauthenticated shell, mock-auth (see above)                            |
-| `(errors)/401`, `/403`, `/404`, `/500`, `/503`                                                           | `features/errors`    | Also reachable via `_authenticated/errors/$error` for in-app triggering |
-
-Authenticated routes live under `src/routes/_authenticated/` and are gated by
-`_authenticated/route.tsx`, which redirects to `/sign-in` when no auth cookie is present.
-Unauthenticated routes live under `src/routes/(auth)/` and `src/routes/(errors)/`. Routing is
-file-based via TanStack Router — `src/routeTree.gen.ts` is generated by the dev/build process
-and should never be hand-edited.
-
-## Structure
-
-Each top-level feature under `src/features/<name>/` follows the same shape:
-
-```
-features/<name>/
-  index.tsx           # page composition
-  data/                # fixtures, zod schemas, static option lists
-  components/          # feature-local components (tables, dialogs, forms)
-```
-
-Shared, cross-feature building blocks live in `src/components/` (layout shell, data-table
-primitives, the command palette) and `src/hooks/`, `src/context/`, `src/stores/`, `src/lib/`.
-Anything reusable across `apps/web`/`apps/docs`/`apps/dashboard` belongs in `packages/ui`
-instead — not duplicated here.
-
-Every user-visible string goes through `useTranslation()` (`@repo/i18n`), with matching keys
-in `src/i18n/locales/en.json` and `id.json`. `src/i18n/locale-parity.test.ts` fails the test
-suite if the two files' key sets ever diverge.
-
-## Chat
-
-`/chats` is an independent reimplementation of a chat-agent UI, inspired by the visual
-language of [beautifului.dev](https://www.beautifului.dev/) — it does not use any of that
-site's source, markup, or assets, and this project has no affiliation with it. The primitives
-(`AgentLoader`, `ThinkingTrace`, `ToolChip`, `TaskRow`, `ApprovalCard`, `StreamingText`,
-`MessageBubble`, `PromptBar`, source/follow-up chips) live in
-`packages/ui/src/components/chat/` and are built from this repo's own amber/Outfit theme
-tokens, not copied styling.
-
-There is no model behind it. `useChatReplay` (`src/features/chats/components/`) plays back a
-fixed, scripted response — loader → thinking trace → tool chips → streamed answer with
-sources and follow-up pills — on a timer, regardless of what you type. It exists to
-demonstrate the primitives' composition and animation, not to answer questions.
-
-## Testing
-
-Vitest + Testing Library, colocated as `*.test.ts(x)` next to the code under test. Run via
-`pnpm --filter dashboard test` (or `pnpm test` at the repo root, which also runs
-`packages/ui`'s and `apps/api`'s suites — `apps/web` and `apps/docs` have no test script yet).
+- Routes live in `src/routes`; `src/routeTree.gen.ts` is generated by the Vite plugin on
+  `dev` and `build`. After adding or removing a route, run one of them before `type-check`.
+- Every UI string goes through `t()` with keys in `src/i18n/locales/en.json` and `id.json`.
+  A test fails if the two files do not have the same keys.
+- Sidebar entries are declared in `src/components/layout/data/sidebar-data.ts`; the command
+  menu reads the same list.

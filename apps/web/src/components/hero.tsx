@@ -1,13 +1,3 @@
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * Monorepo Fullstack Starter — Hero Component
- *
- * @author  Dzikri Syairozi <dzikrisyairozi@gmail.com>
- * @see     https://github.com/dzikrisyairozi/monorepo-fullstack-starter
- * @license MIT
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 'use client';
 
 import { motion, Variants } from 'framer-motion';
@@ -17,6 +7,8 @@ import Link from 'next/link';
 import Scene from '@/components/scene';
 import { useTranslation } from '@repo/i18n';
 import { WebLanguageSwitcher } from '@/i18n/client';
+
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5174';
 
 const container: Variants = {
   hidden: { opacity: 0 },
@@ -62,35 +54,14 @@ export default function Hero() {
             </p>
           </motion.div>
 
-          <motion.div
-            variants={item}
-            className="flex flex-col sm:flex-row gap-4"
-          >
-            <Button
-              size="lg"
-              className="rounded-full h-12 px-8 bg-white text-black hover:bg-zinc-200"
-            >
-              <Link
-                href="https://github.com/dzikrisyairozi/monorepo-fullstack-starter"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center"
-              >
-                {t('hero.getStarted')} <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+          <motion.div variants={item}>
             <Button
               asChild
               size="lg"
-              variant="outline"
-              className="rounded-full h-12 px-8 border-white/20 hover:bg-white/10 flex items-center justify-center"
+              className="rounded-full h-12 px-8 bg-white text-black hover:bg-zinc-200"
             >
-              <Link
-                href="https://docs-starter.dzikrisyairozi.com/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('hero.viewDocs')}
+              <Link href={appUrl} className="flex items-center justify-center">
+                {t('hero.cta')} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </motion.div>
@@ -105,15 +76,7 @@ export default function Hero() {
         className="absolute bottom-8 left-0 right-0 flex justify-center z-10"
       >
         <p className="text-xs text-zinc-500 font-medium tracking-widest uppercase">
-          {t('footer.craftedBy')}{' '}
-          <a
-            href="https://github.com/dzikrisyairozi"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-zinc-400 hover:text-white transition-colors"
-          >
-            Dzikri Syairozi
-          </a>
+          {t('footer.disclaimer')}
         </p>
       </motion.div>
     </section>
