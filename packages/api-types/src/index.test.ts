@@ -338,3 +338,42 @@ test('an analysis counts its scenarios by result', () => {
 
   expect(Analysis.parse({ ...analysis, counts }).counts).toEqual(counts);
 });
+
+test('a stored scenario keeps what the user would have expected', () => {
+  const scenario = {
+    id: 's-001',
+    story: 'You are admitted with dengue fever three weeks in.',
+    strategy: 'baseline',
+    frequency: 'common',
+    targetRuleIds: ['r-002'],
+    stake: 8000000,
+    facts: { daysSinceStart: 21 },
+  };
+  const expectation = {
+    result: 'fine',
+    reason: 'An illness is what it is for.',
+  };
+
+  expect(StoredScenario.parse(scenario).expectation).toBeUndefined();
+  expect(
+    StoredScenario.parse({ ...scenario, expectation }).expectation,
+  ).toEqual(expectation);
+});
+
+test('a finished analysis carries its grade, its confidence and its traps', () => {
+  const done = {
+    ownerUid: 'alice',
+    status: 'done',
+    meta: null,
+    grade: 'C',
+    confidence: 'medium',
+    counts: { scenarios: 30, traps: 4 },
+  };
+
+  expect(Analysis.parse(done)).toMatchObject({
+    grade: 'C',
+    confidence: 'medium',
+    counts: { traps: 4 },
+  });
+  expect(Analysis.safeParse({ ...done, grade: 'E' }).success).toBe(false);
+});
