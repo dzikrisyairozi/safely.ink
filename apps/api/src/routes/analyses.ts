@@ -4,6 +4,8 @@ import {
   AnalysisId,
   ConfirmAnalysisRequest,
   CreateAnalysisRequest,
+  LAW_JURISDICTIONS,
+  isLawChecked,
   type AnalysisStatus,
   type Clause,
 } from '@repo/api-types';
@@ -17,7 +19,6 @@ import { nextReset, releaseDailySlot, reserveDailySlot } from '../usage';
 
 const { limits } = config;
 const megabytes = limits.uploadMaxBytes / (1024 * 1024);
-const lawJurisdictions = Object.keys(config.legalSources);
 
 const UPLOAD_MESSAGES: Record<UploadError, string> = {
   file_missing: 'One of the files was not uploaded. Please upload it again.',
@@ -96,7 +97,7 @@ analyses.post('/', async (c) => {
     const reading = checkReading(
       await readDocument(uploads.files, uploads.pageCount),
       uploads.pageCount,
-      lawJurisdictions,
+      [...LAW_JURISDICTIONS],
     );
     if (reading.status === 'awaiting_confirmation') {
       await saveClauses(analysis, reading.clauses);
@@ -161,7 +162,7 @@ analyses.post('/:id/confirm', async (c) => {
       status: 'extracting_rules',
       'meta.docType': docType,
       'meta.jurisdiction': jurisdiction,
-      'meta.lawChecked': lawJurisdictions.includes(jurisdiction),
+      'meta.lawChecked': isLawChecked(jurisdiction),
       'meta.userRole': userRole,
       updatedAt: FieldValue.serverTimestamp(),
     });

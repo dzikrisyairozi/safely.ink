@@ -202,6 +202,21 @@ export const AnalysisMeta = z.object({
 });
 export type AnalysisMeta = z.infer<typeof AnalysisMeta>;
 
+// F-UP-1 and F-UP-2. Checked in the browser before uploading and again by
+// the API on the real files.
+export const UPLOAD_LIMITS = {
+  maxBytes: 30 * 1024 * 1024,
+  maxPages: 100,
+  maxImages: 30,
+} as const;
+
+// Countries the legal comparison covers (F-READ-6). Any other jurisdiction
+// still gets the scenarios; only the law check is skipped.
+export const LAW_JURISDICTIONS = ['ID', 'SG', 'AU'] as const;
+export type LawJurisdiction = (typeof LAW_JURISDICTIONS)[number];
+export const isLawChecked = (jurisdiction: string) =>
+  (LAW_JURISDICTIONS as readonly string[]).includes(jurisdiction);
+
 // The states of FSD section 6.
 export const AnalysisStatus = z.enum([
   'uploaded',
@@ -239,7 +254,7 @@ const uploadName = z
 // uploads/{uid}/{analysisId}/, in page order.
 export const CreateAnalysisRequest = z.object({
   analysisId: AnalysisId,
-  files: z.array(uploadName).min(1).max(30),
+  files: z.array(uploadName).min(1).max(UPLOAD_LIMITS.maxImages),
 });
 export type CreateAnalysisRequest = z.infer<typeof CreateAnalysisRequest>;
 
