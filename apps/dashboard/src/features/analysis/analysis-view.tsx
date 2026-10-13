@@ -218,10 +218,15 @@ function ConfirmDetails({
 
 // The stage a failed run stopped in, as the key of its message.
 const FAILED_AT: Partial<
-  Record<AnalysisStatus, 'rules' | 'fuzzing' | 'running'>
-> = { extracting_rules: 'rules', fuzzing: 'fuzzing', running: 'running' };
+  Record<AnalysisStatus, 'rules' | 'fuzzing' | 'running' | 'comparing'>
+> = {
+  extracting_rules: 'rules',
+  fuzzing: 'fuzzing',
+  running: 'running',
+  comparing: 'comparing',
+};
 
-/** What `/analyses/$id` shows for each state up to the run. */
+/** What `/analyses/$id` shows for each state of an analysis. */
 export function AnalysisView({
   id,
   analysis,
@@ -294,13 +299,34 @@ export function AnalysisView({
           })}
         </Message>
       );
-    default:
+    case 'comparing':
       return (
-        <Message title={t('analysis.tested.title')} action={rulesLink}>
-          {t('analysis.tested.description', {
+        <Message title={t('analysis.comparing.title')} action={rulesLink}>
+          {t('analysis.comparing.description', {
             count: analysis.counts?.scenarios ?? 0,
           })}
         </Message>
       );
+    default: {
+      // The report comes with the run screen; until then the result in words.
+      const traps = analysis.counts?.traps ?? 0;
+      return (
+        <Message
+          title={t('analysis.done.title', { grade: analysis.grade })}
+          action={rulesLink}
+        >
+          {[
+            traps
+              ? t('analysis.done.traps', { count: traps })
+              : t('analysis.done.noTraps'),
+            analysis.confidence &&
+              t(`analysis.done.confidence.${analysis.confidence}`),
+            t('analysis.done.next'),
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        </Message>
+      );
+    }
   }
 }

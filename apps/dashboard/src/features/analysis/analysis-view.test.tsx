@@ -209,20 +209,42 @@ test('while situations are written and run, each stage says what is happening', 
   ).toBeTruthy();
 });
 
-test('after the run the number of situations tested is shown', () => {
+test('while the results are compared the number of situations is shown', () => {
   const counts = { clauses: 40, rules: 17, scenarios: 31 };
 
   show(analysis({ status: 'comparing', counts }));
 
   expect(screen.getByRole('heading').textContent).toBe(
-    'We have tested your document',
+    'Comparing with what you would expect',
   );
   expect(screen.getByText(/31 real-life situations/)).toBeTruthy();
+});
+
+test('a finished analysis shows its grade, its traps and the confidence', () => {
+  const counts = { clauses: 40, rules: 17, scenarios: 31, traps: 4 };
+
+  show(analysis({ status: 'done', grade: 'C', confidence: 'medium', counts }));
+
+  expect(screen.getByRole('heading').textContent).toBe('Grade C');
+  expect(screen.getByText(/4 traps found/)).toBeTruthy();
+  expect(screen.getByText(/Confidence in this grade: medium/)).toBeTruthy();
+  expect(
+    screen.getByRole('link', { name: 'How we read your document' }),
+  ).toBeTruthy();
+});
+
+test('a finished analysis without a trap says so', () => {
+  const counts = { clauses: 40, rules: 17, scenarios: 31, traps: 0 };
+
+  show(analysis({ status: 'done', grade: 'A', confidence: 'high', counts }));
+
+  expect(screen.getByText(/No situation ended worse/)).toBeTruthy();
 });
 
 test.each([
   ['fuzzing', 'The test situations could not be written'],
   ['running', 'The rules could not be tested'],
+  ['comparing', 'The results could not be compared'],
 ] as const)('a run that fails at %s names that stage', (stage, title) => {
   show(analysis({ status: 'failed', stage }));
 

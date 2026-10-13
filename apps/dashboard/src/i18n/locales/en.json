@@ -146,6 +146,10 @@
       "running": {
         "title": "The rules could not be tested",
         "description": "Something went wrong while we ran the situations through the rules. This run does not count against your daily limit; please upload the document again."
+      },
+      "comparing": {
+        "title": "The results could not be compared",
+        "description": "Something went wrong while we compared the results with what a person would expect. This run does not count against your daily limit; please upload the document again."
       }
     },
     "extractingRules": {
@@ -162,10 +166,22 @@
       "description_one": "We are running {{count}} situation through the rules of your document. This takes a moment.",
       "description_other": "We are running {{count}} situations through the rules of your document. This takes a moment."
     },
-    "tested": {
-      "title": "We have tested your document",
-      "description_one": "We ran {{count}} real-life situation through its rules. Comparing the result with what a person would expect, and with the law, is the next step, and it is not available yet.",
-      "description_other": "We ran {{count}} real-life situations through its rules. Comparing the results with what a person would expect, and with the law, is the next step, and it is not available yet."
+    "comparing": {
+      "title": "Comparing with what you would expect",
+      "description_one": "We ran {{count}} real-life situation through the rules. Now we compare the result with what a reasonable person in your place would expect.",
+      "description_other": "We ran {{count}} real-life situations through the rules. Now we compare each result with what a reasonable person in your place would expect."
+    },
+    "done": {
+      "title": "Grade {{grade}}",
+      "noTraps": "No situation ended worse than a reasonable person would expect.",
+      "traps_one": "{{count}} trap found: a place where the document gives you less than a reasonable person would expect.",
+      "traps_other": "{{count}} traps found: places where the document gives you less than a reasonable person would expect.",
+      "confidence": {
+        "high": "Confidence in this grade: high.",
+        "medium": "Confidence in this grade: medium.",
+        "low": "Confidence in this grade: low."
+      },
+      "next": "The law is not compared yet, and the full report is the next step."
     },
     "rulesLink": "How we read your document"
   },
