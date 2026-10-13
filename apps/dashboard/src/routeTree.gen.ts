@@ -17,7 +17,8 @@ import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors500RouteImport } from './routes/(errors)/500'
 import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedAnalysesIdRouteImport } from './routes/_authenticated/analyses/$id'
+import { Route as AuthenticatedAnalysesIdIndexRouteImport } from './routes/_authenticated/analyses/$id/index'
+import { Route as AuthenticatedAnalysesIdRulesRouteImport } from './routes/_authenticated/analyses/$id/rules'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -58,11 +59,18 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAnalysesIdRoute = AuthenticatedAnalysesIdRouteImport.update({
-  id: '/analyses/$id',
-  path: '/analyses/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedAnalysesIdIndexRoute =
+  AuthenticatedAnalysesIdIndexRouteImport.update({
+    id: '/analyses/$id/',
+    path: '/analyses/$id/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalysesIdRulesRoute =
+  AuthenticatedAnalysesIdRulesRouteImport.update({
+    id: '/analyses/$id/rules',
+    path: '/analyses/$id/rules',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -72,7 +80,8 @@ export interface FileRoutesByFullPath {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
-  '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
+  '/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
+  '/analyses/$id/': typeof AuthenticatedAnalysesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
@@ -82,7 +91,8 @@ export interface FileRoutesByTo {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/': typeof AuthenticatedIndexRoute
-  '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
+  '/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
+  '/analyses/$id': typeof AuthenticatedAnalysesIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -94,7 +104,8 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/analyses/$id': typeof AuthenticatedAnalysesIdRoute
+  '/_authenticated/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
+  '/_authenticated/analyses/$id/': typeof AuthenticatedAnalysesIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -106,7 +117,8 @@ export interface FileRouteTypes {
     | '/404'
     | '/500'
     | '/503'
-    | '/analyses/$id'
+    | '/analyses/$id/rules'
+    | '/analyses/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -116,6 +128,7 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/'
+    | '/analyses/$id/rules'
     | '/analyses/$id'
   id:
     | '__root__'
@@ -127,7 +140,8 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/'
-    | '/_authenticated/analyses/$id'
+    | '/_authenticated/analyses/$id/rules'
+    | '/_authenticated/analyses/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -198,11 +212,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/analyses/$id': {
-      id: '/_authenticated/analyses/$id'
+    '/_authenticated/analyses/$id/': {
+      id: '/_authenticated/analyses/$id/'
       path: '/analyses/$id'
-      fullPath: '/analyses/$id'
-      preLoaderRoute: typeof AuthenticatedAnalysesIdRouteImport
+      fullPath: '/analyses/$id/'
+      preLoaderRoute: typeof AuthenticatedAnalysesIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analyses/$id/rules': {
+      id: '/_authenticated/analyses/$id/rules'
+      path: '/analyses/$id/rules'
+      fullPath: '/analyses/$id/rules'
+      preLoaderRoute: typeof AuthenticatedAnalysesIdRulesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -210,12 +231,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedAnalysesIdRoute: typeof AuthenticatedAnalysesIdRoute
+  AuthenticatedAnalysesIdRulesRoute: typeof AuthenticatedAnalysesIdRulesRoute
+  AuthenticatedAnalysesIdIndexRoute: typeof AuthenticatedAnalysesIdIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedAnalysesIdRoute: AuthenticatedAnalysesIdRoute,
+  AuthenticatedAnalysesIdRulesRoute: AuthenticatedAnalysesIdRulesRoute,
+  AuthenticatedAnalysesIdIndexRoute: AuthenticatedAnalysesIdIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

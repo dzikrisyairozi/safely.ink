@@ -1,14 +1,8 @@
-import {
-  Gemini,
-  InMemoryRunner,
-  isFinalResponse,
-  LlmAgent,
-  stringifyContent,
-} from '@google/adk';
 import { FileState, GoogleGenAI, type Part } from '@google/genai';
 import { ReaderOutput } from '@repo/api-types';
 import { config } from '../config';
 import type { Upload } from '../uploads';
+import { runAgent } from './run';
 
 const WINDOW = 40; // pages read in one call (TSD 5.1)
 
@@ -33,13 +27,15 @@ A receipt, invoice, letter, ID card, statement, form or photo of something
 else is false. When false, return empty lists and empty strings for the rest.
 
 docType: "insurance", "loan", "employment", "nda" or "lease" when the document
-is one of those. Otherwise a short English name of what it is.
+is one of those. "terms" for terms of service, terms and conditions, or the
+terms of a membership or subscription. Otherwise a short English name of what
+it is.
 
 title: the title as printed. If there is none, a short description.
 
 parties: every named party with its role as one lowercase English noun, such
 as "insurer", "insured", "lender", "borrower", "employer", "employee",
-"landlord", "tenant". Give two parties different roles.
+"landlord", "tenant", "provider", "customer". Give two parties different roles.
 
 jurisdiction: the ISO 3166-1 alpha-2 code of the country whose law governs the
 document. Take it from the governing-law clause. If there is none, use other
@@ -120,31 +116,20 @@ export function mergeReadings(readings: ReaderOutput[]): ReaderOutput {
 }
 
 async function readWindow(
-  apiKey: string,
   document: Part[],
   window: PageWindow,
   pageCount: number,
 ): Promise<ReaderOutput> {
-  const agent = new LlmAgent({
-    name: 'reader',
-    model: new Gemini({ model: config.models.pro, apiKey }),
-    instruction: INSTRUCTION,
-    outputSchema: ReaderOutput,
-    generateContentConfig: { temperature: 0, maxOutputTokens: 65536 },
-  });
-  const runner = new InMemoryRunner({ agent, appName: 'reader' });
-
   const request = `The document has ${pageCount} pages. Extract the clauses and unreadable pages of pages ${window.from} to ${window.to}.`;
-  let answer = '';
-  for await (const event of runner.runEphemeral({
-    userId: 'reader',
-    newMessage: { role: 'user', parts: [...document, { text: request }] },
-  })) {
-    if (isFinalResponse(event)) answer = stringifyContent(event);
-  }
-  // ADK can end with an empty answer and no error (ADR 3).
-  if (!answer.trim()) throw new Error('The Reader returned an empty answer.');
-  return withinWindow(ReaderOutput.parse(JSON.parse(answer)), window);
+  const reading = await runAgent({
+    name: 'reader',
+    model: config.models.pro,
+    instruction: INSTRUCTION,
+    schema: ReaderOutput,
+    parts: [...document, { text: request }],
+    seconds: config.limits.modelCallSeconds.read,
+  });
+  return withinWindow(reading, window);
 }
 
 /** Reads the document into details and clauses. The result is unchecked. */
@@ -191,7 +176,7 @@ export async function readDocument(
 
     const readings = await Promise.all(
       pageWindows(pageCount).map((window) =>
-        readWindow(apiKey, document, window, pageCount),
+        readWindow(document, window, pageCount),
       ),
     );
     return mergeReadings(readings);

@@ -1,7 +1,7 @@
 # safely.ink
 
 **A fuzzer for the fine print.** Upload an insurance policy, loan agreement, employment
-contract, NDA or lease. safely.ink turns the wording into executable rules, generates
+contract, NDA, lease or terms and conditions. safely.ink turns the wording into executable rules, generates
 dozens of tricky but realistic scenarios, runs them through those rules, and shows every
 case where you end up worse off than a reasonable person would expect, or worse off than
 the law allows.

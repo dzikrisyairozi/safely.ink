@@ -104,10 +104,6 @@
       "title": "Bukan polis atau kontrak",
       "description": "Ini tidak tampak seperti polis atau kontrak. safely.ink memeriksa dokumen yang mengatur hak dan kewajiban antara Anda dan pihak lain."
     },
-    "failed": {
-      "title": "Pembacaan tidak selesai",
-      "description": "Terjadi kesalahan saat membaca dokumen. Tidak ada yang hilang di sisi Anda; silakan unggah lagi."
-    },
     "unreadable": {
       "title": "Beberapa halaman tidak terbaca",
       "description": "Halaman {{pages}} buram, terpotong atau terlalu gelap. Anda dapat melanjutkan dengan sisanya, dan laporan akan ditandai tidak lengkap."
@@ -131,11 +127,90 @@
       "employment": "Kontrak kerja",
       "nda": "Perjanjian kerahasiaan",
       "lease": "Perjanjian sewa",
+      "terms": "Syarat dan ketentuan",
       "other": "Jenis kontrak lain"
     },
-    "confirmed": {
-      "title": "Rincian dikonfirmasi",
-      "description": "Terima kasih. Langkah analisis berikutnya belum tersedia."
+    "failed": {
+      "reading": {
+        "title": "Pembacaan tidak selesai",
+        "description": "Terjadi kesalahan saat membaca dokumen. Tidak ada yang hilang di sisi Anda; silakan unggah lagi."
+      },
+      "rules": {
+        "title": "Aturan tidak dapat disusun",
+        "description": "Terjadi kesalahan saat kami mengubah klausul menjadi aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+      }
+    },
+    "extractingRules": {
+      "title": "Menyusun aturan",
+      "description": "Kami sedang mengubah klausul menjadi aturan yang dapat diuji. Ini bisa memakan waktu satu atau dua menit. Halaman ini diperbarui dengan sendirinya."
+    },
+    "rulesReady": {
+      "title": "Kami telah membaca dokumen Anda",
+      "description_one": "Kami menemukan {{count}} aturan di dalamnya. Langkah berikutnya adalah mengujinya terhadap situasi nyata, dan itu belum tersedia.",
+      "description_other": "Kami menemukan {{count}} aturan di dalamnya. Langkah berikutnya adalah mengujinya terhadap situasi nyata, dan itu belum tersedia.",
+      "link": "Cara kami membaca dokumen Anda"
+    }
+  },
+  "rules": {
+    "eyebrow": "Cara kami membaca dokumen Anda",
+    "back": "Kembali ke analisis",
+    "empty": "Aturan dokumen ini belum siap.",
+    "appliesWhen": "Berlaku ketika",
+    "clause": "Klausul {{number}}",
+    "clauseUnnumbered": "Klausul",
+    "page": "halaman {{page}}",
+    "kinds": {
+      "benefit": {
+        "title": "Yang Anda dapatkan",
+        "description": "Hal yang diberikan atau diizinkan dokumen ini kepada Anda."
+      },
+      "exclusion": {
+        "title": "Kapan tidak berlaku",
+        "description": "Keadaan ketika Anda tidak mendapat manfaat."
+      },
+      "condition": {
+        "title": "Yang harus sudah Anda lakukan",
+        "description": "Jika belum, hal itu merugikan Anda."
+      },
+      "deadline": {
+        "title": "Batas waktu bagi Anda",
+        "description": "Jika terlewat, hal itu merugikan Anda."
+      },
+      "limit": {
+        "title": "Batas dan potongan",
+        "description": "Hal yang mengurangi jumlah yang Anda terima."
+      },
+      "charge": {
+        "title": "Yang mungkin harus Anda bayar",
+        "description": "Biaya dan denda, serta pemicunya."
+      },
+      "unmodeled": {
+        "title": "Baca sendiri bagian ini",
+        "description": "Klausul ini penting, tetapi bergantung pada penilaian atau kata-kata yang tidak pasti, sehingga tidak dapat kami uji. Bacalah klausulnya."
+      }
+    },
+    "join": {
+      "all": "Semua ini:",
+      "any": "Salah satu dari ini:",
+      "not": "Bukan ini:"
+    },
+    "op": {
+      "eq": "{{value}}",
+      "ne": "bukan {{value}}",
+      "lt": "kurang dari {{value}}",
+      "lte": "{{value}} atau kurang",
+      "gt": "lebih dari {{value}}",
+      "gte": "{{value}} atau lebih",
+      "in": "salah satu dari: {{value}}"
+    },
+    "yes": "ya",
+    "no": "tidak",
+    "facts": {
+      "title": "Fakta yang kami lihat",
+      "description": "Setiap aturan di atas ditulis dengan fakta ini. Setiap situasi uji memberi nilai pada semuanya."
+    },
+    "clauses": {
+      "title": "Klausul"
     }
   }
 }

@@ -10,6 +10,7 @@ export const DocType = z.enum([
   'employment',
   'nda',
   'lease',
+  'terms', // terms of service, terms and conditions
   'other',
 ]);
 export type DocType = z.infer<typeof DocType>;
@@ -70,38 +71,53 @@ export const Condition: z.ZodType<Condition> = z.lazy(() =>
   ]),
 );
 
-export const Rule = z
-  .object({
-    id: z.string(),
-    kind: z.enum([
-      'benefit',
-      'exclusion',
-      'condition',
-      'deadline',
-      'limit',
-      'charge',
-      'unmodeled',
-    ]),
-    summary: z.string(),
-    clauseIds: z.array(z.string()).min(1),
-    // True means the rule applies. For a benefit that is good for the user;
-    // for every other kind it counts against them (breach, deadline missed,
-    // exclusion, limit or charge triggered).
-    when: Condition.nullable(),
-    effect: z
-      .object({
-        type: z.enum(['grant', 'deny', 'cap', 'deduct', 'charge']),
-        amount: z.number().nullable(),
-        percent: z.number().nullable(), // of the amount at stake
-      })
-      .nullable(),
-    touches: z.array(z.string()), // fact keys the rule depends on
-  })
-  .refine((rule) => rule.when !== null || rule.kind === 'unmodeled', {
-    path: ['when'],
-    message: 'Only an unmodeled rule may have no condition',
-  });
+const ruleShape = z.object({
+  id: z.string(),
+  kind: z.enum([
+    'benefit',
+    'exclusion',
+    'condition',
+    'deadline',
+    'limit',
+    'charge',
+    'unmodeled',
+  ]),
+  summary: z.string(),
+  clauseIds: z.array(z.string()).min(1),
+  // True means the rule applies. For a benefit that is good for the user;
+  // for every other kind it counts against them (breach, deadline missed,
+  // exclusion, limit or charge triggered).
+  when: Condition.nullable(),
+  effect: z
+    .object({
+      type: z.enum(['grant', 'deny', 'cap', 'deduct', 'charge']),
+      amount: z.number().nullable(),
+      percent: z.number().nullable(), // of the amount at stake
+    })
+    .nullable(),
+  touches: z.array(z.string()), // fact keys the rule depends on
+});
+
+const hasConditionUnlessUnmodeled = (rule: {
+  kind: string;
+  when: Condition | null;
+}) => rule.when !== null || rule.kind === 'unmodeled';
+const conditionMissing = {
+  path: ['when'],
+  message: 'Only an unmodeled rule may have no condition',
+};
+
+export const Rule = ruleShape.refine(
+  hasConditionUnlessUnmodeled,
+  conditionMissing,
+);
 export type Rule = z.infer<typeof Rule>;
+
+// A rule as the RuleExtractor proposes it. The ID is given by code.
+export const RuleDraft = ruleShape
+  .omit({ id: true })
+  .refine(hasConditionUnlessUnmodeled, conditionMissing);
+export type RuleDraft = z.infer<typeof RuleDraft>;
 
 export const Scenario = z.object({
   id: z.string(),
@@ -254,6 +270,11 @@ export const Analysis = z.object({
   stage: AnalysisStatus.optional(), // where a failed run stopped
   error: z.string().optional(),
   meta: AnalysisMeta.nullable(), // null until the document is read
+  factSchema: FactSchema.optional(), // from the rules stage on
+  counts: z
+    .object({ clauses: z.number().int(), rules: z.number().int() })
+    .partial()
+    .optional(),
 });
 export type Analysis = z.infer<typeof Analysis>;
 

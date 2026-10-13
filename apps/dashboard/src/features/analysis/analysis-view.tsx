@@ -24,19 +24,19 @@ const FIELD =
 function Message({
   title,
   children,
-  uploadAgain,
+  action,
 }: {
   title: string;
   children: ReactNode;
-  uploadAgain?: string;
+  action?: ReactNode; // a link, shown as the button of the message
 }) {
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-16">
       <h1 className="text-3xl tracking-tight">{title}</h1>
       <p className="text-muted-foreground">{children}</p>
-      {uploadAgain && (
+      {action && (
         <Button asChild className="self-start">
-          <Link to="/">{uploadAgain}</Link>
+          {action}
         </Button>
       )}
     </div>
@@ -215,11 +215,13 @@ function ConfirmDetails({
   );
 }
 
-/** What `/analyses/$id` shows for each state up to confirmation. */
+/** What `/analyses/$id` shows for each state up to the rules. */
 export function AnalysisView({
+  id,
   analysis,
   onConfirm,
 }: {
+  id: string;
   analysis: Analysis;
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
 }) {
@@ -241,24 +243,42 @@ export function AnalysisView({
       return (
         <Message
           title={t('analysis.rejected.title')}
-          uploadAgain={t('analysis.uploadAnother')}
+          action={<Link to="/">{t('analysis.uploadAnother')}</Link>}
         >
           {t('analysis.rejected.description')}
         </Message>
       );
-    case 'failed':
+    case 'failed': {
+      // Retry comes with the run screen; until then the way on is to upload.
+      const stage = analysis.stage === 'extracting_rules' ? 'rules' : 'reading';
       return (
         <Message
-          title={t('analysis.failed.title')}
-          uploadAgain={t('analysis.uploadAgain')}
+          title={t(`analysis.failed.${stage}.title`)}
+          action={<Link to="/">{t('analysis.uploadAgain')}</Link>}
         >
-          {t('analysis.failed.description')}
+          {t(`analysis.failed.${stage}.description`)}
+        </Message>
+      );
+    }
+    case 'extracting_rules':
+      return (
+        <Message title={t('analysis.extractingRules.title')}>
+          {t('analysis.extractingRules.description')}
         </Message>
       );
     default:
       return (
-        <Message title={t('analysis.confirmed.title')}>
-          {t('analysis.confirmed.description')}
+        <Message
+          title={t('analysis.rulesReady.title')}
+          action={
+            <Link to="/analyses/$id/rules" params={{ id }}>
+              {t('analysis.rulesReady.link')}
+            </Link>
+          }
+        >
+          {t('analysis.rulesReady.description', {
+            count: analysis.counts?.rules ?? 0,
+          })}
         </Message>
       );
   }

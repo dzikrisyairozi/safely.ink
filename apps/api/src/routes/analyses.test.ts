@@ -1,11 +1,14 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import { DocumentReference } from 'firebase-admin/firestore';
-import { ErrorEnvelope, ReaderOutput } from '@repo/api-types';
+import { ErrorEnvelope, ReaderOutput, type Fact } from '@repo/api-types';
 import policy from '../../test/fixtures/reader-policy.json';
 import receipt from '../../test/fixtures/reader-receipt.json';
+import proposedFacts from '../../test/fixtures/rules-facts.json';
+import proposedRules from '../../test/fixtures/rules-rules.json';
 import { app } from '../app';
 import { bucket, db } from '../firebase';
 import { readDocument } from '../agents/reader';
+import { proposeFacts, proposeRules } from '../agents/rule-extractor';
 
 // Run through `pnpm test`: Firestore and Storage are the emulators. Only the
 // token check and the model are replaced.
@@ -14,8 +17,10 @@ vi.mock('../firebase', async (original) => ({
   auth: { verifyIdToken: async (token: string) => ({ uid: token }) },
 }));
 vi.mock('../agents/reader');
+vi.mock('../agents/rule-extractor');
 
 const reader = vi.mocked(readDocument);
+const ruleWriter = vi.mocked(proposeRules);
 // The tests upload a single page, so the fixture's clauses are put on it.
 const onePagePolicy = ReaderOutput.parse({
   ...policy,
@@ -48,6 +53,9 @@ beforeEach(async () => {
   await bucket().deleteFiles({ prefix: 'uploads/' });
   reader.mockReset();
   reader.mockResolvedValue(onePagePolicy);
+  vi.mocked(proposeFacts).mockResolvedValue(proposedFacts.facts as Fact[]);
+  ruleWriter.mockReset();
+  ruleWriter.mockResolvedValue(proposedRules.rules);
   await upload('alice', 'analysis-1', '0-page.jpg');
 });
 
@@ -249,14 +257,27 @@ const confirmation = {
 const confirm = (uid: string, analysisId: string, body = confirmation) =>
   post(`/v1/analyses/${analysisId}/confirm`, uid, body);
 
-test('the owner confirms the details and the analysis moves on', async () => {
+test('a new analysis records when its daily slot was taken', async () => {
+  await create('alice', 'analysis-1');
+
+  const { reservedAt } = (await stored('analysis-1'))!;
+
+  expect(Date.now() - reservedAt.toDate().getTime()).toBeLessThan(60_000);
+});
+
+test('the owner confirms the details and the rules are derived', async () => {
   await create('alice', 'analysis-1');
 
   const res = await confirm('alice', 'analysis-1');
 
   expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({
+    analysisId: 'analysis-1',
+    status: 'fuzzing',
+  });
   expect(await stored('analysis-1')).toMatchObject({
-    status: 'extracting_rules',
+    status: 'fuzzing',
+    counts: { clauses: 3, rules: 3 },
     meta: {
       docType: 'loan',
       jurisdiction: 'SG',
@@ -265,6 +286,21 @@ test('the owner confirms the details and the analysis moves on', async () => {
       title: policy.title,
     },
   });
+});
+
+test('a rules stage that fails is reported as a status, not as an error', async () => {
+  await create('alice', 'analysis-1');
+  ruleWriter.mockRejectedValue(new Error('model unavailable'));
+
+  const res = await confirm('alice', 'analysis-1');
+
+  expect(res.status).toBe(200);
+  expect(await res.json()).toMatchObject({ status: 'failed' });
+  expect(await stored('analysis-1')).toMatchObject({
+    status: 'failed',
+    stage: 'extracting_rules',
+  });
+  expect(await startedToday('alice')).toBe(0);
 });
 
 test('a jurisdiction without a law check is stored as unchecked', async () => {

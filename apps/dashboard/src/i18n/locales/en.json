@@ -104,10 +104,6 @@
       "title": "Not a policy or contract",
       "description": "This doesn't look like a policy or contract. safely.ink checks documents that set out rights and obligations between you and another party."
     },
-    "failed": {
-      "title": "Reading did not finish",
-      "description": "Something went wrong while reading the document. Nothing was lost on your side; please upload it again."
-    },
     "unreadable": {
       "title": "Some pages could not be read",
       "description": "Page {{pages}} is blurred, cut off or too dark. You can continue with the rest, and the report will be marked as incomplete."
@@ -131,11 +127,90 @@
       "employment": "Employment contract",
       "nda": "Non-disclosure agreement",
       "lease": "Lease",
+      "terms": "Terms and conditions",
       "other": "Another kind of contract"
     },
-    "confirmed": {
-      "title": "Details confirmed",
-      "description": "Thank you. The next steps of the analysis are not available yet."
+    "failed": {
+      "reading": {
+        "title": "Reading did not finish",
+        "description": "Something went wrong while reading the document. Nothing was lost on your side; please upload it again."
+      },
+      "rules": {
+        "title": "The rules could not be worked out",
+        "description": "Something went wrong while we turned the clauses into rules. This run does not count against your daily limit; please upload the document again."
+      }
+    },
+    "extractingRules": {
+      "title": "Working out the rules",
+      "description": "We are turning the clauses into rules that can be tested. This can take a minute or two. This page updates on its own."
+    },
+    "rulesReady": {
+      "title": "We have read your document",
+      "description_one": "We found {{count}} rule in it. Testing it against real-life situations is the next step, and it is not available yet.",
+      "description_other": "We found {{count}} rules in it. Testing them against real-life situations is the next step, and it is not available yet.",
+      "link": "How we read your document"
+    }
+  },
+  "rules": {
+    "eyebrow": "How we read your document",
+    "back": "Back to the analysis",
+    "empty": "The rules of this document are not ready yet.",
+    "appliesWhen": "Applies when",
+    "clause": "Clause {{number}}",
+    "clauseUnnumbered": "Clause",
+    "page": "page {{page}}",
+    "kinds": {
+      "benefit": {
+        "title": "What you get",
+        "description": "Something the document gives you or lets you do."
+      },
+      "exclusion": {
+        "title": "When it does not apply",
+        "description": "Situations in which you do not get a benefit."
+      },
+      "condition": {
+        "title": "What you must have done",
+        "description": "If you have not, it counts against you."
+      },
+      "deadline": {
+        "title": "Time limits on you",
+        "description": "Miss one and it counts against you."
+      },
+      "limit": {
+        "title": "Caps and deductions",
+        "description": "What reduces the amount you get."
+      },
+      "charge": {
+        "title": "What you may have to pay",
+        "description": "Fees and penalties, and what triggers them."
+      },
+      "unmodeled": {
+        "title": "Read these yourself",
+        "description": "These clauses matter, but they depend on a judgement or on vague wording, so we cannot test them. Read the clause."
+      }
+    },
+    "join": {
+      "all": "All of these:",
+      "any": "Any of these:",
+      "not": "Not this:"
+    },
+    "op": {
+      "eq": "{{value}}",
+      "ne": "not {{value}}",
+      "lt": "less than {{value}}",
+      "lte": "{{value}} or less",
+      "gt": "more than {{value}}",
+      "gte": "{{value}} or more",
+      "in": "one of: {{value}}"
+    },
+    "yes": "yes",
+    "no": "no",
+    "facts": {
+      "title": "The facts we look at",
+      "description": "Every rule above is written with these facts. Each test situation gives every one of them a value."
+    },
+    "clauses": {
+      "title": "The clauses"
     }
   }
 }

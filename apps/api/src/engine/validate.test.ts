@@ -88,6 +88,8 @@ test('a consistent schema, rule and scenario raise nothing', () => {
       effect: { type: 'cap', amount: null, percent: 50 },
     }),
     rule({ id: 'r-4', kind: 'unmodeled', when: null, touches: ['cause'] }),
+    // A rule demoted after a failed repair may be tied to no fact at all.
+    rule({ id: 'r-5', kind: 'unmodeled', when: null, touches: [] }),
   ];
 
   expect(validateFactSchema(schema)).toEqual([]);
@@ -180,11 +182,6 @@ test.each<{ name: string; rule: Rule; message: RegExp }>([
     name: 'a touched fact outside the schema',
     rule: rule({ touches: ['daysSinceStart', 'mood'] }),
     message: /mood/,
-  },
-  {
-    name: 'an unmodeled rule that touches no fact',
-    rule: rule({ kind: 'unmodeled', when: null, touches: [] }),
-    message: /touch/,
   },
   {
     name: 'a limit with no cap or deduction',

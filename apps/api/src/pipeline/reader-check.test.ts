@@ -48,7 +48,13 @@ test('a restaurant receipt is rejected', () => {
   });
 });
 
-test('a document type outside the tuned five becomes other', () => {
+test('terms and conditions are a document type of their own', () => {
+  const { meta } = accepted(checkReading(read({ docType: 'terms' }), 12));
+
+  expect(meta.docType).toBe('terms');
+});
+
+test('a document type outside the tuned six becomes other', () => {
   const { meta } = accepted(
     checkReading(read({ docType: 'Gym membership' }), 12),
   );
