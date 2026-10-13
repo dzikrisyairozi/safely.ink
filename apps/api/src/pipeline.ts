@@ -227,7 +227,9 @@ async function runScenarios(analysis: DocumentReference) {
   });
 }
 
-const JUDGED_AT_ONCE = 20; // scenarios in one call of the judge
+// Scenarios in one call of the judge. With 20, one of two calls did not answer
+// in its 90 s on the demo policy (2026-10-13); another time it took 29 s.
+const JUDGED_AT_ONCE = 10;
 
 // The model says what a person would expect; which gap is a trap, how bad it
 // is and the grade are worked out by score() (F-TRAP-1 to F-TRAP-5). The

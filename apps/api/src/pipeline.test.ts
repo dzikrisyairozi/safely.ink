@@ -547,7 +547,7 @@ test('an outcome that is what the user expected is no trap', async () => {
 });
 
 test('one batch of the judge that fails does not cost the other', async () => {
-  // 21 scenarios are two batches; the first is lost.
+  // 21 scenarios are three batches; the first is lost.
   const many = Array.from({ length: 21 }, (_, n) => ({
     ...waiting[1]!,
     id: `s-${String(n + 1).padStart(3, '0')}`,
@@ -557,11 +557,13 @@ test('one batch of the judge that fails does not cost the other', async () => {
 
   expect(await runPipeline('analysis-1')).toBe('done');
 
-  expect(judged).toHaveBeenCalledTimes(2);
+  expect(judged).toHaveBeenCalledTimes(3);
   expect(
     (await storedScenarios()).filter(({ expectation }) => expectation),
-  ).toHaveLength(1);
-  expect(await traps()).toMatchObject([{ scenarioIds: ['s-021'] }]);
+  ).toHaveLength(11);
+  const [trap] = await traps();
+  expect(trap!.scenarioIds).toHaveLength(11);
+  expect(trap!.scenarioIds).not.toContain('s-001');
 });
 
 test.each([

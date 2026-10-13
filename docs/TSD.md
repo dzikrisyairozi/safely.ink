@@ -347,7 +347,8 @@ comparison on a non-number, throws instead of quietly evaluating to false.
   and a test fails when it holds anything else. The description of the document is made by
   code from the document type and the country; the title and the names of the parties are
   not passed, because they can say more than the kind of document does.
-- Batches of 20 scenarios run side by side, 90 s each. An answer is kept if it parses and
+- Batches of 10 scenarios run side by side, 90 s each (with 20, a call did not always
+  answer in time). An answer is kept if it parses and
   is for a scenario of its batch. A batch that fails is logged, and its scenarios have no
   expectation, so they are not traps by expectation. If no scenario at all has one, the
   stage fails: a report without traps would say the document is fine.
