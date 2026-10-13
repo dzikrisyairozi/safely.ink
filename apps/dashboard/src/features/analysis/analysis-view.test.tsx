@@ -196,3 +196,36 @@ test('one rule is not called "1 rules"', () => {
 
   expect(screen.getByText(/1 rule in it/)).toBeTruthy();
 });
+
+test('while situations are written and run, each stage says what is happening', () => {
+  const counts = { clauses: 40, rules: 17, scenarios: 31 };
+
+  show(analysis({ status: 'running', counts }));
+
+  expect(screen.getByRole('heading').textContent).toBe('Testing the rules');
+  expect(screen.getByText(/31 situations/)).toBeTruthy();
+  expect(
+    screen.getByRole('link', { name: 'How we read your document' }),
+  ).toBeTruthy();
+});
+
+test('after the run the number of situations tested is shown', () => {
+  const counts = { clauses: 40, rules: 17, scenarios: 31 };
+
+  show(analysis({ status: 'comparing', counts }));
+
+  expect(screen.getByRole('heading').textContent).toBe(
+    'We have tested your document',
+  );
+  expect(screen.getByText(/31 real-life situations/)).toBeTruthy();
+});
+
+test.each([
+  ['fuzzing', 'The test situations could not be written'],
+  ['running', 'The rules could not be tested'],
+] as const)('a run that fails at %s names that stage', (stage, title) => {
+  show(analysis({ status: 'failed', stage }));
+
+  expect(screen.getByRole('heading').textContent).toBe(title);
+  expect(screen.getByRole('link', { name: 'Upload it again' })).toBeTruthy();
+});

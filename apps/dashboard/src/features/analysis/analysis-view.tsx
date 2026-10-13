@@ -8,6 +8,7 @@ import {
   isLawChecked,
   type Analysis,
   type AnalysisMeta,
+  type AnalysisStatus,
   type ConfirmAnalysisRequest,
 } from '@repo/api-types';
 import {
@@ -215,7 +216,12 @@ function ConfirmDetails({
   );
 }
 
-/** What `/analyses/$id` shows for each state up to the rules. */
+// The stage a failed run stopped in, as the key of its message.
+const FAILED_AT: Partial<
+  Record<AnalysisStatus, 'rules' | 'fuzzing' | 'running'>
+> = { extracting_rules: 'rules', fuzzing: 'fuzzing', running: 'running' };
+
+/** What `/analyses/$id` shows for each state up to the run. */
 export function AnalysisView({
   id,
   analysis,
@@ -230,6 +236,12 @@ export function AnalysisView({
   if (analysis.status === 'awaiting_confirmation' && analysis.meta) {
     return <ConfirmDetails meta={analysis.meta} onConfirm={onConfirm} />;
   }
+
+  const rulesLink = (
+    <Link to="/analyses/$id/rules" params={{ id }}>
+      {t('analysis.rulesLink')}
+    </Link>
+  );
 
   switch (analysis.status) {
     case 'uploaded':
@@ -250,7 +262,7 @@ export function AnalysisView({
       );
     case 'failed': {
       // Retry comes with the run screen; until then the way on is to upload.
-      const stage = analysis.stage === 'extracting_rules' ? 'rules' : 'reading';
+      const stage = (analysis.stage && FAILED_AT[analysis.stage]) ?? 'reading';
       return (
         <Message
           title={t(`analysis.failed.${stage}.title`)}
@@ -266,18 +278,27 @@ export function AnalysisView({
           {t('analysis.extractingRules.description')}
         </Message>
       );
+    case 'fuzzing':
+      return (
+        <Message title={t('analysis.fuzzing.title')} action={rulesLink}>
+          {t('analysis.fuzzing.description', {
+            count: analysis.counts?.rules ?? 0,
+          })}
+        </Message>
+      );
+    case 'running':
+      return (
+        <Message title={t('analysis.running.title')} action={rulesLink}>
+          {t('analysis.running.description', {
+            count: analysis.counts?.scenarios ?? 0,
+          })}
+        </Message>
+      );
     default:
       return (
-        <Message
-          title={t('analysis.rulesReady.title')}
-          action={
-            <Link to="/analyses/$id/rules" params={{ id }}>
-              {t('analysis.rulesReady.link')}
-            </Link>
-          }
-        >
-          {t('analysis.rulesReady.description', {
-            count: analysis.counts?.rules ?? 0,
+        <Message title={t('analysis.tested.title')} action={rulesLink}>
+          {t('analysis.tested.description', {
+            count: analysis.counts?.scenarios ?? 0,
           })}
         </Message>
       );
