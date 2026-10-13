@@ -26,7 +26,7 @@ The model reads, proposes and researches. It never decides an outcome, and no le
 citation is shown unless its quote is found in the source text.
 
 Full detail: [PRD](./docs/PRD.md) · [FSD](./docs/FSD.md) · [TSD](./docs/TSD.md) ·
-[decisions](./docs/adr)
+[decisions](./docs/adr) · [runbook](./docs/runbook.md)
 
 ## Repository
 
