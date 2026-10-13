@@ -11,10 +11,10 @@ export function AppTitle({ className }: { className?: string }) {
       to="/"
       className={cn('flex items-center gap-2.5 font-semibold', className)}
     >
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary shadow-md">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary">
         <ShieldCheck className="size-5 text-primary-foreground" />
       </div>
-      <span className="truncate bg-gradient-to-r from-neutral-900 to-neutral-500 bg-clip-text text-lg tracking-tight text-transparent dark:from-white dark:to-neutral-400">
+      <span className="truncate font-serif text-xl tracking-tight">
         {t('app.name')}
       </span>
     </Link>

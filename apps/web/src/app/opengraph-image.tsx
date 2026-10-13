@@ -18,9 +18,7 @@ export default async function Image() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#0a0a0a',
-        backgroundImage:
-          'linear-gradient(to bottom right, #000000, #111111, #222222)',
+        backgroundColor: '#0e1120',
       }}
     >
       <div
@@ -38,7 +36,7 @@ export default async function Image() {
             display: 'flex',
             fontSize: 32,
             fontWeight: 600,
-            color: '#f59e0b',
+            color: '#a3a6b4',
             letterSpacing: '0.1em',
             marginBottom: 24,
             textTransform: 'uppercase',
@@ -51,7 +49,7 @@ export default async function Image() {
             display: 'flex',
             fontSize: 86,
             fontWeight: 800,
-            color: '#ffffff',
+            color: '#ede8dc',
             letterSpacing: '-0.02em',
             marginBottom: 32,
             lineHeight: 1.1,
@@ -63,7 +61,7 @@ export default async function Image() {
           style={{
             display: 'flex',
             fontSize: 42,
-            color: '#a1a1aa',
+            color: '#a3a6b4',
             letterSpacing: '-0.01em',
             lineHeight: 1.4,
           }}

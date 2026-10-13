@@ -18,10 +18,7 @@ export function ErrorPage({
   const router = useRouter();
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 overflow-hidden bg-neutral-50 p-4 text-center dark:bg-neutral-950">
-      <div className="pointer-events-none absolute -top-20 -right-20 h-[600px] w-[600px] rounded-full bg-primary/5 blur-[120px] will-change-transform" />
-      <div className="pointer-events-none absolute -bottom-20 -left-20 h-[600px] w-[600px] rounded-full bg-indigo-500/5 blur-[120px] will-change-transform" />
-
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 overflow-hidden bg-background p-4 text-center">
       <div className="relative z-10 flex flex-col items-center gap-4">
         {icon}
         <p className="text-sm font-semibold text-primary">{code}</p>
