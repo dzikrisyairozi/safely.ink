@@ -1,11 +1,13 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AuthenticatedLayout } from '../../components/layout/authenticated-layout';
-import { useAuthStore } from '../../stores/auth-store';
+import { auth } from '../../lib/firebase';
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: ({ location }) => {
-    const { accessToken } = useAuthStore.getState();
-    if (!accessToken) {
+  beforeLoad: async ({ location }) => {
+    // Wait for Firebase to restore the session, or a reload would bounce
+    // a signed-in user through the sign-in page.
+    await auth.authStateReady();
+    if (!auth.currentUser) {
       throw redirect({
         to: '/sign-in',
         search: { redirect: location.href },

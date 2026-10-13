@@ -26,26 +26,14 @@
       "description": "This service is temporarily unavailable. Please check back soon."
     }
   },
-  "validation": {
-    "emailRequired": "Email is required.",
-    "emailInvalid": "Enter a valid email address.",
-    "passwordRequired": "Password is required.",
-    "passwordMinLength": "Password must be at least 8 characters."
-  },
   "signIn": {
     "title": "Sign in",
-    "description": "Enter your email and password to access Policy Police.",
-    "email": "Email",
-    "emailPlaceholder": "name@example.com",
-    "password": "Password",
-    "submit": "Sign in"
+    "description": "Use your Google account to access Policy Police.",
+    "google": "Continue with Google",
+    "failed": "Sign-in failed. Please try again."
   },
   "layout": {
     "skipToMain": "Skip to main content"
-  },
-  "passwordInput": {
-    "show": "Show password",
-    "hide": "Hide password"
   },
   "confirmDialog": {
     "confirm": "Confirm",
