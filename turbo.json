@@ -20,7 +20,13 @@
       "dependsOn": ["^build", "^type-check"]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": ["^test"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/firebase.json",
+        "$TURBO_ROOT$/firestore.rules",
+        "$TURBO_ROOT$/storage.rules"
+      ]
     },
     "test:watch": {
       "cache": false,
