@@ -92,11 +92,15 @@ export function validateRules(
   const issues: Issue[] = [];
   const clauseIds = new Set(clauses.map((clause) => clause.id));
   const facts = new Map(factSchema.map((fact) => [fact.key, fact]));
+  const seen = new Set<string>();
 
   for (const rule of rules) {
     const report = (message: string | null) => {
       if (message) issues.push({ id: rule.id, message });
     };
+
+    if (seen.has(rule.id)) report('Rule ID is used more than once');
+    seen.add(rule.id);
 
     for (const id of rule.clauseIds) {
       if (!clauseIds.has(id)) report(`Clause "${id}" does not exist`);
@@ -120,10 +124,14 @@ export function validateScenarios(
   const issues: Issue[] = [];
   const ruleIds = new Set(rules.map((rule) => rule.id));
   const facts = new Map(factSchema.map((fact) => [fact.key, fact]));
+  const seen = new Set<string>();
 
   for (const scenario of scenarios) {
     const report = (message: string) =>
       issues.push({ id: scenario.id, message });
+
+    if (seen.has(scenario.id)) report('Scenario ID is used more than once');
+    seen.add(scenario.id);
 
     for (const fact of factSchema) {
       if (!(fact.key in scenario.facts)) {

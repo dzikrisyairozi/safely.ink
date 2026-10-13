@@ -251,3 +251,12 @@ test.each<{ name: string; scenario: Scenario; message: RegExp }>([
     { id: 's-1', message: expect.stringMatching(message) },
   ]);
 });
+
+test('an ID used twice is reported, for rules and for scenarios', () => {
+  expect(validateRules([rule(), rule()], clauses, schema)).toEqual([
+    { id: 'r-1', message: expect.stringMatching(/more than once/) },
+  ]);
+  expect(validateScenarios([scenario(), scenario()], [rule()], schema)).toEqual(
+    [{ id: 's-1', message: expect.stringMatching(/more than once/) }],
+  );
+});
