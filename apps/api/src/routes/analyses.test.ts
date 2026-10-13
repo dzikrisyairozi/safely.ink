@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
+import { DocumentReference } from 'firebase-admin/firestore';
 import { ErrorEnvelope, ReaderOutput } from '@repo/api-types';
 import policy from '../../test/fixtures/reader-policy.json';
 import receipt from '../../test/fixtures/reader-receipt.json';
@@ -133,6 +134,41 @@ test('more clauses than one batch holds are all stored', async () => {
   expect(await stored('analysis-1')).toMatchObject({
     counts: { clauses: 501 },
   });
+});
+
+test('clauses are not kept when the details could not be stored', async () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const update = vi
+    .spyOn(DocumentReference.prototype, 'update')
+    .mockRejectedValueOnce(new Error('write refused'));
+
+  const res = await create('alice', 'analysis-1');
+
+  expect(await res.json()).toMatchObject({ status: 'failed' });
+  expect(await stored('analysis-1')).toMatchObject({ status: 'failed' });
+  const clauses = await db
+    .collection('analyses/analysis-1/clauses')
+    .count()
+    .get();
+  expect(clauses.data().count).toBe(0);
+  update.mockRestore();
+  logged.mockRestore();
+});
+
+test('the request is answered even if the failure cannot be stored', async () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  reader.mockRejectedValue(new Error('model unavailable'));
+  const update = vi
+    .spyOn(DocumentReference.prototype, 'update')
+    .mockRejectedValueOnce(new Error('write refused'));
+
+  const res = await create('alice', 'analysis-1');
+
+  expect(res.status).toBe(201);
+  expect(await res.json()).toMatchObject({ status: 'failed' });
+  expect(await startedToday('alice')).toBe(0);
+  update.mockRestore();
+  logged.mockRestore();
 });
 
 test.each([

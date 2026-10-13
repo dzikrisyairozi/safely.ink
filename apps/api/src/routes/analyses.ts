@@ -114,14 +114,21 @@ analyses.post('/', async (c) => {
   }
 
   if (status !== 'awaiting_confirmation') {
-    await analysis.update({
-      status,
-      ...(status === 'failed' && { stage: 'reading' }),
-      updatedAt,
-    });
+    try {
+      // Clauses may have been saved before the write of the details failed.
+      await db.recursiveDelete(analysis.collection('clauses'));
+      await analysis.update({
+        status,
+        ...(status === 'failed' && { stage: 'reading' }),
+        updatedAt,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+    // Rejected or failed: it does not count against the day (F-READ-4,
+    // F-LIVE-4), also when the status itself could not be stored.
+    await releaseDailySlot(uid, now);
   }
-  // Rejected or failed: it does not count against the day (F-READ-4, F-LIVE-4).
-  if (status !== 'awaiting_confirmation') await releaseDailySlot(uid, now);
 
   return c.json({ analysisId, status }, 201);
 });
