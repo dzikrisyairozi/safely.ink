@@ -18,4 +18,24 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // The engine decides outcomes. It stays pure: shared types and its own
+    // files, nothing that could do I/O or call a model.
+    files: ['src/engine/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^(?!\\./|@repo/api-types$)',
+              message:
+                'engine/ may import only @repo/api-types and its own files.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
