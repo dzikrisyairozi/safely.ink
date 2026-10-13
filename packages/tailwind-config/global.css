@@ -4,79 +4,87 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Ink on paper. The red is the reviewer's pen: traps, errors and warnings
+   only, never buttons or links. */
 :root {
-  --background: #ffffff;
-  --foreground: #09090b;
-  --card: #ffffff;
-  --card-foreground: #09090b;
-  --popover: #ffffff;
-  --popover-foreground: #09090b;
-  --primary: #f59e0b;
-  --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #09090b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #09090b;
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #f59e0b;
-  --chart-1: #ffd230;
-  --chart-2: #fe9a00;
-  --chart-3: #e17100;
-  --chart-4: #bb4d00;
-  --chart-5: #f59e0b;
-  --radius: 0.5rem;
-  --sidebar: #fafafa;
-  --sidebar-foreground: #09090b;
-  --sidebar-primary: #f59e0b;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f4f5;
-  --sidebar-accent-foreground: #09090b;
-  --sidebar-border: #e4e4e7;
-  --sidebar-ring: #f59e0b;
+  --background: #faf7f0;
+  --foreground: #14182b;
+  --card: #fffdf8;
+  --card-foreground: #14182b;
+  --popover: #fffdf8;
+  --popover-foreground: #14182b;
+  --primary: #14182b;
+  --primary-foreground: #faf7f0;
+  --secondary: #efeadd;
+  --secondary-foreground: #14182b;
+  --muted: #efeadd;
+  --muted-foreground: #5e6272;
+  --accent: #efeadd;
+  --accent-foreground: #14182b;
+  --destructive: #b92c17;
+  --destructive-foreground: #fffdf8;
+  --border: #e3ddcf;
+  --input: #e3ddcf;
+  --ring: #14182b;
+  --chart-1: #14182b;
+  --chart-2: #3d4566;
+  --chart-3: #7a82a3;
+  --chart-4: #b92c17;
+  --chart-5: #b8af9a;
+  --radius: 0.375rem;
+  --sidebar: #f4f0e6;
+  --sidebar-foreground: #14182b;
+  --sidebar-primary: #14182b;
+  --sidebar-primary-foreground: #faf7f0;
+  --sidebar-accent: #e9e3d4;
+  --sidebar-accent-foreground: #14182b;
+  --sidebar-border: #e3ddcf;
+  --sidebar-ring: #14182b;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --card: #0a0a0a;
-  --card-foreground: #fafafa;
-  --popover: #0a0a0a;
-  --popover-foreground: #fafafa;
-  --primary: #f59e0b;
-  --primary-foreground: #ffffff;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #262626;
-  --muted-foreground: #a1a1aa;
-  --accent: #404040;
-  --accent-foreground: #fafafa;
-  --destructive: #ff6467;
-  --destructive-foreground: #fafafa;
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #f59e0b;
-  --chart-1: #ffd230;
-  --chart-2: #fe9a00;
-  --chart-3: #e17100;
-  --chart-4: #bb4d00;
-  --chart-5: #f59e0b;
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #f59e0b;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #27272a;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #27272a;
-  --sidebar-ring: #f59e0b;
+  --background: #0e1120;
+  --foreground: #ede8dc;
+  --card: #161a2e;
+  --card-foreground: #ede8dc;
+  --popover: #161a2e;
+  --popover-foreground: #ede8dc;
+  --primary: #ede8dc;
+  --primary-foreground: #0e1120;
+  --secondary: #20253d;
+  --secondary-foreground: #ede8dc;
+  --muted: #20253d;
+  --muted-foreground: #a3a6b4;
+  --accent: #2a2f47;
+  --accent-foreground: #ede8dc;
+  --destructive: #f0654b;
+  --destructive-foreground: #0e1120;
+  --border: #2a2f47;
+  --input: #2a2f47;
+  --ring: #ede8dc;
+  --chart-1: #ede8dc;
+  --chart-2: #a3a6b4;
+  --chart-3: #5d6690;
+  --chart-4: #f0654b;
+  --chart-5: #6e6858;
+  --sidebar: #0b0e1a;
+  --sidebar-foreground: #ede8dc;
+  --sidebar-primary: #ede8dc;
+  --sidebar-primary-foreground: #0e1120;
+  --sidebar-accent: #20253d;
+  --sidebar-accent-foreground: #ede8dc;
+  --sidebar-border: #2a2f47;
+  --sidebar-ring: #ede8dc;
 }
 
 @theme inline {
-  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  /* The web app sets the variables through next/font; the dashboard loads the
+     families by name from Google Fonts. */
+  --font-sans: var(--font-geist, 'Geist'), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader, 'Newsreader'), ui-serif, Georgia, serif;
+  --font-mono:
+    var(--font-geist-mono, 'Geist Mono'), ui-monospace, SFMono-Regular,
+    monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

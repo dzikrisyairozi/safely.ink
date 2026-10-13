@@ -13,9 +13,3 @@
     --stroke: #1f1f1f;
   }
 }
-
-/* Note: The @theme inline directive is new in Tailwind v4. 
-   IDE warnings about "Unknown at rule @theme" are safe to ignore. */
-@theme inline {
-  --font-display: var(--font-instrument);
-}
