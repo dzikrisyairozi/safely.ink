@@ -17,7 +17,7 @@ executed against this project. Check them against `gcloud help` the first time.
 | 5    | AI Studio: create a Gemini API key in this project                                       | Done                   |
 | 6    | Upgrade to the Blaze plan (bottom-left of the console)                                   | **Open**               |
 | 7    | Storage → Get started, same region                                                       | **Open**, needs step 6 |
-| 8    | Install the [gcloud CLI](https://cloud.google.com/sdk/docs/install), `gcloud auth login` | **Open**               |
+| 8    | Install the [gcloud CLI](https://cloud.google.com/sdk/docs/install), `gcloud auth login` | Installed, login open  |
 
 Cloud Run, Cloud Build, Secret Manager and Cloud Storage all need Blaze. Hosting,
 Authentication and Firestore work on the free plan.
@@ -54,14 +54,48 @@ Set a budget alert on the billing account (Billing → Budgets & alerts).
 
 ## 2. Local development
 
-Each app has a committed `.env.example`. Copy it to `.env` and fill it in; `.env` files
-are ignored by git.
+Each app has a committed `.env.example` that already holds every value except the
+Gemini key. Copy each one to `.env`; `.env` files are ignored by git.
 
-| File                  | Values                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `apps/api/.env`       | `GOOGLE_CLOUD_PROJECT`, `STORAGE_BUCKET`, `GEMINI_API_KEY`; `PORT` and `ALLOWED_ORIGIN` have working defaults |
-| `apps/dashboard/.env` | The web app config from Project settings → Your apps, and `VITE_API_URL`                                      |
-| `apps/web/.env`       | Nothing to change                                                                                             |
+| File                  | Values to fill in                  |
+| --------------------- | ---------------------------------- |
+| `apps/api/.env`       | `GEMINI_API_KEY`, or pull the file |
+| `apps/dashboard/.env` | Nothing to change                  |
+| `apps/web/.env`       | Nothing to change                  |
+
+The team shares one Gemini key. The whole `apps/api/.env` is encrypted with
+[age](https://github.com/FiloSottile/age) for the SSH public keys listed in
+`apps/api/.env.recipients` and stored as a private package on GitHub's registry with
+[ORAS](https://oras.land). Only the people in that file can decrypt it.
+
+Sign in to the registry once. Reading needs the `read:packages` scope, pushing needs
+`write:packages`:
+
+```bash
+gh auth refresh -h github.com -s read:packages
+gh auth token | oras login ghcr.io -u <your GitHub user> --password-stdin
+```
+
+Pull and decrypt with the private half of your key in `.env.recipients`:
+
+```bash
+oras pull ghcr.io/dzikrisyairozi/policy-police-env:latest
+age -d -i ~/.ssh/id_ed25519 -o apps/api/.env api.env.age
+rm api.env.age
+```
+
+Push after the key or the recipients change:
+
+```bash
+age -R apps/api/.env.recipients -o api.env.age apps/api/.env
+oras push ghcr.io/dzikrisyairozi/policy-police-env:latest api.env.age \
+  --annotation org.opencontainers.image.source=https://github.com/dzikrisyairozi/policy-police
+rm api.env.age
+```
+
+To add a developer, add their public key to `.env.recipients` and push again. To remove
+one, do the same and create a new Gemini key, because they have seen the old one. The
+production key lives in Secret Manager (section 1).
 
 ```bash
 pnpm install
