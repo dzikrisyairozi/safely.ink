@@ -307,6 +307,15 @@ test('an unmodeled rule whose facts are all neutral changes nothing', () => {
   expect(outcome).toMatchObject({ result: 'fine', decidingRuleId: null });
 });
 
+test('an unmodeled rule that touches no fact never decides', () => {
+  const rules = [rule('unmodeled', null, { touches: [] })];
+  const facts = { ...neutralFacts, cause: 'flood' };
+
+  const outcome = evaluate(rules, schema, scenario({ facts }));
+
+  expect(outcome).toMatchObject({ result: 'fine', decidingRuleId: null });
+});
+
 type Effect = NonNullable<Rule['effect']>;
 
 const fixed = (type: Effect['type'], amount: number): Effect => ({
