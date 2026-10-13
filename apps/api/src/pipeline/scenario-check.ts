@@ -47,12 +47,17 @@ export function checkScenarios(
   for (const { id, message } of issues) dropped.push(`${id}: ${message}`);
   const invalid = new Set(issues.map((issue) => issue.id));
 
-  // Same value for every fact: the same situation told twice.
+  // Same value for every fact: the same situation told twice. The one that
+  // stays is a boundary if either is, so a limit keeps all its neighbours.
   const distinct = new Map<string, Scenario>();
-  const inStrategyOrder = drafts
+  const isBoundary = (scenario: Scenario) => scenario.strategy === 'boundary';
+  const valid = drafts
     .filter((draft) => !invalid.has(draft.id))
     .sort((a, b) => order(a) - order(b));
-  for (const scenario of inStrategyOrder) {
+  for (const scenario of [
+    ...valid.filter(isBoundary),
+    ...valid.filter((draft) => !isBoundary(draft)),
+  ]) {
     const facts = JSON.stringify(
       factSchema.map((fact) => scenario.facts[fact.key]),
     );
@@ -66,7 +71,7 @@ export function checkScenarios(
     }
   }
 
-  const all = [...distinct.values()];
+  const all = [...distinct.values()].sort((a, b) => order(a) - order(b));
   const againstUser = rules.filter((rule) => rule.kind !== 'benefit');
   const kept = new Set<Scenario>();
   const keep = (scenario: Scenario | undefined) => {

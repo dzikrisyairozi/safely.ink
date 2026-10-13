@@ -173,3 +173,29 @@ test('a rule against the user that no scenario tries is named', () => {
   // r-001 is a benefit; r-002 is the target of both.
   expect(uncovered).toEqual(['r-003']);
 });
+
+test('a boundary that is also an ordinary situation stays a boundary', () => {
+  const facts = { daysSinceStart: 0, claimIsForIllness: false };
+  const proposals = [
+    proposal('baseline', { facts, targetRuleIds: ['r-001'] }),
+    ...Array.from({ length: 6 }, () => proposal('baseline')),
+    proposal('boundary', { facts, story: 'From the boundary call.' }),
+  ];
+
+  const [first, ...rest] = check(proposals).scenarios;
+  expect(rest).toHaveLength(6);
+  expect(rest.at(-1)).toMatchObject({
+    strategy: 'boundary',
+    story: 'From the boundary call.',
+    targetRuleIds: ['r-001', 'r-002'],
+  });
+  expect(first!.strategy).toBe('baseline');
+
+  // Over the cap it is kept with the other boundaries, not cut as a fifth
+  // baseline.
+  const kept = check(proposals, 5).scenarios;
+  expect(kept.map((scenario) => scenario.strategy)).toEqual([
+    ...Array(4).fill('baseline'),
+    'boundary',
+  ]);
+});
