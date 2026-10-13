@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { config } from './config';
 
 // Application Default Credentials on Cloud Run. Locally the project ID alone
@@ -10,3 +12,8 @@ const firebase = initializeApp({
 });
 
 export const auth = getAuth(firebase);
+export const db = getFirestore(firebase);
+
+// A function, because asking for the bucket throws when STORAGE_BUCKET is
+// unset and the API should still start without it.
+export const bucket = () => getStorage(firebase).bucket();
