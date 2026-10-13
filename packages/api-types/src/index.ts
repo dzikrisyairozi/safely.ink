@@ -202,6 +202,69 @@ export const AnalysisMeta = z.object({
 });
 export type AnalysisMeta = z.infer<typeof AnalysisMeta>;
 
+// The states of FSD section 6.
+export const AnalysisStatus = z.enum([
+  'uploaded',
+  'reading',
+  'awaiting_confirmation',
+  'rejected',
+  'extracting_rules',
+  'fuzzing',
+  'running',
+  'comparing',
+  'done',
+  'failed',
+]);
+export type AnalysisStatus = z.infer<typeof AnalysisStatus>;
+
+// The Firestore document analyses/{id}, as far as the dashboard reads it.
+export const Analysis = z.object({
+  ownerUid: z.string(),
+  status: AnalysisStatus,
+  stage: AnalysisStatus.optional(), // where a failed run stopped
+  error: z.string().optional(),
+  meta: AnalysisMeta.nullable(), // null until the document is read
+});
+export type Analysis = z.infer<typeof Analysis>;
+
+// Both end up in a Storage path, so neither may carry a separator.
+const analysisId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);
+const uploadName = z
+  .string()
+  .max(200)
+  .regex(/^[^/\\]+$/)
+  .refine((name) => !name.includes('..'));
+
+// Body of POST /v1/analyses. The files are names inside
+// uploads/{uid}/{analysisId}/, in page order.
+export const CreateAnalysisRequest = z.object({
+  analysisId,
+  files: z.array(uploadName).min(1).max(30),
+});
+export type CreateAnalysisRequest = z.infer<typeof CreateAnalysisRequest>;
+
+// Body of POST /v1/analyses/:id/confirm.
+export const ConfirmAnalysisRequest = z.object({
+  docType: DocType,
+  jurisdiction: z.string().min(2).max(60),
+  userRole: z.string().min(1).max(120),
+});
+export type ConfirmAnalysisRequest = z.infer<typeof ConfirmAnalysisRequest>;
+
+// What the Reader agent returns. Untrusted until the post-check has run:
+// the type is free text here, clause IDs and the page count come from code.
+export const ReaderOutput = z.object({
+  isPolicyOrContract: z.boolean(),
+  docType: z.string(),
+  title: z.string(),
+  parties: AnalysisMeta.shape.parties,
+  jurisdiction: z.string(),
+  language: z.string(),
+  unreadablePages: z.array(z.number().int()),
+  clauses: z.array(Clause.omit({ id: true })),
+});
+export type ReaderOutput = z.infer<typeof ReaderOutput>;
+
 // Body of every non-2xx API response.
 export const ErrorEnvelope = z.object({
   error: z.object({
