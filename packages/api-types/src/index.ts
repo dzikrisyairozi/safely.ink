@@ -228,7 +228,7 @@ export const Analysis = z.object({
 export type Analysis = z.infer<typeof Analysis>;
 
 // Both end up in a Storage path, so neither may carry a separator.
-const analysisId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);
+export const AnalysisId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);
 const uploadName = z
   .string()
   .max(200)
@@ -238,7 +238,7 @@ const uploadName = z
 // Body of POST /v1/analyses. The files are names inside
 // uploads/{uid}/{analysisId}/, in page order.
 export const CreateAnalysisRequest = z.object({
-  analysisId,
+  analysisId: AnalysisId,
   files: z.array(uploadName).min(1).max(30),
 });
 export type CreateAnalysisRequest = z.infer<typeof CreateAnalysisRequest>;
@@ -270,6 +270,7 @@ export const ErrorEnvelope = z.object({
   error: z.object({
     code: z.string(),
     message: z.string(),
+    resetAt: z.string().optional(), // with daily_limit: when the limit resets
   }),
 });
 export type ErrorEnvelope = z.infer<typeof ErrorEnvelope>;
