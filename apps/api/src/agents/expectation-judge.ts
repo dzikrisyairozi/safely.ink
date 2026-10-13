@@ -68,6 +68,9 @@ export const judgeInput = (
 });
 export type JudgeInput = ReturnType<typeof judgeInput>;
 
+// One answer of the judge: the expectation, for the scenario with that ID.
+export const Judged = Expectation.extend({ id: z.string() });
+
 /** What a reasonable person expects for each scenario. Unchecked. */
 export const judge = (input: JudgeInput, seconds: number): Promise<unknown[]> =>
   askForList(
@@ -75,7 +78,7 @@ export const judge = (input: JudgeInput, seconds: number): Promise<unknown[]> =>
     'expectation_judge',
     INSTRUCTION,
     'expectations',
-    Expectation.extend({ id: z.string() }),
+    Judged,
     input,
     seconds,
   );

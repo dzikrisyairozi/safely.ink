@@ -5,8 +5,10 @@ import {
   FactSchema,
   Rule,
   Scenario,
+  StoredScenario,
   WrittenStrategy,
   type AnalysisStatus,
+  type Expectation,
   type Outcome,
 } from '@repo/api-types';
 import {
@@ -14,9 +16,11 @@ import {
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { Judged, judge, judgeInput } from './agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
 import { config } from './config';
 import { evaluate } from './engine/evaluate';
+import { score } from './engine/score';
 import { validateScenarios } from './engine/validate';
 import { db } from './firebase';
 import { packFor } from './packs';
@@ -222,6 +226,79 @@ async function runScenarios(analysis: DocumentReference) {
   });
 }
 
+const JUDGED_AT_ONCE = 20; // scenarios in one call of the judge
+
+// The model says what a person would expect; which gap is a trap, how bad it
+// is and the grade are worked out by score() (F-TRAP-1 to F-TRAP-5). The
+// law is not looked up yet, so no finding reaches it.
+async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
+  const rules = await storedRules(analysis);
+  const scenarios = (await analysis.collection('scenarios').get()).docs.map(
+    (doc) => StoredScenario.parse(doc.data()),
+  );
+  const pack = packFor(meta.docType);
+
+  const batches: StoredScenario[][] = [];
+  for (let from = 0; from < scenarios.length; from += JUDGED_AT_ONCE) {
+    batches.push(scenarios.slice(from, from + JUDGED_AT_ONCE));
+  }
+  // Side by side, and one batch that fails does not cost the others.
+  const answers = await Promise.allSettled(
+    batches.map((batch) =>
+      judge(
+        judgeInput(meta, pack, rules, batch),
+        config.limits.modelCallSeconds.judge,
+      ),
+    ),
+  );
+
+  const expectations: Record<string, Expectation> = {};
+  for (const [n, answer] of answers.entries()) {
+    if (answer.status === 'rejected') {
+      console.error(answer.reason);
+      continue;
+    }
+    const asked = new Set(batches[n]!.map((scenario) => scenario.id));
+    for (const entry of answer.value) {
+      const told = Judged.safeParse(entry);
+      if (!told.success || !asked.has(told.data.id)) continue;
+      const { id, ...expectation } = told.data;
+      expectations[id] = expectation;
+    }
+  }
+  const judged = Object.entries(expectations);
+  // Without an expectation nothing can be a trap, and a report that found
+  // none would say the document is fine.
+  if (judged.length === 0) throw new Error('No scenario was judged.');
+  if (judged.length < scenarios.length) {
+    console.warn(`${scenarios.length - judged.length} scenarios not judged.`);
+  }
+  await saveAll(
+    analysis,
+    'scenarios',
+    judged.map(([id, expectation]) => ({ id, expectation })),
+    true,
+  );
+
+  const { traps, grade, confidence } = score(
+    {
+      scenarios,
+      outcomes: scenarios.flatMap(({ outcome }) => outcome ?? []),
+      expectations,
+      findings: {},
+      meta,
+    },
+    config.scoring,
+  );
+  await saveAll(analysis, 'traps', traps);
+  await analysis.update({
+    grade,
+    confidence,
+    'counts.traps': traps.length,
+    updatedAt: updatedAt(),
+  });
+}
+
 type Stage = {
   status: AnalysisStatus;
   run: (
@@ -230,8 +307,7 @@ type Stage = {
     // When the request must be done, in ms since the epoch.
     deadline: number,
   ) => Promise<void>;
-  // The status when the stage is done: the next stage, or where the
-  // analysis waits for a stage that is not built yet.
+  // The status when the stage is done.
   next: AnalysisStatus;
 };
 
@@ -240,6 +316,7 @@ const STAGES: Stage[] = [
   { status: 'extracting_rules', run: extractRules, next: 'fuzzing' },
   { status: 'fuzzing', run: fuzz, next: 'running' },
   { status: 'running', run: runScenarios, next: 'comparing' },
+  { status: 'comparing', run: compare, next: 'done' },
 ];
 
 /**

@@ -9,6 +9,7 @@ import {
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { judge, type JudgeInput } from './agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
 import { config } from './config';
 import { evaluate } from './engine/evaluate';
@@ -20,12 +21,21 @@ import { BASE_FACTS } from './pipeline/rule-check';
 // replaced.
 vi.mock('./agents/rule-extractor');
 vi.mock('./agents/scenario-fuzzer');
+// The judge's input is built by the real code; only its call is replaced.
+vi.mock('./agents/expectation-judge', async (original) => ({
+  ...(await original<typeof import('./agents/expectation-judge')>()),
+  judge: vi.fn(),
+}));
 
 const facts = vi.mocked(proposeFacts);
 const rules = vi.mocked(proposeRules);
 const repair = vi.mocked(repairRules);
 const fuzzer = vi.mocked(proposeScenarios);
 const boundaries = vi.mocked(tellBoundaries);
+const judged = vi.mocked(judge);
+// The judge expects every situation to end well unless a test says more.
+const expectsFine = async ({ scenarios }: JudgeInput) =>
+  scenarios.map(({ id }) => ({ id, result: 'fine', reason: 'It is covered.' }));
 const [ordinary, earlyIllness, abroad] = proposedScenarios.scenarios;
 
 const [benefit, exclusion] = proposedRules.rules;
@@ -52,6 +62,7 @@ beforeEach(async () => {
   // Every strategy tells the same ordinary situation unless a test says more.
   fuzzer.mockResolvedValue([ordinary]);
   boundaries.mockResolvedValue([]);
+  judged.mockImplementation(expectsFine);
 
   await analysis.set({
     ownerUid: 'alice',
@@ -84,11 +95,11 @@ beforeEach(async () => {
 });
 
 test('the facts and the rules are stored and the analysis moves on', async () => {
-  expect(await runPipeline('analysis-1')).toBe('comparing');
+  expect(await runPipeline('analysis-1')).toBe('done');
 
   const doc = await stored();
   expect(doc).toMatchObject({
-    status: 'comparing',
+    status: 'done',
     counts: { clauses: 3, rules: 3 },
   });
   expect(doc?.factSchema).toHaveLength(BASE_FACTS.length + 3);
@@ -122,7 +133,7 @@ test('an invalid rule is repaired once, and what still does not fit is kept as u
     { id: 'r-003', draft: stillBroken },
   ]);
 
-  expect(await runPipeline('analysis-1')).toBe('comparing');
+  expect(await runPipeline('analysis-1')).toBe('done');
 
   const reasons = expect.arrayContaining([
     expect.stringMatching(/preExisting/),
@@ -152,7 +163,7 @@ test('a rule the repair does not answer for is kept as unmodeled', async () => {
   rules.mockResolvedValue([benefit, unknownFact]);
   repair.mockRejectedValue(new Error('model unavailable'));
 
-  expect(await runPipeline('analysis-1')).toBe('comparing');
+  expect(await runPipeline('analysis-1')).toBe('done');
 
   expect(await storedRules()).toMatchObject([
     { id: 'r-001', kind: 'benefit' },
@@ -208,7 +219,7 @@ test.each([
     rules.mockResolvedValue([benefit, unknownFact]);
     repair.mockResolvedValue([{ id: 'r-002', draft: answer }]);
 
-    expect(await runPipeline('analysis-1')).toBe('comparing');
+    expect(await runPipeline('analysis-1')).toBe('done');
 
     expect(await storedRules()).toMatchObject([
       { id: 'r-001', kind: 'benefit' },
@@ -281,7 +292,7 @@ async function readyToRun(
 test('every scenario is run by code and gets one outcome with its trace', async () => {
   await readyToRun(waiting);
 
-  expect(await runPipeline('analysis-1')).toBe('comparing');
+  expect(await runPipeline('analysis-1')).toBe('done');
 
   expect(
     (await storedScenarios()).map(({ id, outcome }) => [
@@ -299,7 +310,7 @@ test('every scenario is run by code and gets one outcome with its trace', async 
     expect.objectContaining({ ruleId: 'r-002' }),
   );
   expect(await stored()).toMatchObject({
-    status: 'comparing',
+    status: 'done',
     counts: { clauses: 3, fine: 1, partlyBad: 0, bad: 1, undetermined: 1 },
   });
   expect(facts).not.toHaveBeenCalled();
@@ -320,14 +331,14 @@ test('running the stored rules and scenarios again gives the same outcomes', asy
 });
 
 test('the run adds the outcome and leaves the rest of a scenario as it was', async () => {
-  const expectation = { result: 'fine', reason: 'An accident is covered.' };
-  await readyToRun([{ ...waiting[0]!, expectation }]);
+  const kept = { addedBy: 'a later stage' };
+  await readyToRun([{ ...waiting[0]!, ...kept }]);
 
   await runPipeline('analysis-1');
 
   const doc = await analysis.collection('scenarios').doc('s-001').get();
   expect(doc.data()).toMatchObject({
-    expectation,
+    ...kept,
     story: waiting[0]!.story,
     outcome: { result: 'fine' },
   });
@@ -356,7 +367,7 @@ test('scenarios of every strategy are checked, stored and run in one go', async 
     })),
   );
 
-  expect(await runPipeline('analysis-1')).toBe('comparing');
+  expect(await runPipeline('analysis-1')).toBe('done');
 
   // The waiting period of r-002 gives three boundaries and the cost of r-001
   // two, since a cost below zero is left out. The same facts told by four
@@ -381,6 +392,7 @@ test('scenarios of every strategy are checked, stored and run in one go', async 
     clauses: 3,
     rules: 3,
     scenarios: 8,
+    traps: 2,
     fine: 4,
     partlyBad: 0,
     bad: 3,
@@ -434,7 +446,7 @@ test('one call of the fuzzer that fails does not cost the others', async () => {
   });
   boundaries.mockRejectedValue(new Error('model unavailable'));
 
-  expect(await runPipeline('analysis-1')).toBe('comparing');
+  expect(await runPipeline('analysis-1')).toBe('done');
 
   expect(await stored()).toMatchObject({ counts: { scenarios: 1, bad: 1 } });
 });
@@ -448,3 +460,127 @@ test('with no scenario that fits, the run fails at the fuzzing and the slot is g
   expect(await storedScenarios()).toEqual([]);
   expect(await startedOnCreationDay()).toBe(0);
 });
+
+// From here on the scenarios were run and wait to be compared.
+const traps = async () =>
+  (await analysis.collection('traps').get()).docs.map((doc) => doc.data());
+
+test('an outcome worse than expected becomes a trap, and the analysis is done with a grade', async () => {
+  await readyToRun(waiting);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(
+    (await storedScenarios()).map(({ expectation }) => expectation),
+  ).toEqual(Array(3).fill({ result: 'fine', reason: 'It is covered.' }));
+  // s-002 loses the whole stake and is common: 3 + 2 points, a high trap.
+  expect(await traps()).toEqual([
+    {
+      id: 'trap-r-002',
+      ruleId: 'r-002',
+      scenarioIds: ['s-002'],
+      severity: 'high',
+      title: null,
+      action: null,
+    },
+  ]);
+  expect(await stored()).toMatchObject({
+    status: 'done',
+    grade: 'A',
+    confidence: 'low',
+    counts: { traps: 1, bad: 1 },
+  });
+  expect(judged).toHaveBeenCalledWith(
+    expect.objectContaining({ userRole: 'insured' }),
+    config.limits.modelCallSeconds.judge,
+  );
+});
+
+test('the grade can be worked out again from the stored traps', async () => {
+  await readyToRun(waiting);
+  await runPipeline('analysis-1');
+
+  const { penalty, gradeBands } = config.scoring;
+  const points = (await traps()).reduce(
+    (left, trap) => left - penalty[trap.severity as keyof typeof penalty],
+    100,
+  );
+
+  expect(points).toBe(90);
+  expect((await stored())!.grade).toBe(
+    gradeBands.find((band) => points >= band.from)!.value,
+  );
+});
+
+test('a scenario the rules cannot decide lowers the confidence and not the grade', async () => {
+  await readyToRun(waiting.slice(0, 2));
+  await runPipeline('analysis-1');
+  const clear = await stored();
+
+  await analysis.update({ status: 'running' });
+  await readyToRun(waiting);
+  await runPipeline('analysis-1');
+  const unclear = await stored();
+
+  expect([clear!.grade, clear!.confidence]).toEqual(['A', 'high']);
+  expect([unclear!.grade, unclear!.confidence]).toEqual(['A', 'low']);
+});
+
+test('an outcome that is what the user expected is no trap', async () => {
+  judged.mockImplementation(async ({ scenarios }) =>
+    scenarios.map(({ id }) => ({ id, result: 'bad', reason: 'Too early.' })),
+  );
+  await readyToRun(waiting);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(await traps()).toEqual([]);
+  expect(await stored()).toMatchObject({ grade: 'A', counts: { traps: 0 } });
+});
+
+test('one batch of the judge that fails does not cost the other', async () => {
+  // 21 scenarios are two batches; the first is lost.
+  const many = Array.from({ length: 21 }, (_, n) => ({
+    ...waiting[1]!,
+    id: `s-${String(n + 1).padStart(3, '0')}`,
+  }));
+  judged.mockRejectedValueOnce(new Error('model unavailable'));
+  await readyToRun(many);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(judged).toHaveBeenCalledTimes(2);
+  expect(
+    (await storedScenarios()).filter(({ expectation }) => expectation),
+  ).toHaveLength(1);
+  expect(await traps()).toMatchObject([{ scenarioIds: ['s-021'] }]);
+});
+
+test.each([
+  ['fails', () => judged.mockRejectedValue(new Error('model unavailable'))],
+  [
+    'answers for a scenario it was not asked about',
+    () =>
+      judged.mockResolvedValue([{ id: 's-999', result: 'fine', reason: '-' }]),
+  ],
+  [
+    'gives an answer that is none of the three',
+    () =>
+      judged.mockResolvedValue([{ id: 's-002', result: 'great', reason: '-' }]),
+  ],
+])(
+  'when the judge %s, the run fails at the comparing and the slot is given back',
+  async (_, answer) => {
+    answer();
+    await readyToRun(waiting);
+
+    expect(await runPipeline('analysis-1')).toBe('failed');
+
+    expect(await stored()).toMatchObject({
+      status: 'failed',
+      stage: 'comparing',
+    });
+    expect(await traps()).toEqual([]);
+    expect(await startedOnCreationDay()).toBe(0);
+  },
+);
