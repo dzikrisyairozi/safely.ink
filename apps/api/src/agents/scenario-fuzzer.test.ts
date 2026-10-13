@@ -96,7 +96,7 @@ test('the model gets the role, the rules and the seeds of its strategy, and not 
     'procedure',
     rules,
     factSchema,
-    { facts: [], seeds },
+    { facts: [], seeds, hints: [] },
     document,
     90,
   );
