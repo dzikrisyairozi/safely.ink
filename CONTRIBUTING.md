@@ -1,4 +1,4 @@
-# Contributing to Policy Police
+# Contributing to safely.ink
 
 ## Setup
 
@@ -10,8 +10,8 @@ process that survives the test run, and the next run fails with "port taken". Pu
 `%JAVA_HOME%\bin` ahead of `javapath` in `PATH`.
 
 ```bash
-git clone https://github.com/dzikrisyairozi/policy-police.git
-cd policy-police
+git clone https://github.com/dzikrisyairozi/safely.ink.git
+cd safely.ink
 pnpm install
 pnpm dev              # all apps; or dev:web, dev:api, dev:dashboard
 ```

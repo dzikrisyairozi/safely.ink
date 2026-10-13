@@ -19,12 +19,6 @@ export function Main({
       )}
       {...props}
     >
-      {!fixed && (
-        <>
-          <div className="pointer-events-none absolute -top-20 -right-20 h-[600px] w-[600px] rounded-full bg-primary/5 blur-[120px] will-change-transform" />
-          <div className="pointer-events-none absolute -bottom-20 -left-20 h-[600px] w-[600px] rounded-full bg-indigo-500/5 blur-[120px] will-change-transform" />
-        </>
-      )}
       <div
         className={cn(
           'relative z-10',

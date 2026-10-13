@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Policy Police"
+    "name": "safely.ink"
   },
   "errors": {
     "goBack": "Go back",
@@ -28,7 +28,7 @@
   },
   "signIn": {
     "title": "Sign in",
-    "description": "Use your Google account to access Policy Police.",
+    "description": "Use your Google account to access safely.ink.",
     "google": "Continue with Google",
     "failed": "Sign-in failed. Please try again."
   },
@@ -48,26 +48,6 @@
     "description": "You'll need to sign in again to access the dashboard.",
     "confirm": "Sign out"
   },
-  "configDrawer": {
-    "title": "Configuration",
-    "description": "Live playground for sidebar layout, theme, and font.",
-    "sidebarVariant": "Sidebar variant",
-    "variantInset": "Inset",
-    "variantSidebar": "Sidebar",
-    "variantFloating": "Floating",
-    "sidebarCollapsible": "Collapsible mode",
-    "collapsibleOffcanvas": "Offcanvas",
-    "collapsibleIcon": "Icon",
-    "collapsibleNone": "None",
-    "theme": "Theme",
-    "font": {
-      "label": "Font",
-      "outfit": "Outfit",
-      "inter": "Inter",
-      "system": "System"
-    },
-    "reset": "Reset to defaults"
-  },
   "commandMenu": {
     "title": "Command Menu",
     "placeholder": "Type a command or search...",
@@ -86,7 +66,76 @@
   },
   "newAnalysis": {
     "title": "Check a document",
-    "subtitle": "Upload a policy or contract and Policy Police will stress-test it with tricky scenarios.",
-    "comingSoon": "Upload is not available yet."
+    "subtitle": "Upload a policy or contract and safely.ink will stress-test it with tricky scenarios."
+  },
+  "upload": {
+    "choose": "Choose a PDF or page photos, or drop them here",
+    "limits": "One PDF, or 1 to 30 images (JPEG, PNG, WebP, HEIC). Up to 30 MB and 100 pages.",
+    "pages": "Pages, in reading order",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "remove": "Remove {{name}}",
+    "notices": {
+      "notLegalAdvice": "safely.ink is not legal advice. It shows where the wording may leave you worse off; a lawyer decides what that means for you.",
+      "data": "Your document is private to your account. The uploaded file is deleted after 7 days."
+    },
+    "start": "Check this document",
+    "reading": "Reading your document…",
+    "readingHint": "This can take a minute or two. Keep this page open.",
+    "errors": {
+      "unsupported_type": "That file type is not supported. Upload one PDF, or images in JPEG, PNG, WebP or HEIC.",
+      "mixed_input": "Upload either one PDF or page photos, not both.",
+      "too_many_files": "You can upload up to 30 images. Upload the main document only.",
+      "too_large": "The upload is over 30 MB. Upload the main document only.",
+      "too_many_pages": "The document has more than 100 pages. Upload the main document only.",
+      "file_missing": "One of the files did not upload. Please try again.",
+      "daily_limit": "You can check 10 documents a day. The limit resets at {{resetAt}}.",
+      "failed": "The upload did not go through. Check your connection and try again."
+    }
+  },
+  "analysis": {
+    "uploadAgain": "Upload it again",
+    "uploadAnother": "Upload another document",
+    "reading": {
+      "title": "Reading your document",
+      "description": "We are finding the clauses and the details. This page updates on its own."
+    },
+    "rejected": {
+      "title": "Not a policy or contract",
+      "description": "This doesn't look like a policy or contract. safely.ink checks documents that set out rights and obligations between you and another party."
+    },
+    "failed": {
+      "title": "Reading did not finish",
+      "description": "Something went wrong while reading the document. Nothing was lost on your side; please upload it again."
+    },
+    "unreadable": {
+      "title": "Some pages could not be read",
+      "description": "Page {{pages}} is blurred, cut off or too dark. You can continue with the rest, and the report will be marked as incomplete."
+    },
+    "confirm": {
+      "eyebrow": "Check what we found before we continue",
+      "facts": "{{pages}} pages · language {{language}}",
+      "docType": "Document type",
+      "jurisdiction": "Governing country",
+      "otherCountry": "Another country",
+      "generalAnalysis": "This type is checked with the general rules, and the report will be labelled as a general analysis.",
+      "lawSkipped": "We do not compare against the law of {{country}} yet. The scenarios still run; only the legal comparison is skipped.",
+      "yourRole": "Which party are you?",
+      "rolePlaceholder": "For example: tenant",
+      "submit": "These details are right",
+      "failed": "Could not save the details. Please try again."
+    },
+    "docTypes": {
+      "insurance": "Insurance policy",
+      "loan": "Loan agreement",
+      "employment": "Employment contract",
+      "nda": "Non-disclosure agreement",
+      "lease": "Lease",
+      "other": "Another kind of contract"
+    },
+    "confirmed": {
+      "title": "Details confirmed",
+      "description": "Thank you. The next steps of the analysis are not available yet."
+    }
   }
 }

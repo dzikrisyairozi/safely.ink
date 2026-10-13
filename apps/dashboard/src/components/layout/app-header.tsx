@@ -1,6 +1,5 @@
 import { LanguageSwitcher } from '@repo/i18n';
 import { Header } from './header';
-import { ConfigDrawer } from '../config-drawer';
 import { ProfileDropdown } from '../profile-dropdown';
 import { Search } from '../search';
 import { ThemeSwitch } from '../theme-switch';
@@ -14,7 +13,6 @@ export function AppHeader() {
         <LanguageSwitcher />
       </div>
       <ThemeSwitch />
-      <ConfigDrawer />
       <ProfileDropdown />
     </Header>
   );

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UPLOAD_LIMITS, type LawJurisdiction } from '@repo/api-types';
 import type { ScoreWeights } from './engine/score';
 
 const Env = z.object({
@@ -28,10 +29,12 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     },
 
     limits: {
-      uploadMaxBytes: 30 * 1024 * 1024,
-      uploadMaxPages: 100,
+      uploadMaxBytes: UPLOAD_LIMITS.maxBytes,
+      uploadMaxPages: UPLOAD_LIMITS.maxPages,
       scenariosPerAnalysis: 40,
       analysesPerUserPerDay: 10,
+      // Counts the runs whose slot was given back too, so those have a limit.
+      attemptsPerUserPerDay: 30,
     },
 
     // Official legal sources per jurisdiction. `*` stands for one host label.
@@ -45,7 +48,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       ],
       SG: ['sso.agc.gov.sg', 'mas.gov.sg', 'mom.gov.sg'],
       AU: ['legislation.gov.au', 'asic.gov.au', 'fairwork.gov.au'],
-    },
+    } satisfies Record<LawJurisdiction, string[]>,
 
     // Severity, grade and confidence numbers of TSD 5.7. A first guess, kept
     // here so they can be tuned against real documents.

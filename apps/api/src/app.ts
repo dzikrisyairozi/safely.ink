@@ -1,12 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { ErrorEnvelope } from '@repo/api-types';
 import { config } from './config';
+import { failure } from './failure';
 import { auth } from './firebase';
-
-const failure = (code: string, message: string): ErrorEnvelope => ({
-  error: { code, message },
-});
+import { analyses } from './routes/analyses';
 
 const unauthenticated = failure(
   'unauthenticated',
@@ -39,6 +36,8 @@ app.use(async (c, next) => {
   }
   await next();
 });
+
+app.route('/v1/analyses', analyses);
 
 app.notFound((c) => c.json(failure('not_found', 'No such route.'), 404));
 

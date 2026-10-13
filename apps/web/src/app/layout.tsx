@@ -1,19 +1,20 @@
 import type { Metadata } from 'next';
-import { Outfit, Instrument_Serif } from 'next/font/google';
+import { Geist, Geist_Mono, Newsreader } from 'next/font/google';
 import { cookies } from 'next/headers';
 import './globals.css';
 import { WebI18nProvider } from '@/i18n/client';
 
-const outfit = Outfit({
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
+
+const geistMono = Geist_Mono({
   subsets: ['latin'],
-  variable: '--font-outfit',
+  variable: '--font-geist-mono',
 });
 
-const instrumentSerif = Instrument_Serif({
-  weight: '400',
-  style: 'italic',
+const newsreader = Newsreader({
   subsets: ['latin'],
-  variable: '--font-instrument',
+  style: ['normal', 'italic'],
+  variable: '--font-newsreader',
 });
 
 export const metadata: Metadata = {
@@ -21,25 +22,25 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   ),
   title: {
-    default: 'Policy Police',
-    template: '%s | Policy Police',
+    default: 'safely.ink',
+    template: '%s | safely.ink',
   },
   description:
-    'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
+    'Stress-test any policy or contract before you sign. safely.ink finds the scenarios where the fine print leaves you worse off.',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    siteName: 'Policy Police',
-    title: 'Policy Police',
+    siteName: 'safely.ink',
+    title: 'safely.ink',
     description:
-      'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
+      'Stress-test any policy or contract before you sign. safely.ink finds the scenarios where the fine print leaves you worse off.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Policy Police',
+    title: 'safely.ink',
     description:
-      'Stress-test any policy or contract before you sign. Policy Police finds the scenarios where the fine print leaves you worse off.',
+      'Stress-test any policy or contract before you sign. safely.ink finds the scenarios where the fine print leaves you worse off.',
   },
   icons: {
     icon: '/favicon/favicon.ico',
@@ -59,7 +60,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="dark" suppressHydrationWarning>
       <body
-        className={`${outfit.variable} ${instrumentSerif.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} font-sans antialiased bg-background text-foreground`}
         suppressHydrationWarning
       >
         <WebI18nProvider locale={locale}>{children}</WebI18nProvider>

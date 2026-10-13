@@ -1,6 +1,10 @@
 import { expect, test } from 'vitest';
 import {
+  Analysis,
   AnalysisMeta,
+  ConfirmAnalysisRequest,
+  CreateAnalysisRequest,
+  ReaderOutput,
   Condition,
   ErrorEnvelope,
   Expectation,
@@ -170,4 +174,79 @@ test('a stake is an amount or nothing, never negative', () => {
     expect(Scenario.safeParse({ ...scenario, stake }).success).toBe(true);
   }
   expect(Scenario.safeParse({ ...scenario, stake: -1 }).success).toBe(false);
+});
+
+const upload = { analysisId: 'a1b2c3d4e5f6', files: ['0-policy.pdf'] };
+
+test('an upload request needs 1 to 30 files', () => {
+  expect(CreateAnalysisRequest.safeParse(upload).success).toBe(true);
+  expect(
+    CreateAnalysisRequest.safeParse({ ...upload, files: [] }).success,
+  ).toBe(false);
+  const files = Array.from({ length: 31 }, (_, n) => `${n}-page.jpg`);
+  expect(CreateAnalysisRequest.safeParse({ ...upload, files }).success).toBe(
+    false,
+  );
+});
+
+test.each(['../bob/a1/0-x.pdf', 'a/b.pdf', 'a\\b.pdf', '..', ''])(
+  'the file name %j cannot leave the upload folder',
+  (name) => {
+    expect(
+      CreateAnalysisRequest.safeParse({ ...upload, files: [name] }).success,
+    ).toBe(false);
+  },
+);
+
+test('an analysis id cannot carry a path', () => {
+  expect(
+    CreateAnalysisRequest.safeParse({ ...upload, analysisId: 'a1/../../x' })
+      .success,
+  ).toBe(false);
+});
+
+test('a confirmation names a known document type and a role', () => {
+  const confirm = {
+    docType: 'insurance',
+    jurisdiction: 'ID',
+    userRole: 'insured',
+  };
+  expect(ConfirmAnalysisRequest.safeParse(confirm).success).toBe(true);
+  expect(
+    ConfirmAnalysisRequest.safeParse({ ...confirm, docType: 'receipt' })
+      .success,
+  ).toBe(false);
+  expect(
+    ConfirmAnalysisRequest.safeParse({ ...confirm, userRole: '' }).success,
+  ).toBe(false);
+});
+
+test('the reader may name a document type outside the tuned ones', () => {
+  const read = {
+    isPolicyOrContract: true,
+    docType: 'gym membership',
+    title: 'Membership agreement',
+    parties: [{ name: 'Fit Co', role: 'provider' }],
+    jurisdiction: 'SG',
+    language: 'en',
+    unreadablePages: [],
+    clauses: [
+      {
+        number: '1',
+        heading: null,
+        text: 'Fees are due monthly.',
+        gloss: null,
+        page: 1,
+      },
+    ],
+  };
+  expect(ReaderOutput.parse(read).docType).toBe('gym membership');
+});
+
+test('an analysis has no details until the document is read', () => {
+  const fresh = { ownerUid: 'alice', status: 'reading', meta: null };
+  expect(Analysis.parse(fresh).meta).toBeNull();
+  expect(Analysis.safeParse({ ...fresh, status: 'thinking' }).success).toBe(
+    false,
+  );
 });

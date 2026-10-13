@@ -4,12 +4,15 @@ import { auth } from './firebase';
 export class ApiError extends Error {
   status: number;
   code: string;
+  /** With `daily_limit`: when the limit resets. */
+  resetAt?: string;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, resetAt?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.resetAt = resetAt;
   }
 }
 
@@ -29,6 +32,11 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const body = ErrorEnvelope.safeParse(await res.json().catch(() => null));
   throw body.success
-    ? new ApiError(res.status, body.data.error.code, body.data.error.message)
+    ? new ApiError(
+        res.status,
+        body.data.error.code,
+        body.data.error.message,
+        body.data.error.resetAt,
+      )
     : new ApiError(res.status, 'unknown', res.statusText);
 }

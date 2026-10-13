@@ -1,0 +1,35 @@
+{
+  "isPolicyOrContract": true,
+  "docType": "insurance",
+  "title": "Polis Asuransi Kesehatan Sehat Prima",
+  "parties": [
+    { "name": "PT Asuransi Sehat Prima", "role": "insurer" },
+    { "name": "Budi Santoso", "role": "insured" }
+  ],
+  "jurisdiction": "ID",
+  "language": "id",
+  "unreadablePages": [],
+  "clauses": [
+    {
+      "number": "1.1",
+      "heading": "Pertanggungan",
+      "text": "Penanggung akan membayar biaya rawat inap Tertanggung sesuai dengan tabel manfaat.",
+      "gloss": "The insurer will pay the insured's inpatient costs according to the benefits table.",
+      "page": 2
+    },
+    {
+      "number": "4.2",
+      "heading": "Masa Tunggu",
+      "text": "Klaim atas penyakit yang timbul dalam 30 hari sejak tanggal mulai polis tidak dibayar.",
+      "gloss": "Claims for illness arising within 30 days of the policy start date are not paid.",
+      "page": 5
+    },
+    {
+      "number": null,
+      "heading": "Hukum yang Berlaku",
+      "text": "Polis ini tunduk pada hukum Republik Indonesia.",
+      "gloss": "This policy is governed by the law of the Republic of Indonesia.",
+      "page": 12
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "name": "policy-police",
+  "name": "safely-ink",
   "private": true,
   "author": {
     "name": "Dzikri Syairozi",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dzikrisyairozi/policy-police"
+    "url": "https://github.com/dzikrisyairozi/safely.ink"
   },
   "license": "MIT",
   "scripts": {

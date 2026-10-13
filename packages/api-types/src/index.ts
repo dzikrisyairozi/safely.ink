@@ -194,7 +194,9 @@ export const AnalysisMeta = z.object({
   title: z.string(),
   parties: z.array(z.object({ name: z.string(), role: z.string() })),
   userRole: z.string().nullable(), // null until the user confirms
-  jurisdiction: z.string(), // "ID", "SG", "AU" or anything else
+  // "ID", "SG", "AU" or anything else. Empty when the Reader found none;
+  // NO_COUNTRY once the user has confirmed that there is none to name.
+  jurisdiction: z.string(),
   lawChecked: z.boolean(),
   language: z.string(),
   pageCount: z.number().int(),
@@ -202,11 +204,103 @@ export const AnalysisMeta = z.object({
 });
 export type AnalysisMeta = z.infer<typeof AnalysisMeta>;
 
+// F-UP-1 and F-UP-2. Checked in the browser before uploading and again by
+// the API on the real files.
+export const UPLOAD_LIMITS = {
+  maxBytes: 30 * 1024 * 1024,
+  maxPages: 100,
+  maxImages: 30,
+} as const;
+
+// Countries the legal comparison covers (F-READ-6). Any other jurisdiction
+// still gets the scenarios; only the law check is skipped.
+export const LAW_JURISDICTIONS = ['ID', 'SG', 'AU'] as const;
+export type LawJurisdiction = (typeof LAW_JURISDICTIONS)[number];
+export const isLawChecked = (jurisdiction: string) =>
+  (LAW_JURISDICTIONS as readonly string[]).includes(jurisdiction);
+// The jurisdiction of a document whose country is unknown or not listed.
+export const NO_COUNTRY = 'OTHER';
+
+// Why POST /v1/analyses refused the uploaded files (F-UP-1, F-UP-2). Each
+// is the `code` of a 400 and has its own message in the dashboard.
+export const UploadError = z.enum([
+  'file_missing',
+  'unsupported_type',
+  'mixed_input',
+  'too_large',
+  'too_many_pages',
+]);
+export type UploadError = z.infer<typeof UploadError>;
+
+// The states of FSD section 6.
+export const AnalysisStatus = z.enum([
+  'uploaded',
+  'reading',
+  'awaiting_confirmation',
+  'rejected',
+  'extracting_rules',
+  'fuzzing',
+  'running',
+  'comparing',
+  'done',
+  'failed',
+]);
+export type AnalysisStatus = z.infer<typeof AnalysisStatus>;
+
+// The Firestore document analyses/{id}, as far as the dashboard reads it.
+export const Analysis = z.object({
+  ownerUid: z.string(),
+  status: AnalysisStatus,
+  stage: AnalysisStatus.optional(), // where a failed run stopped
+  error: z.string().optional(),
+  meta: AnalysisMeta.nullable(), // null until the document is read
+});
+export type Analysis = z.infer<typeof Analysis>;
+
+// Both end up in a Storage path, so neither may carry a separator.
+export const AnalysisId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);
+const uploadName = z
+  .string()
+  .max(200)
+  .regex(/^[^/\\]+$/)
+  .refine((name) => !name.includes('..'));
+
+// Body of POST /v1/analyses. The files are names inside
+// uploads/{uid}/{analysisId}/, in page order.
+export const CreateAnalysisRequest = z.object({
+  analysisId: AnalysisId,
+  files: z.array(uploadName).min(1).max(UPLOAD_LIMITS.maxImages),
+});
+export type CreateAnalysisRequest = z.infer<typeof CreateAnalysisRequest>;
+
+// Body of POST /v1/analyses/:id/confirm.
+export const ConfirmAnalysisRequest = z.object({
+  docType: DocType,
+  jurisdiction: z.string().min(2).max(60),
+  userRole: z.string().min(1).max(120),
+});
+export type ConfirmAnalysisRequest = z.infer<typeof ConfirmAnalysisRequest>;
+
+// What the Reader agent returns. Untrusted until the post-check has run:
+// the type is free text here, clause IDs and the page count come from code.
+export const ReaderOutput = z.object({
+  isPolicyOrContract: z.boolean(),
+  docType: z.string(),
+  title: z.string(),
+  parties: AnalysisMeta.shape.parties,
+  jurisdiction: z.string(),
+  language: z.string(),
+  unreadablePages: z.array(z.number().int()),
+  clauses: z.array(Clause.omit({ id: true })),
+});
+export type ReaderOutput = z.infer<typeof ReaderOutput>;
+
 // Body of every non-2xx API response.
 export const ErrorEnvelope = z.object({
   error: z.object({
     code: z.string(),
     message: z.string(),
+    resetAt: z.string().optional(), // with daily_limit: when the limit resets
   }),
 });
 export type ErrorEnvelope = z.infer<typeof ErrorEnvelope>;

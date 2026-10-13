@@ -1,6 +1,6 @@
 # web
 
-Policy Police landing page. Next.js App Router, Tailwind v4, `@repo/ui`, `@repo/i18n`.
+safely.ink landing page. Next.js App Router, Tailwind v4, `@repo/ui`, `@repo/i18n`.
 
 ```bash
 pnpm dev:web          # http://localhost:3000

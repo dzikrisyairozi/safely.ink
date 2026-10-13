@@ -88,7 +88,7 @@ export default function LoadingScreen({
         <AnimatePresence mode="wait">
           <motion.span
             key={wordIndex}
-            className="text-4xl md:text-6xl lg:text-7xl font-display italic"
+            className="text-4xl md:text-6xl lg:text-7xl font-serif italic"
             style={{
               color: 'color-mix(in srgb, var(--text) 80%, transparent)',
             }}
@@ -104,7 +104,7 @@ export default function LoadingScreen({
 
       {/* Element 3: Counter */}
       <motion.div
-        className="absolute bottom-8 right-8 md:bottom-12 md:right-12 text-6xl md:text-8xl lg:text-9xl font-display tabular-nums"
+        className="absolute bottom-8 right-8 md:bottom-12 md:right-12 text-6xl md:text-8xl lg:text-9xl font-serif tabular-nums"
         style={{ color: 'var(--text)' }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

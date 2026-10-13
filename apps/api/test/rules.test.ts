@@ -39,7 +39,7 @@ const bytes = new Uint8Array([1, 2, 3]);
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({
-    projectId: 'demo-policy-police',
+    projectId: 'demo-safely-ink',
     firestore: { rules: readFileSync('../../firestore.rules', 'utf8') },
     storage: { rules: readFileSync('../../storage.rules', 'utf8') },
   });

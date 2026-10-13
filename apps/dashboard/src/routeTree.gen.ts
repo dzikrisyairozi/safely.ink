@@ -17,6 +17,7 @@ import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors500RouteImport } from './routes/(errors)/500'
 import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAnalysesIdRouteImport } from './routes/_authenticated/analyses/$id'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -57,6 +58,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAnalysesIdRoute = AuthenticatedAnalysesIdRouteImport.update({
+  id: '/analyses/$id',
+  path: '/analyses/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
+  '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/': typeof AuthenticatedIndexRoute
+  '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,12 +94,29 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/analyses/$id': typeof AuthenticatedAnalysesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/401' | '/403' | '/404' | '/500' | '/503'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/401'
+    | '/403'
+    | '/404'
+    | '/500'
+    | '/503'
+    | '/analyses/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/sign-in' | '/401' | '/403' | '/404' | '/500' | '/503' | '/'
+  to:
+    | '/sign-in'
+    | '/401'
+    | '/403'
+    | '/404'
+    | '/500'
+    | '/503'
+    | '/'
+    | '/analyses/$id'
   id:
     | '__root__'
     | '/_authenticated'
@@ -102,6 +127,7 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/'
+    | '/_authenticated/analyses/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -172,15 +198,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analyses/$id': {
+      id: '/_authenticated/analyses/$id'
+      path: '/analyses/$id'
+      fullPath: '/analyses/$id'
+      preLoaderRoute: typeof AuthenticatedAnalysesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAnalysesIdRoute: typeof AuthenticatedAnalysesIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAnalysesIdRoute: AuthenticatedAnalysesIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

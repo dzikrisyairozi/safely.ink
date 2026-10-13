@@ -12,11 +12,11 @@ test('defaults apply when the environment is empty', () => {
 test('values from the environment win over defaults', () => {
   const config = loadConfig({
     PORT: '8080',
-    ALLOWED_ORIGIN: 'https://policy-police.web.app',
+    ALLOWED_ORIGIN: 'https://app.safely.ink',
   });
 
   expect(config.PORT).toBe(8080);
-  expect(config.ALLOWED_ORIGIN).toBe('https://policy-police.web.app');
+  expect(config.ALLOWED_ORIGIN).toBe('https://app.safely.ink');
 });
 
 test('an invalid value stops startup and names the variable', () => {

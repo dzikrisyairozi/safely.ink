@@ -1,14 +1,14 @@
 {
   "hero": {
     "title": "Stress-test the fine print",
-    "subtitle": "Upload a policy or contract. Policy Police turns it into rules, attacks it with tricky scenarios, and shows where you end up worse off than you expect or than the law allows.",
+    "subtitle": "Upload a policy or contract. safely.ink turns it into rules, attacks it with tricky scenarios, and shows where you end up worse off than you expect or than the law allows.",
     "cta": "Check a document"
   },
   "loading": {
     "word1": "Read",
     "word2": "Fuzz",
     "word3": "Compare",
-    "label": "Policy Police"
+    "label": "safely.ink"
   },
   "footer": {
     "disclaimer": "An information tool, not legal advice"

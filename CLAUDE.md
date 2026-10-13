@@ -271,7 +271,7 @@ modifying a shared package, verify downstream consumers still build:
 
 ## Project Reference
 
-Policy Police is a policy fuzzer: it reads a policy or contract, turns it into rules,
+safely.ink is a policy fuzzer: it reads a policy or contract, turns it into rules,
 generates tricky scenarios, runs them through a deterministic engine, and compares the
 outcomes with what a reasonable person expects and what the law allows. Product,
 functional and technical specifications are in `docs/PRD.md`, `docs/FSD.md` and
