@@ -15,12 +15,17 @@ import { config } from './config';
 import { evaluate } from './engine/evaluate';
 import { db } from './firebase';
 import { runPipeline } from './pipeline';
+import { writeTraps } from './agents/trap-writer';
 import { BASE_FACTS } from './pipeline/rule-check';
 
 // Run through `pnpm test`: Firestore is the emulator. Only the model is
 // replaced.
 vi.mock('./agents/rule-extractor');
 vi.mock('./agents/scenario-fuzzer');
+vi.mock('./agents/trap-writer', async (original) => ({
+  ...(await original<typeof import('./agents/trap-writer')>()),
+  writeTraps: vi.fn(),
+}));
 // The judge's input is built by the real code; only its call is replaced.
 vi.mock('./agents/expectation-judge', async (original) => ({
   ...(await original<typeof import('./agents/expectation-judge')>()),
@@ -33,6 +38,7 @@ const repair = vi.mocked(repairRules);
 const fuzzer = vi.mocked(proposeScenarios);
 const boundaries = vi.mocked(tellBoundaries);
 const judged = vi.mocked(judge);
+const writer = vi.mocked(writeTraps);
 // The judge expects every situation to end well unless a test says more.
 const expectsFine = async ({ scenarios }: JudgeInput) =>
   scenarios.map(({ id }) => ({ id, result: 'fine', reason: 'It is covered.' }));
@@ -63,6 +69,8 @@ beforeEach(async () => {
   fuzzer.mockResolvedValue([ordinary]);
   boundaries.mockResolvedValue([]);
   judged.mockImplementation(expectsFine);
+  // No words for a trap unless a test gives some.
+  writer.mockResolvedValue([]);
 
   await analysis.set({
     ownerUid: 'alice',
@@ -584,3 +592,73 @@ test.each([
     expect(await startedOnCreationDay()).toBe(0);
   },
 );
+
+const words = {
+  id: 'trap-r-002',
+  title: 'An illness in the first 30 days is not paid',
+  action: 'Does the waiting period also apply to an emergency?',
+};
+
+test('a trap is stored with the title and the questions written for it', async () => {
+  writer.mockResolvedValue([words]);
+  await readyToRun(waiting);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(await traps()).toEqual([
+    {
+      id: 'trap-r-002',
+      ruleId: 'r-002',
+      scenarioIds: ['s-002'],
+      severity: 'high',
+      title: words.title,
+      action: words.action,
+    },
+  ]);
+  // The writer is told the rule and the example, with what was expected.
+  expect(writer).toHaveBeenCalledWith(
+    [
+      expect.objectContaining({
+        id: 'trap-r-002',
+        rule: expect.objectContaining({ kind: 'exclusion' }),
+        examples: [
+          expect.objectContaining({ expected: 'fine', result: 'bad' }),
+        ],
+      }),
+    ],
+    expect.objectContaining({ userRole: 'insured' }),
+    config.limits.modelCallSeconds.wording,
+  );
+});
+
+test.each([
+  ['fails', () => writer.mockRejectedValue(new Error('model unavailable'))],
+  [
+    'accuses the other party',
+    () =>
+      writer.mockResolvedValue([
+        { ...words, title: 'A scam', action: 'Why do you cheat?' },
+      ]),
+  ],
+])(
+  'when the writer %s, the analysis is done with the same traps and grade, without words',
+  async (_, answer) => {
+    answer();
+    await readyToRun(waiting);
+
+    expect(await runPipeline('analysis-1')).toBe('done');
+
+    expect(await traps()).toMatchObject([
+      { id: 'trap-r-002', severity: 'high', title: null, action: null },
+    ]);
+    expect(await stored()).toMatchObject({ grade: 'A', counts: { traps: 1 } });
+  },
+);
+
+test('with no trap there is nothing to write', async () => {
+  await readyToRun(waiting.slice(0, 1));
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(writer).not.toHaveBeenCalled();
+});

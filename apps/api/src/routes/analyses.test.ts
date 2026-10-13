@@ -22,6 +22,10 @@ vi.mock('../firebase', async (original) => ({
 vi.mock('../agents/reader');
 vi.mock('../agents/rule-extractor');
 vi.mock('../agents/scenario-fuzzer');
+vi.mock('../agents/trap-writer', async (original) => ({
+  ...(await original<typeof import('../agents/trap-writer')>()),
+  writeTraps: vi.fn(async () => []),
+}));
 vi.mock('../agents/expectation-judge', async (original) => ({
   ...(await original<typeof import('../agents/expectation-judge')>()),
   judge: vi.fn(),

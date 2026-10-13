@@ -18,6 +18,7 @@ import {
 } from './agents/rule-extractor';
 import { Judged, judge, judgeInput } from './agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
+import { trapBriefs, worded, writeTraps } from './agents/trap-writer';
 import { config } from './config';
 import { evaluate } from './engine/evaluate';
 import { score } from './engine/score';
@@ -297,6 +298,27 @@ async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
     'counts.traps': traps.length,
     updatedAt: updatedAt(),
   });
+  if (traps.length === 0) return;
+
+  // The traps are complete without their words (TSD 5.7), so a model that
+  // fails here costs the title and the questions, not the analysis.
+  const briefs = trapBriefs(
+    traps,
+    rules,
+    scenarios.map((scenario) => ({
+      ...scenario,
+      expectation: expectations[scenario.id],
+    })),
+  );
+  const words = await writeTraps(
+    briefs,
+    meta,
+    config.limits.modelCallSeconds.wording,
+  ).catch((err) => {
+    console.error(err);
+    return [];
+  });
+  await saveAll(analysis, 'traps', worded(traps, words));
 }
 
 type Stage = {
