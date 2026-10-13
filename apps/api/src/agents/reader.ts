@@ -157,7 +157,8 @@ export async function readDocument(
   const ai = new GoogleGenAI({ apiKey });
 
   // Through the Files API: 30 MB is over the limit of an inline request.
-  const uploaded = await Promise.all(
+  // Settled, not all: if one upload fails the others still have to be deleted.
+  const uploads = await Promise.allSettled(
     files.map((file) =>
       ai.files.upload({
         file: new Blob([new Uint8Array(file.bytes)], { type: file.mimeType }),
@@ -165,8 +166,14 @@ export async function readDocument(
       }),
     ),
   );
+  const uploaded = uploads.flatMap((upload) =>
+    upload.status === 'fulfilled' ? [upload.value] : [],
+  );
 
   try {
+    if (uploaded.length < files.length) {
+      throw new Error('The document could not be sent to the model.');
+    }
     const document: Part[] = [];
     for (let file of uploaded) {
       for (let waited = 0; file.state === FileState.PROCESSING; waited++) {
