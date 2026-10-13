@@ -182,6 +182,11 @@ test.each<{ name: string; rule: Rule; message: RegExp }>([
     message: /mood/,
   },
   {
+    name: 'an unmodeled rule that touches no fact',
+    rule: rule({ kind: 'unmodeled', when: null, touches: [] }),
+    message: /touch/,
+  },
+  {
     name: 'a limit with no cap or deduction',
     rule: rule({ kind: 'limit', effect: null }),
     message: /effect/,

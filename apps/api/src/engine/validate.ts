@@ -111,6 +111,10 @@ export function validateRules(
     for (const key of rule.touches) {
       if (!facts.has(key)) report(`Touched fact "${key}" is not in the schema`);
     }
+    // Nothing a scenario could vary, so the engine would never flag it.
+    if (rule.kind === 'unmodeled' && rule.touches.length === 0) {
+      report('An unmodeled rule must touch at least one fact');
+    }
     report(effectProblem(rule));
   }
   return issues;
