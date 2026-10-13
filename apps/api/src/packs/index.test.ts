@@ -22,3 +22,9 @@ test('every pack has seeds for each strategy the model writes', () => {
     }
   }
 });
+
+test('every pack says what people in that role take for granted', () => {
+  for (const pack of [insurance, terms, general]) {
+    expect(pack.hints.length).toBeGreaterThanOrEqual(4);
+  }
+});

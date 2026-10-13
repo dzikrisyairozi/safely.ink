@@ -43,4 +43,14 @@ export const insurance: Pack = {
       'an honest mistake on the application, found when an unrelated claim is made',
     ],
   },
+  hints: [
+    'an illness or accident of the kind the policy names is paid once the policy is in force',
+    'a claim told or sent a few days late is still paid when the delay changed nothing',
+    'a missing paper can be handed in later without losing the claim',
+    'an honest small mistake on the application does not cancel cover for an unrelated claim',
+    'a premium paid a few days late does not leave a gap in cover',
+    'people accept a deductible and a stated maximum, so a claim cut by those is partly bad, not a surprise',
+    'people do not expect cover for what they did on purpose, for fraud, or for an illness they hid',
+    'people do not expect a refund of premiums for a period in which they were covered',
+  ],
 };

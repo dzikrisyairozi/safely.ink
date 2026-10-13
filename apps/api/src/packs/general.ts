@@ -38,4 +38,13 @@ export const general: Pack = {
       'the other party changes a term and the user who objects is still bound for months',
     ],
   },
+  hints: [
+    'what the agreement promises is delivered when the user did their part',
+    'a small slip in form or a delay of a few days does not cost the user the whole benefit',
+    'a fee or a penalty is in proportion to what the slip cost the other party',
+    'the other party does not change the price or the terms on its own during the term',
+    'money handed over as a deposit comes back when nothing is owed',
+    'the user can leave with reasonable notice',
+    'people accept that they pay what they agreed to and that a clear breach has a cost',
+  ],
 };
