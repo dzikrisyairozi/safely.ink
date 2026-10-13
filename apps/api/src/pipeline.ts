@@ -5,7 +5,7 @@ import {
   FactSchema,
   Rule,
   Scenario,
-  Strategy,
+  WrittenStrategy,
   type AnalysisStatus,
   type Outcome,
 } from '@repo/api-types';
@@ -113,7 +113,6 @@ const storedRules = async (analysis: DocumentReference) =>
     Rule.parse(doc.data()),
   );
 
-const WRITTEN = Strategy.exclude(['boundary']).options;
 // What the prompts aim for (F-FUZZ-1). A short document can give fewer.
 const SCENARIOS_AIMED_FOR = 20;
 
@@ -138,7 +137,7 @@ async function fuzz(
 
   // Side by side, and one call that fails does not cost the others.
   const calls = [
-    ...WRITTEN.map((strategy) => ({
+    ...WrittenStrategy.options.map((strategy) => ({
       strategy,
       entries: proposeScenarios(
         strategy,

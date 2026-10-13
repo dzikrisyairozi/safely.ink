@@ -4,7 +4,7 @@ import {
   type Fact,
   type FactSchema,
   type Rule,
-  type Strategy,
+  type WrittenStrategy,
 } from '@repo/api-types';
 import { config } from '../config';
 import type { Pack } from '../packs';
@@ -34,9 +34,7 @@ stake: the money the user stands to get or keep in this situation, such as
 the amount claimed, the deposit or the price paid, as a plain number in the
 document's currency. null if the situation is not about money.`;
 
-type Written = Exclude<Strategy, 'boundary'>;
-
-const ANGLE: Record<Written, string> = {
+const ANGLE: Record<WrittenStrategy, string> = {
   baseline:
     'Plainly ordinary situations in which the user did everything right and gets what the document promises. Nothing in them counts against the user.',
   overlap:
@@ -47,7 +45,7 @@ const ANGLE: Record<Written, string> = {
     'Situations in which the user is entitled in substance but slips on procedure: a notice a few days late, a missing document, a late payment.',
   combination: 'Situations in which two or more rules apply at once.',
 };
-const ASKED: Record<Written, number> = {
+const ASKED: Record<WrittenStrategy, number> = {
   baseline: 5,
   overlap: 8,
   definition: 8,
@@ -56,7 +54,7 @@ const ASKED: Record<Written, number> = {
 };
 
 const scenariosInstruction = (
-  strategy: Written,
+  strategy: WrittenStrategy,
 ) => `You write test situations for one document. They are later run against its
 rules by a program, which decides how each one ends. You return JSON.
 
@@ -106,7 +104,7 @@ const ask = askForList.bind(null, config.models.flash);
  * of this document by name. Unchecked.
  */
 export const proposeScenarios = (
-  strategy: Written,
+  strategy: WrittenStrategy,
   rules: Rule[],
   factSchema: FactSchema,
   pack: Pack,

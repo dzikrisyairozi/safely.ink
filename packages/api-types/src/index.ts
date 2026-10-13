@@ -129,6 +129,9 @@ export const Strategy = z.enum([
   'combination',
 ]);
 export type Strategy = z.infer<typeof Strategy>;
+// The strategies a model writes. A boundary scenario is built by code.
+export const WrittenStrategy = Strategy.exclude(['boundary']);
+export type WrittenStrategy = z.infer<typeof WrittenStrategy>;
 
 export const Scenario = z.object({
   id: z.string(),
