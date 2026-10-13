@@ -134,3 +134,12 @@ export const Outcome = z.object({
   ),
 });
 export type Outcome = z.infer<typeof Outcome>;
+
+// Body of every non-2xx API response.
+export const ErrorEnvelope = z.object({
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+  }),
+});
+export type ErrorEnvelope = z.infer<typeof ErrorEnvelope>;

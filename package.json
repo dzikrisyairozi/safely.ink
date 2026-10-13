@@ -39,6 +39,7 @@
     "@eslint/eslintrc": "^3.3.7",
     "@types/node": "^26.6.5",
     "es-abstract": "^1.24.2",
+    "firebase-tools": "^15.33.0",
     "globals": "^17.13.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",

@@ -4,25 +4,29 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "start": "tsx --env-file-if-exists=.env src/index.ts",
     "lint": "eslint .",
     "lint:check": "eslint . --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "firebase emulators:exec --config ../../firebase.json --project demo-policy-police --only firestore,storage \"vitest run\"",
+    "test:watch": "vitest --dir src"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",
     "@repo/api-types": "workspace:*",
+    "firebase-admin": "^14.5.0",
     "hono": "^4.13.13",
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^26.6.5",
     "eslint": "^9.39.5",
+    "firebase": "^13.0.0",
     "globals": "^17.13.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.1",

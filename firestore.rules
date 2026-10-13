@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Clients only read their own analyses. Every write goes through the API,
+// which uses the Admin SDK and bypasses these rules. Anything not matched
+// here (lawPages, users) is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function ownsAnalysis(analysisId) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/analyses/$(analysisId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /analyses/{analysisId} {
+      allow read: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+
+      match /{document=**} {
+        allow read: if ownsAnalysis(analysisId);
+      }
+    }
+  }
+}

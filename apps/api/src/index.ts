@@ -1,8 +1,7 @@
 import { serve } from '@hono/node-server';
 import { app } from './app';
+import { config } from './config';
 
-const port = Number(process.env.PORT ?? 3001);
-
-serve({ fetch: app.fetch, port }, () => {
-  console.log(`api listening on :${port}`);
+serve({ fetch: app.fetch, port: config.PORT }, () => {
+  console.log(`api listening on :${config.PORT}`);
 });

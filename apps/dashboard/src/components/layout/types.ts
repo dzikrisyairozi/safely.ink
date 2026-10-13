@@ -32,6 +32,5 @@ export type NavGroup = {
 };
 
 export type SidebarData = {
-  user: NavUser;
   navGroups: NavGroup[];
 };

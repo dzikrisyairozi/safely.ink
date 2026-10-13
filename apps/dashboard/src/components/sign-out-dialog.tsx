@@ -1,7 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
+import { signOut } from 'firebase/auth';
 import { useTranslation } from '@repo/i18n';
 import { ConfirmDialog } from './confirm-dialog';
-import { useAuthStore } from '../stores/auth-store';
+import { auth } from '../lib/firebase';
 
 export function SignOutDialog({
   open,
@@ -12,7 +13,6 @@ export function SignOutDialog({
 }) {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
-  const signOut = useAuthStore((state) => state.signOut);
 
   return (
     <ConfirmDialog
@@ -21,8 +21,8 @@ export function SignOutDialog({
       title={t('signOutDialog.title')}
       description={t('signOutDialog.description')}
       confirmText={t('signOutDialog.confirm')}
-      onConfirm={() => {
-        signOut();
+      onConfirm={async () => {
+        await signOut(auth);
         onOpenChange(false);
         navigate({ to: '/sign-in' });
       }}

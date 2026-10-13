@@ -163,8 +163,13 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 - `analyses/**`: read if the analysis `ownerUid == request.auth.uid` (sub-collections check
   the parent). **No client writes**; only the API (Admin SDK) writes.
 - `lawPages/**`, `users/**`: no client access.
-- Storage `uploads/{uid}/**`: create if `request.auth.uid == uid`, content type is PDF or
-  image, size ≤ 30 MB. Read by owner. No update.
+- Storage `uploads/{uid}/**`: create if `request.auth.uid == uid`, content type is PDF,
+  JPEG, PNG, WebP or HEIC (F-UP-1), size ≤ 30 MB. Read by owner. No update. The content
+  type is declared by the client, so the reader checks the real file type.
+- **Accepted risk:** the rules do not limit how many files a signed-in user uploads, and
+  uploads do not pass through the API's daily quota. For the hackathon this is bounded
+  only by the 7-day lifecycle rule and a billing budget alert. The fix, if needed, is
+  signed upload URLs issued by the API after its quota check, with client writes closed.
 - Storage lifecycle: delete objects under `uploads/` after 7 days (F-HIST-3).
 
 ## 4. API
@@ -251,7 +256,7 @@ Runs once per **deciding rule** of a `bad` or `partly_bad` scenario (deduplicate
 parallel with a concurrency limit. Skipped entirely when the jurisdiction has no allowlist
 (`meta.lawChecked = false`, F-READ-6).
 
-Allowlist (`config.ts`), to be confirmed in the day-1 spike:
+Allowlist (`config.ts`), confirmed by the fetch spike in [ADR 4](./adr/0004-legal-source-fetch.md):
 
 | Jurisdiction | Official sources                                                                  |
 | ------------ | --------------------------------------------------------------------------------- |
@@ -266,7 +271,10 @@ Steps:
    `site:` restriction to the allowlist. Grounding redirect URLs are resolved; results
    whose host is not on the allowlist are discarded (F-CMP-5).
 2. **Fetch** (`legal/fetch.ts`). For each surviving URL: read `lawPages` first; on a miss,
-   HTTP GET (allowlisted hosts only, 10 s timeout, 2 MB cap), strip HTML to text, store.
+   HTTP GET with browser-like headers (allowlisted hosts only, 10 s timeout, 5 MB cap),
+   strip HTML to text, store. If the page is unusable (not 200, not HTML, or under 1,000
+   characters of text, which is the normal case for Indonesian statutes published as
+   PDF), retrieve it with the URL context tool instead and store that text.
 3. **Assess.** Second Gemini call, no tools, structured output, given the rule and the
    fetched page texts: `{ status, reasoning, citations: [{ instrument, section, quote, url }] }`.
 4. **Verify** (`legal/verify.ts`, F-CMP-4). Quote and page text are normalised (whitespace,
@@ -439,12 +447,9 @@ the analysis document for the eval report.
 
 ## 13. Open technical questions
 
-1. ADK TypeScript: package name, maturity for parallel sub-agents, and whether its Google
-   Search tool can be combined with structured output. First task on day 1 is a two-hour
-   spike. Fallback: the same agents as plain `@google/genai` calls behind the same
-   function signatures; nothing else in this design changes.
-2. Can the official legal sites be fetched server-side as plain HTML (some render with
-   JavaScript or block bots)? Fallback: Gemini's URL context tool as the retriever, with
-   the returned text stored and the same quote check applied.
+1. Resolved in [ADR 3](./adr/0003-agent-framework.md): agents run on `@google/adk`;
+   search and structured output are separate calls; fan-out is plain concurrent calls.
+2. Resolved in [ADR 4](./adr/0004-legal-source-fetch.md): direct fetch works for SG and
+   AU with browser-like headers; Indonesian statutes go through the URL context tool.
 3. Firebase App Hosting behaviour with a pnpm monorepo and Next.js 16; fallback is a
    Cloud Run container for `apps/web`.

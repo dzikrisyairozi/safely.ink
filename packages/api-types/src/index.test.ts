@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { Condition, Rule } from './index.js';
+import { Condition, ErrorEnvelope, Rule } from './index.js';
 
 const nested: Condition = {
   all: [
@@ -59,4 +59,14 @@ test('only an unmodeled rule may have no condition', () => {
 
   expect(Rule.safeParse(rule).success).toBe(false);
   expect(Rule.safeParse({ ...rule, kind: 'unmodeled' }).success).toBe(true);
+});
+
+test('an error envelope needs both a code and a message', () => {
+  const body = { error: { code: 'unauthenticated', message: 'Sign in.' } };
+
+  expect(ErrorEnvelope.parse(body)).toEqual(body);
+  expect(
+    ErrorEnvelope.safeParse({ error: { message: 'Sign in.' } }).success,
+  ).toBe(false);
+  expect(ErrorEnvelope.safeParse({ message: 'Sign in.' }).success).toBe(false);
 });

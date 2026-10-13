@@ -61,5 +61,18 @@ jobs:
       - name: Format check
         run: pnpm run format:check
 
+      # The API tests start the Firebase emulators, which need Java 21.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Firebase emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Run unit tests
         run: pnpm run test

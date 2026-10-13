@@ -26,26 +26,14 @@
       "description": "Layanan ini sementara tidak tersedia. Silakan periksa kembali nanti."
     }
   },
-  "validation": {
-    "emailRequired": "Email wajib diisi.",
-    "emailInvalid": "Masukkan alamat email yang valid.",
-    "passwordRequired": "Kata sandi wajib diisi.",
-    "passwordMinLength": "Kata sandi minimal 8 karakter."
-  },
   "signIn": {
     "title": "Masuk",
-    "description": "Masukkan email dan kata sandi untuk mengakses Policy Police.",
-    "email": "Email",
-    "emailPlaceholder": "nama@contoh.com",
-    "password": "Kata Sandi",
-    "submit": "Masuk"
+    "description": "Gunakan akun Google Anda untuk mengakses Policy Police.",
+    "google": "Lanjutkan dengan Google",
+    "failed": "Gagal masuk. Silakan coba lagi."
   },
   "layout": {
     "skipToMain": "Lewati ke konten utama"
-  },
-  "passwordInput": {
-    "show": "Tampilkan kata sandi",
-    "hide": "Sembunyikan kata sandi"
   },
   "confirmDialog": {
     "confirm": "Konfirmasi",

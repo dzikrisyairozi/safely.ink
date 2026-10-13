@@ -44,3 +44,6 @@ yarn-error.log*
 # Lasting design decisions live in docs/.
 /tasks/
 /spec/
+
+# Firebase emulator logs
+*-debug.log
