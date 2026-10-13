@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 # PRs only -- a merged PR already passed here, so push-to-branch runs were
 # pure duplicates. Feature PRs target staging; staging -> main is the
-# release PR. Tags don't run CI: release.yml ships what main verified.
+# release PR.
 on:
   pull_request:
     branches: [staging, main]
