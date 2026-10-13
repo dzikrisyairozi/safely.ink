@@ -10,6 +10,7 @@ import {
   Expectation,
   LegalFinding,
   Rule,
+  RuleDraft,
   Scenario,
   Trap,
 } from './index.js';
@@ -72,6 +73,21 @@ test('only an unmodeled rule may have no condition', () => {
 
   expect(Rule.safeParse(rule).success).toBe(false);
   expect(Rule.safeParse({ ...rule, kind: 'unmodeled' }).success).toBe(true);
+});
+
+test('a rule draft has no ID and keeps the rule about conditions', () => {
+  const draft = {
+    id: 'chosen-by-the-model',
+    kind: 'deadline',
+    summary: 'Tell the insurer within 14 days',
+    clauseIds: ['c-9'],
+    when: { fact: 'userGaveNoticeDays', op: 'gt', value: 14 },
+    effect: null,
+    touches: ['userGaveNoticeDays'],
+  };
+
+  expect(RuleDraft.parse(draft)).not.toHaveProperty('id');
+  expect(RuleDraft.safeParse({ ...draft, when: null }).success).toBe(false);
 });
 
 test('an error envelope needs both a code and a message', () => {
@@ -249,4 +265,32 @@ test('an analysis has no details until the document is read', () => {
   expect(Analysis.safeParse({ ...fresh, status: 'thinking' }).success).toBe(
     false,
   );
+});
+
+test('an analysis carries its facts and counts once the rules are read', () => {
+  const analysis = {
+    ownerUid: 'alice',
+    status: 'fuzzing',
+    meta: null,
+    factSchema: [
+      {
+        key: 'daysSinceStart',
+        type: 'number',
+        values: null,
+        unit: 'days',
+        description: 'Days since the policy started',
+        neutral: 0,
+      },
+    ],
+    counts: { clauses: 12, rules: 7 },
+  };
+
+  expect(Analysis.parse(analysis)).toMatchObject({
+    factSchema: [{ key: 'daysSinceStart' }],
+    counts: { clauses: 12, rules: 7 },
+  });
+  // After the read there are clauses but no rules yet.
+  expect(
+    Analysis.parse({ ...analysis, counts: { clauses: 12 } }).counts,
+  ).toEqual({ clauses: 12 });
 });
