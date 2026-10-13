@@ -81,12 +81,13 @@ apps/
       app.ts              routes, auth middleware
       config.ts           env, model IDs, limits, legal-source allowlist
       pipeline.ts         stage orchestration, Firestore progress writes
-      pipeline/           pure checks on agent output (reader-check.ts)
+      pipeline/           pure checks on agent output (reader-check.ts, rule-check.ts)
       routes/             analyses.ts
       uploads.ts          fetch and check the uploaded files
       usage.ts            daily limit
-      agents/             reader, rule-extractor, scenario-fuzzer, expectation-judge, legal-researcher
-      packs/              one file per document type: scenario seeds, expectation hints
+      agents/             run.ts (the one call to the model), reader, rule-extractor,
+                          scenario-fuzzer, expectation-judge, legal-researcher
+      packs/              one file per document type: prompt content
       engine/             evaluate.ts, score.ts, validate.ts  (pure functions, no I/O)
       legal/              search.ts (grounded search), fetch.ts (page fetch + cache), verify.ts (quote check)
       firebase.ts         Admin SDK init
@@ -139,9 +140,11 @@ language is derived from the document, not hard-coded per document type:
 4. Code validates all three against each other (section 5). Anything that does not fit is
    repaired once, then demoted (rule → `unmodeled`) or dropped (scenario).
 
-Packs (`apps/api/src/packs/*.ts`) add prompt content only: typical facts worth looking
-for, scenario seeds per strategy, and expectation hints. The `other` pack has general
-seeds (termination, auto-renewal, fees, unilateral change, liability, dispute venue).
+Packs (`apps/api/src/packs/*.ts`) add prompt content only. A pack holds the facts worth
+looking for; scenario seeds per strategy arrive with the fuzzer and expectation hints with
+the judge. `insurance` and `terms` have their own pack. Every other type uses the general
+pack (termination, auto-renewal, fees, unilateral change, liability, dispute venue) until
+its own is written.
 
 ### 3.3 Firestore
 
@@ -186,13 +189,13 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 
 All routes require `Authorization: Bearer <Firebase ID token>`, verified with the Admin SDK.
 
-| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                     |
-| -------- | -------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                    |
-| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read**, sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists. |
-| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`. The remaining stages attach here in M4 and will hold the request open until `done` or `failed`.                                                                                                                    |
-| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                                                                                                                                                                                                                       |
-| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                      |
+| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------- | -------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                |
+| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read**, sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                             |
+| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `fuzzing` while the later stages are not built, or `failed`. A failed stage is that status with 200, not an HTTP error. |
+| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                                                                                                                                                                                                                                                                   |
+| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                                                                  |
 
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
@@ -206,7 +209,8 @@ Request bodies are validated with the shared Zod schemas.
 
 `pipeline.ts` runs the stages in order, writes `status`, `stage` and `counts` to the
 analysis document after each step, and writes sub-collection documents as soon as they
-exist (so the UI updates live).
+exist (so the UI updates live). A stage that throws sets `failed` with the stage name and
+gives back the daily slot of the day the analysis was created.
 
 ### 5.1 Reader (agent, Pro)
 
@@ -223,11 +227,19 @@ exist (so the UI updates live).
 
 ### 5.2 RuleExtractor (agent, Pro, two calls)
 
-- Call 1 → `FactSchema`. Input: clauses, the pack's "facts worth looking for", the user's role.
+- Call 1 → `FactSchema`. Input: clauses, the pack's "facts worth looking for", the user's
+  role. Code puts the five base facts first and drops a proposed fact that repeats a key
+  or does not fit its own definition.
 - Call 2 → `Rule[]`. Input: clauses, fact schema, rule schema, worked examples, user's role.
-- Post-check in code (F-RULE-1, F-RULE-2): drop rules whose `clauseIds` do not exist;
-  every `fact` in `when` must be a key of the fact schema with a value of the right type;
-  invalid rules are sent back once for repair, then demoted to `unmodeled`.
+  The model never chooses a rule ID; code numbers the rules `r-001` onwards.
+- The model gets the condition tree written out to three levels. For the recursive
+  `Condition` schema Gemini returns an empty answer with no error.
+- Post-check in code (`pipeline/rule-check.ts`, F-RULE-1, F-RULE-2): clause IDs that do
+  not exist are removed from a rule, and a rule left with none is discarded; every `fact`
+  in `when` must be a key of the fact schema with a value of the right type.
+- Invalid rules are sent back once, in one call, with the reason for each. What still
+  does not fit is demoted to `unmodeled` and kept with its summary and clauses (F-RULE-3),
+  also when none of the facts it names is real. If no rule is left, the stage fails.
 
 ### 5.3 ScenarioFuzzer (agent, Flash)
 
@@ -369,7 +381,8 @@ during the day-1 spike.
 - Shell: layout, theme, error pages, `@repo/ui`, TanStack Router, React Query, Zustand,
   Vitest setup.
 - Features: `auth` (Google button, route guard on `_authenticated`), `upload`,
-  `analysis` (confirm, run tracker, report, trap detail, rules), `history`.
+  `analysis` (confirm, run tracker, report, trap detail), `rules` (how we read your
+  document), `history`.
 - Data: Firebase JS SDK. Firestore listeners wrapped as React Query subscriptions; API
   calls through one small `api.ts` client that attaches the ID token.
 - UI strings live in the `en` locale file through `@repo/i18n`. The `id` locale is kept
