@@ -128,12 +128,16 @@ async function fuzz(
     (await analysis.get()).data()!.factSchema,
   );
   const pack = packFor(meta.docType);
-  // What the earlier calls left of the request, within the limits of a call.
-  const { fuzz: least, fuzzMost: most } = config.limits.modelCallSeconds;
-  const seconds = Math.min(
-    most,
-    Math.max(least, Math.floor((deadline - Date.now()) / 1000)),
-  );
+  // What the earlier calls left of the request once the comparing has its
+  // time, within the limits of a call.
+  const {
+    fuzz: least,
+    fuzzMost: most,
+    judge,
+    wording,
+  } = config.limits.modelCallSeconds;
+  const left = Math.floor((deadline - Date.now()) / 1000) - judge - wording;
+  const seconds = Math.min(most, Math.max(least, left));
 
   // Side by side, and one call that fails does not cost the others.
   const calls = [

@@ -156,7 +156,7 @@ docker build -f apps/api/Dockerfile -t $IMAGE .
 docker push $IMAGE
 
 gcloud run deploy api --image $IMAGE --region asia-southeast2 \
-  --timeout 600 --memory 1Gi --concurrency 4 --min-instances 0 --max-instances 5 \
+  --timeout 900 --memory 1Gi --concurrency 4 --min-instances 0 --max-instances 5 \
   --allow-unauthenticated \
   --set-env-vars GOOGLE_CLOUD_PROJECT=policy-police-96af6,STORAGE_BUCKET=policy-police-96af6.firebasestorage.app,ALLOWED_ORIGIN=https://policy-police-96af6.web.app \
   --set-secrets GEMINI_API_KEY=gemini-api-key:latest

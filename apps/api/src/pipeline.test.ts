@@ -405,8 +405,8 @@ test('the fuzzer is told the rules as stored, the facts, the seeds and the role'
 // The clock is moved while the rule writer works; Firestore runs as usual.
 test.each([
   [0, 240],
-  [400, 150],
-  [500, 90],
+  [550, 150],
+  [650, 90],
 ])(
   'when the rules took %i s, a fuzzer call may take %i s',
   async (used, seconds) => {
