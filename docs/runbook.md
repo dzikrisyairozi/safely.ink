@@ -32,6 +32,11 @@ gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
 # Gemini key into Secret Manager. Paste the key when prompted, then Ctrl+Z, Enter
 # (Windows) or Ctrl+D (macOS, Linux). Do not put the key on the command line.
 gcloud secrets create gemini-api-key --data-file=-
+# Cloud Run reads the secret as its runtime service account (the default compute
+# account unless the service is given another one).
+gcloud secrets add-iam-policy-binding gemini-api-key \
+  --member=serviceAccount:438667935208-compute@developer.gserviceaccount.com \
+  --role=roles/secretmanager.secretAccessor
 
 # Image registry for the API.
 gcloud artifacts repositories create api --repository-format=docker \
