@@ -3,11 +3,13 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { FactSchema, Rule, StoredScenario, type Fact } from '@repo/api-types';
 import proposedFacts from '../test/fixtures/rules-facts.json';
 import proposedRules from '../test/fixtures/rules-rules.json';
+import proposedScenarios from '../test/fixtures/fuzz-scenarios.json';
 import {
   proposeFacts,
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
 import { evaluate } from './engine/evaluate';
 import { db } from './firebase';
 import { runPipeline } from './pipeline';
@@ -16,10 +18,14 @@ import { BASE_FACTS } from './pipeline/rule-check';
 // Run through `pnpm test`: Firestore is the emulator. Only the model is
 // replaced.
 vi.mock('./agents/rule-extractor');
+vi.mock('./agents/scenario-fuzzer');
 
 const facts = vi.mocked(proposeFacts);
 const rules = vi.mocked(proposeRules);
 const repair = vi.mocked(repairRules);
+const fuzzer = vi.mocked(proposeScenarios);
+const boundaries = vi.mocked(tellBoundaries);
+const [ordinary, earlyIllness, abroad] = proposedScenarios.scenarios;
 
 const [benefit, exclusion] = proposedRules.rules;
 const unknownFact = {
@@ -42,6 +48,9 @@ beforeEach(async () => {
   vi.resetAllMocks();
   facts.mockResolvedValue(proposedFacts.facts as Fact[]);
   rules.mockResolvedValue(proposedRules.rules);
+  // Every strategy tells the same ordinary situation unless a test says more.
+  fuzzer.mockResolvedValue([ordinary]);
+  boundaries.mockResolvedValue([]);
 
   await analysis.set({
     ownerUid: 'alice',
@@ -74,11 +83,11 @@ beforeEach(async () => {
 });
 
 test('the facts and the rules are stored and the analysis moves on', async () => {
-  expect(await runPipeline('analysis-1')).toBe('fuzzing');
+  expect(await runPipeline('analysis-1')).toBe('comparing');
 
   const doc = await stored();
   expect(doc).toMatchObject({
-    status: 'fuzzing',
+    status: 'comparing',
     counts: { clauses: 3, rules: 3 },
   });
   expect(doc?.factSchema).toHaveLength(BASE_FACTS.length + 3);
@@ -112,7 +121,7 @@ test('an invalid rule is repaired once, and what still does not fit is kept as u
     { id: 'r-003', draft: stillBroken },
   ]);
 
-  expect(await runPipeline('analysis-1')).toBe('fuzzing');
+  expect(await runPipeline('analysis-1')).toBe('comparing');
 
   const reasons = expect.arrayContaining([
     expect.stringMatching(/preExisting/),
@@ -142,7 +151,7 @@ test('a rule the repair does not answer for is kept as unmodeled', async () => {
   rules.mockResolvedValue([benefit, unknownFact]);
   repair.mockRejectedValue(new Error('model unavailable'));
 
-  expect(await runPipeline('analysis-1')).toBe('fuzzing');
+  expect(await runPipeline('analysis-1')).toBe('comparing');
 
   expect(await storedRules()).toMatchObject([
     { id: 'r-001', kind: 'benefit' },
@@ -198,7 +207,7 @@ test.each([
     rules.mockResolvedValue([benefit, unknownFact]);
     repair.mockResolvedValue([{ id: 'r-002', draft: answer }]);
 
-    expect(await runPipeline('analysis-1')).toBe('fuzzing');
+    expect(await runPipeline('analysis-1')).toBe('comparing');
 
     expect(await storedRules()).toMatchObject([
       { id: 'r-001', kind: 'benefit' },
@@ -315,5 +324,86 @@ test('a stored scenario that does not fit the facts fails the run, by name', asy
   expect(await runPipeline('analysis-1')).toBe('failed');
 
   expect(await stored()).toMatchObject({ status: 'failed', stage: 'running' });
+  expect(await startedOnCreationDay()).toBe(0);
+});
+
+test('scenarios of every strategy are checked, stored and run in one go', async () => {
+  fuzzer.mockImplementation(async (strategy) =>
+    strategy === 'baseline' ? [ordinary] : [earlyIllness, abroad, 'no story'],
+  );
+  boundaries.mockImplementation(async (drafts) =>
+    drafts.map(({ facts, targetRuleIds }) => ({
+      story: 'You are admitted with a fever.',
+      frequency: 'common',
+      stake: 1_000_000,
+      facts,
+      targetRuleIds,
+    })),
+  );
+
+  expect(await runPipeline('analysis-1')).toBe('comparing');
+
+  // The waiting period of r-002 gives three boundaries and the cost of r-001
+  // two, since a cost below zero is left out. The same facts told by four
+  // strategies are one scenario.
+  expect(
+    (await storedScenarios()).map(({ id, strategy, outcome }) => [
+      id,
+      strategy,
+      outcome?.result,
+    ]),
+  ).toEqual([
+    ['s-001', 'baseline', 'fine'],
+    ['s-002', 'boundary', 'bad'],
+    ['s-003', 'boundary', 'fine'],
+    ['s-004', 'boundary', 'fine'],
+    ['s-005', 'boundary', 'bad'],
+    ['s-006', 'boundary', 'fine'],
+    ['s-007', 'overlap', 'bad'],
+    ['s-008', 'overlap', 'undetermined'],
+  ]);
+  expect((await stored())!.counts).toEqual({
+    clauses: 3,
+    rules: 3,
+    scenarios: 8,
+    fine: 4,
+    partlyBad: 0,
+    bad: 3,
+    undetermined: 1,
+  });
+});
+
+test('the fuzzer is told the rules as stored, the facts, the seeds and the role', async () => {
+  await runPipeline('analysis-1');
+
+  expect(fuzzer).toHaveBeenCalledTimes(5);
+  expect(fuzzer).toHaveBeenCalledWith(
+    'procedure',
+    expect.arrayContaining([expect.objectContaining({ id: 'r-002' })]),
+    expect.arrayContaining([expect.objectContaining({ key: 'inpatientCost' })]),
+    expect.objectContaining({ seeds: expect.any(Object) }),
+    expect.objectContaining({ userRole: 'insured' }),
+  );
+});
+
+test('one call of the fuzzer that fails does not cost the others', async () => {
+  fuzzer.mockImplementation(async (strategy) => {
+    if (strategy === 'overlap') throw new Error('model unavailable');
+    return [earlyIllness];
+  });
+  boundaries.mockRejectedValue(new Error('model unavailable'));
+
+  expect(await runPipeline('analysis-1')).toBe('comparing');
+
+  expect(await stored()).toMatchObject({ counts: { scenarios: 1, bad: 1 } });
+});
+
+test('with no scenario that fits, the run fails at the fuzzing and the slot is given back', async () => {
+  fuzzer.mockResolvedValue([{ ...ordinary, facts: { daysSinceStart: 5 } }]);
+
+  expect(await runPipeline('analysis-1')).toBe('failed');
+
+  expect(await stored()).toMatchObject({ status: 'failed', stage: 'fuzzing' });
+  expect(await storedScenarios()).toEqual([]);
   expect(await startedOnCreationDay()).toBe(0);
 });

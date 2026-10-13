@@ -1,0 +1,52 @@
+{
+  "scenarios": [
+    {
+      "story": "You are admitted to a partner hospital for four days with a broken leg, seven months after the policy started.",
+      "frequency": "common",
+      "stake": 5000000,
+      "targetRuleIds": ["r-001"],
+      "facts": {
+        "daysSinceStart": 200,
+        "userPaidOnTime": true,
+        "userGaveNoticeDays": 0,
+        "userDisclosedEverything": true,
+        "paperworkComplete": true,
+        "claimIsForIllness": false,
+        "inpatientCost": 5000000,
+        "treatmentPlace": "partner_hospital"
+      }
+    },
+    {
+      "story": "Ten days after the policy started you are admitted with dengue fever.",
+      "frequency": "occasional",
+      "stake": 5000000,
+      "targetRuleIds": ["r-002"],
+      "facts": {
+        "daysSinceStart": 10,
+        "userPaidOnTime": true,
+        "userGaveNoticeDays": 0,
+        "userDisclosedEverything": true,
+        "paperworkComplete": true,
+        "claimIsForIllness": true,
+        "inpatientCost": 5000000,
+        "treatmentPlace": "partner_hospital"
+      }
+    },
+    {
+      "story": "On a work trip abroad you fall and are admitted to a hospital there for two nights.",
+      "frequency": "rare",
+      "stake": 5000000,
+      "targetRuleIds": ["r-003"],
+      "facts": {
+        "daysSinceStart": 200,
+        "userPaidOnTime": true,
+        "userGaveNoticeDays": 0,
+        "userDisclosedEverything": true,
+        "paperworkComplete": true,
+        "claimIsForIllness": false,
+        "inpatientCost": 5000000,
+        "treatmentPlace": "abroad"
+      }
+    }
+  ]
+}

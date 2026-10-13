@@ -5,6 +5,7 @@ import {
   FactSchema,
   Rule,
   Scenario,
+  Strategy,
   type AnalysisStatus,
 } from '@repo/api-types';
 import {
@@ -12,16 +13,20 @@ import {
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
+import { config } from './config';
 import { evaluate } from './engine/evaluate';
 import { validateScenarios } from './engine/validate';
 import { db } from './firebase';
 import { packFor } from './packs';
+import { boundaryDrafts } from './pipeline/boundary';
 import {
   checkFacts,
   checkRules,
   demote,
   numbered,
 } from './pipeline/rule-check';
+import { checkScenarios } from './pipeline/scenario-check';
 import { releaseDailySlot } from './usage';
 
 const BATCH = 500; // Firestore's limit of writes in one batch
@@ -103,6 +108,62 @@ const storedRules = async (analysis: DocumentReference) =>
     Rule.parse(doc.data()),
   );
 
+const WRITTEN = Strategy.exclude(['boundary']).options;
+// What the prompts aim for (F-FUZZ-1). A short document can give fewer.
+const SCENARIOS_AIMED_FOR = 20;
+
+// The model proposes situations; scenario-check.ts decides which are
+// stored. The facts of a boundary scenario are set by code.
+async function fuzz(analysis: DocumentReference, meta: AnalysisMeta) {
+  const rules = await storedRules(analysis);
+  const factSchema = FactSchema.parse(
+    (await analysis.get()).data()!.factSchema,
+  );
+  const pack = packFor(meta.docType);
+
+  // Side by side, and one call that fails does not cost the others.
+  const calls = [
+    ...WRITTEN.map((strategy) => ({
+      strategy,
+      entries: proposeScenarios(strategy, rules, factSchema, pack, meta),
+    })),
+    {
+      strategy: 'boundary' as const,
+      entries: tellBoundaries(boundaryDrafts(rules, factSchema), meta),
+    },
+  ];
+  const answers = await Promise.allSettled(calls.map((call) => call.entries));
+  const proposals = answers.flatMap((answer, n) => {
+    const { strategy } = calls[n]!;
+    if (answer.status === 'rejected') {
+      console.error(answer.reason);
+      return [];
+    }
+    return answer.value.map((entry) => ({ strategy, entry }));
+  });
+
+  const { scenarios, dropped, uncovered } = checkScenarios(
+    proposals,
+    rules,
+    factSchema,
+    config.limits.scenariosPerAnalysis,
+  );
+  if (dropped.length > 0) console.warn('Scenarios dropped:', dropped);
+  if (uncovered.length > 0) {
+    console.warn(`No scenario tries ${uncovered.join(', ')}.`);
+  }
+  if (scenarios.length === 0) throw new Error('The rules gave no scenario.');
+  if (scenarios.length < SCENARIOS_AIMED_FOR) {
+    console.warn(`Only ${scenarios.length} scenarios.`);
+  }
+
+  await saveAll(analysis, 'scenarios', scenarios);
+  await analysis.update({
+    'counts.scenarios': scenarios.length,
+    updatedAt: updatedAt(),
+  });
+}
+
 // The outcome of every scenario is decided here, by code (F-RUN-2). It works
 // from what is stored, so running it again on the same analysis gives the
 // same result.
@@ -145,6 +206,7 @@ type Stage = {
 // In the order they run.
 const STAGES: Stage[] = [
   { status: 'extracting_rules', run: extractRules, next: 'fuzzing' },
+  { status: 'fuzzing', run: fuzz, next: 'running' },
   { status: 'running', run: runScenarios, next: 'comparing' },
 ];
 
