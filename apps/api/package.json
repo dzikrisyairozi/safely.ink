@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "start": "tsx --env-file-if-exists=.env src/index.ts",
     "lint": "eslint .",
     "lint:check": "eslint . --max-warnings 0",
     "type-check": "tsc --noEmit",
@@ -15,8 +15,10 @@
   "dependencies": {
     "@hono/node-server": "^2.1.4",
     "@repo/api-types": "workspace:*",
+    "firebase-admin": "^14.5.0",
     "hono": "^4.13.13",
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
