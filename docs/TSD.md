@@ -225,7 +225,7 @@ gives back the daily slot of the day it was taken on (`reservedAt`).
   the model. Files reach the model through the Gemini Files API and are deleted from it
   after the call.
 
-### 5.2 RuleExtractor (agent, Pro, two calls)
+### 5.2 RuleExtractor (agent, Pro, three calls)
 
 - Call 1 → `FactSchema`. Input: clauses, the pack's "facts worth looking for", the user's
   role. Code puts the five base facts first and drops a proposed fact that repeats a key
@@ -239,7 +239,14 @@ gives back the daily slot of the day it was taken on (`reservedAt`).
   in `when` must be a key of the fact schema with a value of the right type.
 - Invalid rules are sent back once, in one call, with the reason for each. What still
   does not fit is demoted to `unmodeled` and kept with its summary and clauses (F-RULE-3),
-  also when none of the facts it names is real. If no rule is left, the stage fails.
+  also when none of the facts it names is real. If the repair made a rule worse (no
+  summary, no real clause), the rule as it was first written is demoted instead. If no
+  rule is left, the stage fails.
+- The answer to each call only has to be a list. Every fact and every rule in it is
+  checked on its own, so one entry that does not fit does not cost the others. A fact key
+  must be a camelCase name, and at most 35 proposed facts are kept.
+- A rule of a kind other than `benefit` whose condition is true when every fact has its
+  neutral value is invalid: it would make every scenario end badly.
 
 ### 5.3 ScenarioFuzzer (agent, Flash)
 

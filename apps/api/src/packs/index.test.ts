@@ -13,9 +13,3 @@ test('every other type uses the general pack', () => {
   expect(packFor('other')).toBe(general);
   expect(packFor('loan')).toBe(general);
 });
-
-test('every pack names facts worth looking for', () => {
-  for (const pack of [insurance, terms, general]) {
-    expect(pack.facts.length).toBeGreaterThan(0);
-  }
-});

@@ -11,22 +11,22 @@ This document says **what the system does** from the outside. How it is built is
 
 ## 1. Glossary
 
-| Term           | Meaning                                                                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Document       | The policy or contract the user uploads.                                                                                                                |
-| Document type  | `insurance`, `loan`, `employment`, `nda`, `lease`, `terms`, or `other`.                                                                                 |
-| Pack           | Scenario seeds and expectation hints for one document type. `other` uses the general pack.                                                              |
-| User's role    | The party the user is in the document (insured, borrower, employee, receiving party, tenant, …). Everything is judged from this side.                   |
-| Clause         | One numbered or otherwise separable piece of wording, with its page.                                                                                    |
-| Fact schema    | The list of facts that matter for this document (for example `daysSinceStart`, `noticeGivenDays`), derived from the document itself.                    |
-| Rule           | A machine-checkable statement derived from one or more clauses, written over the fact schema.                                                           |
-| Unmodeled rule | A clause that matters but cannot be expressed as a machine condition. Shown to the user, never silently dropped.                                        |
-| Scenario       | A generated situation: a short story plus a value for every fact. For insurance this is a claim; for a lease it may be "moving out two months early".   |
-| Outcome        | Result of running a scenario through the rules, from the user's side: `fine`, `partly_bad`, `bad`, or `undetermined`, with money lost where it applies. |
-| Expectation    | What a reasonable person in the user's role would expect in that scenario, judged without seeing the fine print.                                        |
-| Legal finding  | What the law of the document's jurisdiction says about the deciding rule, with citation.                                                                |
-| Trap           | A scenario whose outcome is worse than the expectation, or whose deciding rule conflicts with the law.                                                  |
-| Analysis       | One run of the whole pipeline on one document, and its stored result.                                                                                   |
+| Term           | Meaning                                                                                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Document       | The policy or contract the user uploads.                                                                                                                               |
+| Document type  | `insurance`, `loan`, `employment`, `nda`, `lease`, `terms`, or `other`.                                                                                                |
+| Pack           | Prompt content for one document type: the facts worth looking for, later also scenario seeds and expectation hints. A type without its own pack uses the general pack. |
+| User's role    | The party the user is in the document (insured, borrower, employee, receiving party, tenant, …). Everything is judged from this side.                                  |
+| Clause         | One numbered or otherwise separable piece of wording, with its page.                                                                                                   |
+| Fact schema    | The list of facts that matter for this document (for example `daysSinceStart`, `noticeGivenDays`), derived from the document itself.                                   |
+| Rule           | A machine-checkable statement derived from one or more clauses, written over the fact schema.                                                                          |
+| Unmodeled rule | A clause that matters but cannot be expressed as a machine condition. Shown to the user, never silently dropped.                                                       |
+| Scenario       | A generated situation: a short story plus a value for every fact. For insurance this is a claim; for a lease it may be "moving out two months early".                  |
+| Outcome        | Result of running a scenario through the rules, from the user's side: `fine`, `partly_bad`, `bad`, or `undetermined`, with money lost where it applies.                |
+| Expectation    | What a reasonable person in the user's role would expect in that scenario, judged without seeing the fine print.                                                       |
+| Legal finding  | What the law of the document's jurisdiction says about the deciding rule, with citation.                                                                               |
+| Trap           | A scenario whose outcome is worse than the expectation, or whose deciding rule conflicts with the law.                                                                 |
+| Analysis       | One run of the whole pipeline on one document, and its stored result.                                                                                                  |
 
 ## 2. Actors
 
