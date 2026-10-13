@@ -1,36 +1,30 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useTranslation, LanguageSwitcher } from '@repo/i18n';
+import { FileSearch } from 'lucide-react';
+import { useTranslation } from '@repo/i18n';
 import { AppHeader } from '../../components/layout/app-header';
 import { Main } from '../../components/layout/main';
-import { TopNav } from '../../components/layout/top-nav';
-import { Dashboard } from '../../features/dashboard';
 
 export const Route = createFileRoute('/_authenticated/')({
-  component: Index,
+  component: NewAnalysis,
 });
 
-function Index() {
+function NewAnalysis() {
   const { t } = useTranslation('dashboard');
-
-  const topNavLinks = [
-    { title: t('nav.dashboard'), href: '/', isActive: true },
-    { title: t('nav.tasks'), href: '/tasks', isActive: false },
-    { title: t('nav.users'), href: '/users', isActive: false },
-    { title: t('nav.apps'), href: '/apps', isActive: false },
-  ];
 
   return (
     <>
-      <AppHeader
-        nav={<TopNav links={topNavLinks} />}
-        extra={
-          <div className="hidden lg:block">
-            <LanguageSwitcher />
-          </div>
-        }
-      />
+      <AppHeader />
       <Main>
-        <Dashboard />
+        <div className="mx-auto flex max-w-xl flex-col items-center gap-3 py-24 text-center">
+          <FileSearch className="size-10 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t('newAnalysis.title')}
+          </h1>
+          <p className="text-muted-foreground">{t('newAnalysis.subtitle')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('newAnalysis.comingSoon')}
+          </p>
+        </div>
       </Main>
     </>
   );
