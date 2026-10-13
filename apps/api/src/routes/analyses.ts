@@ -120,8 +120,8 @@ analyses.post('/', async (c) => {
       updatedAt,
     });
   }
-  // Not a policy or contract: it does not count against the day (F-READ-4).
-  if (status === 'rejected') await releaseDailySlot(uid, now);
+  // Rejected or failed: it does not count against the day (F-READ-4, F-LIVE-4).
+  if (status !== 'awaiting_confirmation') await releaseDailySlot(uid, now);
 
   return c.json({ analysisId, status }, 201);
 });

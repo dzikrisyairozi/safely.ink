@@ -99,7 +99,7 @@ test('a receipt is rejected and does not count against the day', async () => {
   expect(await startedToday('alice')).toBe(0);
 });
 
-test('a reader failure leaves a failed analysis that names the stage', async () => {
+test('a reader failure names the stage and does not count against the day', async () => {
   const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
   reader.mockRejectedValue(new Error('model unavailable'));
 
@@ -110,7 +110,7 @@ test('a reader failure leaves a failed analysis that names the stage', async () 
     status: 'failed',
     stage: 'reading',
   });
-  expect(await startedToday('alice')).toBe(1);
+  expect(await startedToday('alice')).toBe(0);
   logged.mockRestore();
 });
 
