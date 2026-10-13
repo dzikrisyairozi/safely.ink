@@ -83,7 +83,7 @@ apps/
       pipeline.ts         stage orchestration, Firestore progress writes
       agents/             reader, rule-extractor, scenario-fuzzer, expectation-judge, legal-researcher
       packs/              one file per document type: scenario seeds, expectation hints
-      engine/             evaluate.ts, score.ts  (pure functions, no I/O)
+      engine/             evaluate.ts, score.ts, validate.ts  (pure functions, no I/O)
       legal/              search.ts (grounded search), fetch.ts (page fetch + cache), verify.ts (quote check)
       firebase.ts         Admin SDK init
     Dockerfile
@@ -102,8 +102,13 @@ The schemas, their inferred types and the meaning of each field are in
 [`packages/api-types/src/index.ts`](../packages/api-types/src/index.ts). That file is the
 reference; the schemas are not repeated here so the two cannot drift. In short: `Clause`,
 `Fact` (with `FactSchema` as the list for one document), `Condition` (a tree of `all` /
-`any` / `not` over fact comparisons), `Rule`, `Scenario` and `Outcome`. A rule must cite at
-least one clause, and only an `unmodeled` rule may have no condition.
+`any` / `not` over fact comparisons), `Rule`, `Scenario`, `Outcome`, `Expectation`,
+`LegalFinding` (with `Citation`), `Trap` and `AnalysisMeta`. A rule must cite at least one
+clause, and only an `unmodeled` rule may have no condition.
+
+A rule's `when` being true always means "this rule applies". For a `benefit` that is good
+for the user; for every other kind it counts against them: the condition was breached, the
+deadline missed, the exclusion, limit or charge triggered.
 
 Rule kinds, read from the user's side:
 
@@ -225,21 +230,35 @@ exist (so the UI updates live).
 
 ### 5.4 evaluate() (code)
 
-Pure function `evaluate(rules: Rule[], scenario: Scenario): Outcome`.
+Pure function `evaluate(rules: Rule[], factSchema: FactSchema, scenario: Scenario): Outcome`.
+The fact schema supplies the `neutral` values for stage 4. A rule "fires" when its `when`
+is true for the scenario's facts.
 
-Order:
+Order (the first stage that settles the result ends the run):
 
-1. **Benefit** — if the scenario targets a benefit and no `benefit` rule matches → `bad`
-   ("the document gives you nothing here").
-2. **Conditions and deadlines** — any failed → `bad`.
-3. **Exclusions** — any match → `bad`.
+1. **Benefit** — if the scenario's `targetRuleIds` include a `benefit` rule and no
+   `benefit` rule in the document fires → `bad` ("the document gives you nothing here").
+   The first targeted benefit is the deciding rule.
+2. **Conditions and deadlines** — any fires → `bad`.
+3. **Exclusions** — any fires → `bad`.
 4. **Unmodeled** — if an unmodeled rule's `touches` include a fact whose value differs
-   from its `neutral` → `undetermined` (F-RUN-5).
-5. **Money** — `loss` = charges + deductions + the part of `stake` above any cap.
-   `loss == 0` → `fine`; `loss >= stake` (or no stake and a charge applies) → `bad`;
-   otherwise `partly_bad`.
+   from its `neutral` → `undetermined` (F-RUN-5), `loss` 0.
+5. **Money** — for `limit` and `charge` rules that fire. An effect's value is its
+   `amount`, else `percent` of the stake. The lowest `cap` is applied first, then every
+   `deduct` (what is payable never goes below 0); `charge` values are owed on top, so
+   `loss` = unpaid part of the stake + charges and can exceed the stake. With no stake,
+   only fixed-amount charges count. `loss == 0` → `fine`; `loss >= stake` (or no stake
+   and a loss) → `bad`; otherwise `partly_bad`.
 
-Every step appends to `trace`. The first rule that changes the result is `decidingRuleId`.
+A `bad` from stages 1 to 3 has `loss` = the stake (0 if there is none).
+
+Every rule that fires in a stage that ran is appended to `trace` with the fact that
+triggered it. `decidingRuleId` is the first rule, in the order the rules are listed, that
+fired in the deciding stage; in the money stage, the first that cost the user something.
+
+`evaluate()` expects input that passed the cross-validation in `engine/validate.ts`
+(sections 5.2 and 5.3). A condition on a fact the scenario lacks, or an ordering
+comparison on a non-number, throws instead of quietly evaluating to false.
 
 ### 5.5 ExpectationJudge (agent, Flash)
 
@@ -288,19 +307,27 @@ The document's own text never reaches the search step; only the rule summary doe
 
 ### 5.7 score() (code)
 
-- Trap detection per F-TRAP-1, merge per deciding rule (F-TRAP-2).
-- Severity points: loss (share of stake lost, or any charge without a stake: ≥ 80% = 3,
-  ≥ 30% = 2, else 1) + frequency (`common` = 2, `occasional` = 1, `rare` = 0)
+`score(input, weights)`, where `input` holds the scenarios, outcomes, expectations (by
+scenario ID), legal findings (by rule ID) and the analysis meta.
+
+- Trap detection per F-TRAP-1, merge per deciding rule (F-TRAP-2). An `undetermined`
+  outcome is never a trap (F-TRAP-5). `score()` leaves a trap's `title` and `action` null.
+- Severity points: loss (share of stake lost: ≥ 80% = 3, ≥ 30% = 2, else 1; a scenario
+  with no stake counts as 3) + frequency (`common` = 2, `occasional` = 1, `rare` = 0)
   - law (`conflicts` = 3, `restricted` = 2, else 0). Total ≥ 6 critical, 4–5 high,
-    2–3 medium, else low.
+    2–3 medium, else low. A merged trap takes the highest loss points and the highest
+    frequency points among its scenarios.
 - Grade: start at 100; minus 20 / 10 / 5 / 2 per critical / high / medium / low trap;
   A ≥ 90, B ≥ 75, C ≥ 60, D ≥ 40, else F.
 - Confidence: `high` if undetermined share < 10% and no unreadable pages, `medium` < 25%,
-  else `low`. The general pack caps confidence at `medium`.
+  else `low`. The general pack caps confidence at `medium`. A run with no outcomes is
+  `low`: nothing tested is not the same as nothing found.
 - Trap titles and "what you can do" text are written by one final Flash call from the
   structured trap data; the numbers above are never produced by the model.
 
-The weights are a first guess and are kept in `config.ts` for tuning against real documents.
+The weights are a first guess and are kept in `config.ts` (`config.scoring`) for tuning
+against real documents. The pipeline passes them to `score()`; the engine does not import
+`config.ts`, and a lint rule keeps `engine/` to shared types and its own files.
 
 ### 5.8 Prompt-injection stance
 

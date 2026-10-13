@@ -1,5 +1,14 @@
 import { expect, test } from 'vitest';
-import { Condition, ErrorEnvelope, Rule } from './index.js';
+import {
+  AnalysisMeta,
+  Condition,
+  ErrorEnvelope,
+  Expectation,
+  LegalFinding,
+  Rule,
+  Scenario,
+  Trap,
+} from './index.js';
 
 const nested: Condition = {
   all: [
@@ -69,4 +78,96 @@ test('an error envelope needs both a code and a message', () => {
     ErrorEnvelope.safeParse({ error: { message: 'Sign in.' } }).success,
   ).toBe(false);
   expect(ErrorEnvelope.safeParse({ message: 'Sign in.' }).success).toBe(false);
+});
+
+test('an expectation is never undetermined', () => {
+  const expectation = {
+    result: 'fine',
+    reason: 'Flood is the headline cover.',
+  };
+
+  expect(Expectation.parse(expectation)).toEqual(expectation);
+  expect(
+    Expectation.safeParse({ ...expectation, result: 'undetermined' }).success,
+  ).toBe(false);
+});
+
+test('a legal finding needs a citation unless it found nothing', () => {
+  const finding = {
+    status: 'conflicts',
+    reasoning: 'The clause removes a right the Act gives.',
+    citations: [
+      {
+        instrument: 'Insurance Act 1966',
+        section: 's 25',
+        quote: 'An insurer shall not avoid a policy',
+        url: 'https://sso.agc.gov.sg/Act/IA1966',
+      },
+    ],
+    error: null,
+  };
+  const nothingFound = {
+    status: 'no_finding',
+    reasoning: '',
+    citations: [],
+    error: 'lookup_unavailable',
+  };
+
+  expect(LegalFinding.parse(finding)).toEqual(finding);
+  expect(LegalFinding.safeParse({ ...finding, citations: [] }).success).toBe(
+    false,
+  );
+  expect(LegalFinding.safeParse(nothingFound).success).toBe(true);
+});
+
+test('a trap can wait for its title but not for its examples', () => {
+  const trap = {
+    id: 'trap-r-4',
+    ruleId: 'r-4',
+    scenarioIds: ['s-1', 's-9'],
+    severity: 'high',
+    title: null,
+    action: null,
+  };
+
+  expect(Trap.parse(trap)).toEqual(trap);
+  expect(Trap.safeParse({ ...trap, scenarioIds: [] }).success).toBe(false);
+});
+
+test('analysis meta survives a round trip before the user picks a role', () => {
+  const meta = {
+    docType: 'lease',
+    title: 'Tenancy agreement',
+    parties: [
+      { name: 'Acme Property Pte Ltd', role: 'landlord' },
+      { name: 'Jane Tan', role: 'tenant' },
+    ],
+    userRole: null,
+    jurisdiction: 'SG',
+    lawChecked: true,
+    language: 'en',
+    pageCount: 12,
+    unreadablePages: [7],
+  };
+
+  expect(AnalysisMeta.parse(meta)).toEqual(meta);
+  expect(AnalysisMeta.safeParse({ ...meta, docType: 'receipt' }).success).toBe(
+    false,
+  );
+});
+
+test('a stake is an amount or nothing, never negative', () => {
+  const scenario = {
+    id: 's-1',
+    story: '',
+    strategy: 'baseline',
+    frequency: 'common',
+    targetRuleIds: [],
+    facts: {},
+  };
+
+  for (const stake of [0, 1000, null]) {
+    expect(Scenario.safeParse({ ...scenario, stake }).success).toBe(true);
+  }
+  expect(Scenario.safeParse({ ...scenario, stake: -1 }).success).toBe(false);
 });

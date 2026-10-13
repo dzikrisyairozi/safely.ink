@@ -84,6 +84,9 @@ export const Rule = z
     ]),
     summary: z.string(),
     clauseIds: z.array(z.string()).min(1),
+    // True means the rule applies. For a benefit that is good for the user;
+    // for every other kind it counts against them (breach, deadline missed,
+    // exclusion, limit or charge triggered).
     when: Condition.nullable(),
     effect: z
       .object({
@@ -114,7 +117,7 @@ export const Scenario = z.object({
   frequency: z.enum(['common', 'occasional', 'rare']),
   targetRuleIds: z.array(z.string()),
   // Money the user stands to get or keep; null if not about money.
-  stake: z.number().nullable(),
+  stake: z.number().nonnegative().nullable(),
   facts: z.record(z.string(), FactValue),
 });
 export type Scenario = z.infer<typeof Scenario>;
@@ -122,7 +125,7 @@ export type Scenario = z.infer<typeof Scenario>;
 export const Outcome = z.object({
   scenarioId: z.string(),
   result: z.enum(['fine', 'partly_bad', 'bad', 'undetermined']),
-  stake: z.number().nullable(),
+  stake: z.number().nonnegative().nullable(),
   loss: z.number(), // unpaid part of the stake plus charges
   decidingRuleId: z.string().nullable(),
   trace: z.array(
@@ -134,6 +137,70 @@ export const Outcome = z.object({
   ),
 });
 export type Outcome = z.infer<typeof Outcome>;
+
+// What a reasonable person in the user's role would expect, judged without
+// the fine print.
+export const Expectation = z.object({
+  result: z.enum(['fine', 'partly_bad', 'bad']),
+  reason: z.string(),
+});
+export type Expectation = z.infer<typeof Expectation>;
+
+export const Citation = z.object({
+  instrument: z.string(), // "Insurance Act 1966"
+  section: z.string(), // "s 25(5)"
+  quote: z.string(), // verbatim from the fetched page
+  url: z.url(),
+});
+export type Citation = z.infer<typeof Citation>;
+
+// What the law says about one deciding rule.
+export const LegalFinding = z
+  .object({
+    status: z.enum(['conflicts', 'restricted', 'permitted', 'no_finding']),
+    reasoning: z.string(),
+    citations: z.array(Citation),
+    error: z.literal('lookup_unavailable').nullable(),
+  })
+  .refine(
+    (finding) =>
+      finding.status === 'no_finding' || finding.citations.length > 0,
+    { path: ['citations'], message: 'A finding needs at least one citation' },
+  );
+export type LegalFinding = z.infer<typeof LegalFinding>;
+
+export const Severity = z.enum(['critical', 'high', 'medium', 'low']);
+export type Severity = z.infer<typeof Severity>;
+
+export const Grade = z.enum(['A', 'B', 'C', 'D', 'F']);
+export type Grade = z.infer<typeof Grade>;
+
+export const Confidence = z.enum(['high', 'medium', 'low']);
+export type Confidence = z.infer<typeof Confidence>;
+
+export const Trap = z.object({
+  id: z.string(), // "trap-r-004"
+  ruleId: z.string(), // the deciding rule the examples share
+  scenarioIds: z.array(z.string()).min(1),
+  severity: Severity,
+  // Written after scoring by a model; the numbers never are.
+  title: z.string().nullable(),
+  action: z.string().nullable(),
+});
+export type Trap = z.infer<typeof Trap>;
+
+export const AnalysisMeta = z.object({
+  docType: DocType,
+  title: z.string(),
+  parties: z.array(z.object({ name: z.string(), role: z.string() })),
+  userRole: z.string().nullable(), // null until the user confirms
+  jurisdiction: z.string(), // "ID", "SG", "AU" or anything else
+  lawChecked: z.boolean(),
+  language: z.string(),
+  pageCount: z.number().int(),
+  unreadablePages: z.array(z.number().int()),
+});
+export type AnalysisMeta = z.infer<typeof AnalysisMeta>;
 
 // Body of every non-2xx API response.
 export const ErrorEnvelope = z.object({
