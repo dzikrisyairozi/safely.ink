@@ -93,6 +93,9 @@ export const numbered = (drafts: unknown[]): Proposal[] =>
 const real = (clauseIds: string[], clauses: Clause[]) =>
   clauseIds.filter((id) => clauses.some((clause) => clause.id === id));
 
+// The kinds that end a scenario as bad on their own (TSD 5.4, stages 2, 3).
+const DENIES = ['exclusion', 'condition', 'deadline'];
+
 /**
  * Sorts proposed rules into those that can be stored and those to send back
  * with the reason. A rule that cites no clause of the document is in
@@ -128,14 +131,15 @@ export function checkRules(
   )) {
     issues.set(id, [...(issues.get(id) ?? []), message]);
   }
-  // A rule against the user that already applies when nothing has happened
-  // would make every scenario end badly. The usual cause is a condition
-  // written the wrong way round.
+  // A rule that denies and already applies when nothing has happened would
+  // make every scenario end badly. The usual cause is a condition written
+  // the wrong way round. A limit or a charge may apply every time: a
+  // deductible is taken from every claim, and that only costs its amount.
   const uneventful = Object.fromEntries(
     factSchema.map((fact) => [fact.key, fact.neutral]),
   );
   for (const { id, kind, when } of candidates) {
-    if (issues.has(id) || kind === 'benefit' || !when) continue;
+    if (issues.has(id) || !DENIES.includes(kind) || !when) continue;
     if (holds(when, uneventful)) {
       issues.set(id, [
         'The condition is true when every fact has its neutral value. It may be the wrong way round.',

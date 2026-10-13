@@ -182,3 +182,23 @@ test('a rule against the user that is true when nothing happened is sent back', 
     { id: 'r-002', draft, issues: [expect.stringMatching(/wrong way round/)] },
   ]);
 });
+
+test('a deduction or a charge may apply when nothing happened', () => {
+  const always = { fact: 'daysSinceStart', op: 'gte', value: 0 };
+  const money = (kind: string, type: string) => ({
+    ...exclusion,
+    kind,
+    when: always,
+    effect: { type, amount: 2_000_000, percent: null },
+    touches: ['daysSinceStart'],
+  });
+
+  // A deductible is taken from every claim; that is what the document says.
+  const { valid, invalid } = check([
+    money('limit', 'deduct'),
+    money('charge', 'charge'),
+  ]);
+
+  expect(valid.map((rule) => rule.kind)).toEqual(['limit', 'charge']);
+  expect(invalid).toEqual([]);
+});

@@ -258,8 +258,12 @@ is what is stored. After `running` the analysis waits at `comparing`.
   one touched fact is not neutral. A clause with a fixed amount, percentage or number of
   days is written as a rule (a deductible as `deduct`, an annual limit as `cap`), not as
   `unmodeled`.
-- A rule of a kind other than `benefit` whose condition is true when every fact has its
-  neutral value is invalid: it would make every scenario end badly.
+- An `exclusion`, `condition` or `deadline` whose condition is true when every fact has
+  its neutral value is invalid: it would make every scenario end badly. A `limit` or a
+  `charge` may be true there, because a deductible is taken from every claim.
+- Known gap: `daysSinceStart` is 0 when nothing happened, so a waiting period on an
+  illness is true at neutral, fails this check and is kept as `unmodeled`. Scenarios it
+  touches end `undetermined`.
 
 ### 5.3 ScenarioFuzzer (agent, Flash, six calls)
 
