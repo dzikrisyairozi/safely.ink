@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { ReaderOutput } from '@repo/api-types';
 import policy from '../../test/fixtures/reader-policy.json';
-import { mergeReadings, pageWindows } from './reader';
+import { mergeReadings, pageWindows, withinWindow } from './reader';
 
 // The model call itself is checked by hand with a real key; see the runbook.
 const reading = (changes: Partial<ReaderOutput>) =>
@@ -58,4 +58,20 @@ test('a party named in two windows is listed once', () => {
 
 test('no reading at all is an error, not an empty document', () => {
   expect(() => mergeReadings([])).toThrow();
+});
+
+test('a clause that two windows return is kept from its own window only', () => {
+  const [first, second] = pageWindows(80);
+  const answer = reading({
+    clauses: [clauseOn(3), clauseOn(41)],
+    unreadablePages: [7, 44],
+  });
+
+  const merged = mergeReadings([
+    withinWindow(answer, first!),
+    withinWindow(answer, second!),
+  ]);
+
+  expect(merged.clauses.map((clause) => clause.page)).toEqual([3, 41]);
+  expect(merged.unreadablePages).toEqual([7, 44]);
 });

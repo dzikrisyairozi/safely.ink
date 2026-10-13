@@ -75,6 +75,23 @@ export function pageWindows(pageCount: number, size = WINDOW): PageWindow[] {
 }
 
 /**
+ * Drops what a reading says about pages outside the window it was asked for.
+ * Every window sees the whole document, so the same clause can come back from
+ * two of them.
+ */
+export function withinWindow(
+  reading: ReaderOutput,
+  { from, to }: PageWindow,
+): ReaderOutput {
+  const asked = (page: number) => page >= from && page <= to;
+  return {
+    ...reading,
+    unreadablePages: reading.unreadablePages.filter(asked),
+    clauses: reading.clauses.filter((clause) => asked(clause.page)),
+  };
+}
+
+/**
  * Joins the readings of consecutive page windows into one. Clauses keep the
  * window order; the post-check numbers them afterwards, so IDs stay unique.
  */
@@ -127,7 +144,7 @@ async function readWindow(
   }
   // ADK can end with an empty answer and no error (ADR 3).
   if (!answer.trim()) throw new Error('The Reader returned an empty answer.');
-  return ReaderOutput.parse(JSON.parse(answer));
+  return withinWindow(ReaderOutput.parse(JSON.parse(answer)), window);
 }
 
 /** Reads the document into details and clauses. The result is unchecked. */
