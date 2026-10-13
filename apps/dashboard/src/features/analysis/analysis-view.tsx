@@ -4,6 +4,7 @@ import { useTranslation } from '@repo/i18n';
 import {
   DocType,
   LAW_JURISDICTIONS,
+  NO_COUNTRY,
   isLawChecked,
   type Analysis,
   type AnalysisMeta,
@@ -17,7 +18,6 @@ import {
 import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
 
-const OTHER_COUNTRY = 'OTHER';
 const FIELD =
   'h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
@@ -53,7 +53,7 @@ function ConfirmDetails({
   const { t, i18n } = useTranslation('dashboard');
   const [docType, setDocType] = useState(meta.docType);
   const [jurisdiction, setJurisdiction] = useState(
-    meta.jurisdiction || OTHER_COUNTRY,
+    meta.jurisdiction || NO_COUNTRY,
   );
   const [userRole, setUserRole] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -61,7 +61,7 @@ function ConfirmDetails({
 
   const countries = new Intl.DisplayNames([i18n.language], { type: 'region' });
   const countryName = (code: string) => {
-    if (code === OTHER_COUNTRY) return t('analysis.confirm.otherCountry');
+    if (code === NO_COUNTRY) return t('analysis.confirm.otherCountry');
     try {
       return countries.of(code) ?? code;
     } catch {
@@ -69,7 +69,7 @@ function ConfirmDetails({
     }
   };
   const jurisdictions = [
-    ...new Set([...LAW_JURISDICTIONS, jurisdiction, OTHER_COUNTRY]),
+    ...new Set([...LAW_JURISDICTIONS, jurisdiction, NO_COUNTRY]),
   ];
 
   const submit = async () => {

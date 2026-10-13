@@ -1,15 +1,9 @@
 import { PDFDocument } from 'pdf-lib';
+import type { UploadError } from '@repo/api-types';
 import { config } from './config';
 import { bucket } from './firebase';
 
 export type Upload = { name: string; mimeType: string; bytes: Buffer };
-
-export type UploadError =
-  | 'file_missing'
-  | 'unsupported_type'
-  | 'mixed_input'
-  | 'too_large'
-  | 'too_many_pages';
 
 export type Uploads =
   | { ok: true; files: Upload[]; pageCount: number }

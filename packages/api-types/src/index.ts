@@ -194,7 +194,9 @@ export const AnalysisMeta = z.object({
   title: z.string(),
   parties: z.array(z.object({ name: z.string(), role: z.string() })),
   userRole: z.string().nullable(), // null until the user confirms
-  jurisdiction: z.string(), // "ID", "SG", "AU" or anything else
+  // "ID", "SG", "AU" or anything else. Empty when the Reader found none;
+  // NO_COUNTRY once the user has confirmed that there is none to name.
+  jurisdiction: z.string(),
   lawChecked: z.boolean(),
   language: z.string(),
   pageCount: z.number().int(),
@@ -216,6 +218,19 @@ export const LAW_JURISDICTIONS = ['ID', 'SG', 'AU'] as const;
 export type LawJurisdiction = (typeof LAW_JURISDICTIONS)[number];
 export const isLawChecked = (jurisdiction: string) =>
   (LAW_JURISDICTIONS as readonly string[]).includes(jurisdiction);
+// The jurisdiction of a document whose country is unknown or not listed.
+export const NO_COUNTRY = 'OTHER';
+
+// Why POST /v1/analyses refused the uploaded files (F-UP-1, F-UP-2). Each
+// is the `code` of a 400 and has its own message in the dashboard.
+export const UploadError = z.enum([
+  'file_missing',
+  'unsupported_type',
+  'mixed_input',
+  'too_large',
+  'too_many_pages',
+]);
+export type UploadError = z.infer<typeof UploadError>;
 
 // The states of FSD section 6.
 export const AnalysisStatus = z.enum([

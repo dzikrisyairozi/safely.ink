@@ -1,20 +1,12 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, FileText, Upload, X } from 'lucide-react';
+import { UploadError } from '@repo/api-types';
 import { useTranslation } from '@repo/i18n';
 import { Alert, AlertDescription } from '@repo/ui/components/ui/alert';
 import { Button } from '@repo/ui/components/ui/button';
 import { ApiError } from '../../lib/api';
 import { startAnalysis } from './start-analysis';
 import { validateFiles } from './validate-files';
-
-// Codes the API can answer with that have their own message.
-const API_ERRORS = [
-  'unsupported_type',
-  'mixed_input',
-  'too_large',
-  'too_many_pages',
-  'file_missing',
-];
 
 const megabytes = (bytes: number) =>
   (bytes / (1024 * 1024)).toLocaleString(undefined, {
@@ -54,7 +46,10 @@ export function UploadForm({ onRead }: { onRead: (id: string) => void }) {
           { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' },
         );
         setError(t('upload.errors.daily_limit', { resetAt }));
-      } else if (err instanceof ApiError && API_ERRORS.includes(err.code)) {
+      } else if (
+        err instanceof ApiError &&
+        UploadError.safeParse(err.code).success
+      ) {
         setError(t(`upload.errors.${err.code}`));
       } else {
         setError(t('upload.errors.failed'));

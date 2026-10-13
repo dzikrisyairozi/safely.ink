@@ -8,13 +8,14 @@ import {
   isLawChecked,
   type AnalysisStatus,
   type Clause,
+  type UploadError,
 } from '@repo/api-types';
 import { config } from '../config';
 import { failure } from '../failure';
 import { db } from '../firebase';
 import { readDocument } from '../agents/reader';
 import { checkReading } from '../pipeline/reader-check';
-import { loadUploads, type UploadError } from '../uploads';
+import { loadUploads } from '../uploads';
 import { nextReset, releaseDailySlot, reserveDailySlot } from '../usage';
 
 const { limits } = config;
