@@ -6,6 +6,7 @@ import {
   Expectation,
   LegalFinding,
   Rule,
+  Scenario,
   Trap,
 } from './index.js';
 
@@ -153,4 +154,20 @@ test('analysis meta survives a round trip before the user picks a role', () => {
   expect(AnalysisMeta.safeParse({ ...meta, docType: 'receipt' }).success).toBe(
     false,
   );
+});
+
+test('a stake is an amount or nothing, never negative', () => {
+  const scenario = {
+    id: 's-1',
+    story: '',
+    strategy: 'baseline',
+    frequency: 'common',
+    targetRuleIds: [],
+    facts: {},
+  };
+
+  for (const stake of [0, 1000, null]) {
+    expect(Scenario.safeParse({ ...scenario, stake }).success).toBe(true);
+  }
+  expect(Scenario.safeParse({ ...scenario, stake: -1 }).success).toBe(false);
 });

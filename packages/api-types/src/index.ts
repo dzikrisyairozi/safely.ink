@@ -117,7 +117,7 @@ export const Scenario = z.object({
   frequency: z.enum(['common', 'occasional', 'rare']),
   targetRuleIds: z.array(z.string()),
   // Money the user stands to get or keep; null if not about money.
-  stake: z.number().nullable(),
+  stake: z.number().nonnegative().nullable(),
   facts: z.record(z.string(), FactValue),
 });
 export type Scenario = z.infer<typeof Scenario>;
@@ -125,7 +125,7 @@ export type Scenario = z.infer<typeof Scenario>;
 export const Outcome = z.object({
   scenarioId: z.string(),
   result: z.enum(['fine', 'partly_bad', 'bad', 'undetermined']),
-  stake: z.number().nullable(),
+  stake: z.number().nonnegative().nullable(),
   loss: z.number(), // unpaid part of the stake plus charges
   decidingRuleId: z.string().nullable(),
   trace: z.array(
