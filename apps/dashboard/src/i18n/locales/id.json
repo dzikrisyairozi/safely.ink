@@ -138,18 +138,36 @@
       "rules": {
         "title": "Aturan tidak dapat disusun",
         "description": "Terjadi kesalahan saat kami mengubah klausul menjadi aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+      },
+      "fuzzing": {
+        "title": "Situasi uji tidak dapat disusun",
+        "description": "Terjadi kesalahan saat kami menyusun situasi untuk menguji aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+      },
+      "running": {
+        "title": "Aturan tidak dapat diuji",
+        "description": "Terjadi kesalahan saat kami menjalankan situasi melalui aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
       }
     },
     "extractingRules": {
       "title": "Menyusun aturan",
       "description": "Kami sedang mengubah klausul menjadi aturan yang dapat diuji. Ini bisa memakan waktu satu atau dua menit. Halaman ini diperbarui dengan sendirinya."
     },
-    "rulesReady": {
-      "title": "Kami telah membaca dokumen Anda",
-      "description_one": "Kami menemukan {{count}} aturan di dalamnya. Langkah berikutnya adalah mengujinya terhadap situasi nyata, dan itu belum tersedia.",
-      "description_other": "Kami menemukan {{count}} aturan di dalamnya. Langkah berikutnya adalah mengujinya terhadap situasi nyata, dan itu belum tersedia.",
-      "link": "Cara kami membaca dokumen Anda"
-    }
+    "fuzzing": {
+      "title": "Menyusun situasi uji",
+      "description_one": "Kami menemukan {{count}} aturan di dalamnya. Sekarang kami menyusun situasi nyata untuk mengujinya. Ini bisa memakan waktu sekitar satu menit. Halaman ini diperbarui dengan sendirinya.",
+      "description_other": "Kami menemukan {{count}} aturan di dalamnya. Sekarang kami menyusun situasi nyata untuk mengujinya. Ini bisa memakan waktu sekitar satu menit. Halaman ini diperbarui dengan sendirinya."
+    },
+    "running": {
+      "title": "Menguji aturan",
+      "description_one": "Kami sedang menjalankan {{count}} situasi melalui aturan dokumen Anda. Ini hanya sebentar.",
+      "description_other": "Kami sedang menjalankan {{count}} situasi melalui aturan dokumen Anda. Ini hanya sebentar."
+    },
+    "tested": {
+      "title": "Kami telah menguji dokumen Anda",
+      "description_one": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Langkah berikutnya adalah membandingkan hasilnya dengan apa yang wajar diharapkan dan dengan hukum, dan itu belum tersedia.",
+      "description_other": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Langkah berikutnya adalah membandingkan hasilnya dengan apa yang wajar diharapkan dan dengan hukum, dan itu belum tersedia."
+    },
+    "rulesLink": "Cara kami membaca dokumen Anda"
   },
   "rules": {
     "eyebrow": "Cara kami membaca dokumen Anda",

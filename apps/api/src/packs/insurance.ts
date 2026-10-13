@@ -16,4 +16,31 @@ export const insurance: Pack = {
     'what the insured was doing at the time (excluded activities, intoxication)',
     'whether another policy covers the same loss',
   ],
+  seeds: {
+    baseline: [
+      'an ordinary admission well after the policy started, with notice and documents in time',
+      'a small claim at a network hospital, paid directly',
+      'an accident in the first week of the policy',
+    ],
+    overlap: [
+      'a covered illness made worse by something the policy excludes',
+      'an accident on holiday while doing a sport the policy lists as hazardous',
+      'a covered treatment given partly at a provider the insurer did not approve',
+    ],
+    definition: [
+      'a hospital stay just short of what the policy calls an admission',
+      'a symptom noticed before the policy started, diagnosed only afterwards',
+      'an emergency abroad on a trip slightly longer than the policy allows',
+    ],
+    procedure: [
+      'the insurer is told a few days after the notice period ended, because the insured was in hospital',
+      'one receipt or the medical report is missing when the claim is sent',
+      'the premium is paid a few days after the grace period and the event happens in between',
+    ],
+    combination: [
+      'a large claim that meets a sub-limit and the deductible at once',
+      'a late notice on a claim that would otherwise be paid in full',
+      'an honest mistake on the application, found when an unrelated claim is made',
+    ],
+  },
 };

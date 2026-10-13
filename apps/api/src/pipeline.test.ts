@@ -1,13 +1,17 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import { Timestamp } from 'firebase-admin/firestore';
-import type { Fact } from '@repo/api-types';
+import { FactSchema, Rule, StoredScenario, type Fact } from '@repo/api-types';
 import proposedFacts from '../test/fixtures/rules-facts.json';
 import proposedRules from '../test/fixtures/rules-rules.json';
+import proposedScenarios from '../test/fixtures/fuzz-scenarios.json';
 import {
   proposeFacts,
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
+import { config } from './config';
+import { evaluate } from './engine/evaluate';
 import { db } from './firebase';
 import { runPipeline } from './pipeline';
 import { BASE_FACTS } from './pipeline/rule-check';
@@ -15,10 +19,14 @@ import { BASE_FACTS } from './pipeline/rule-check';
 // Run through `pnpm test`: Firestore is the emulator. Only the model is
 // replaced.
 vi.mock('./agents/rule-extractor');
+vi.mock('./agents/scenario-fuzzer');
 
 const facts = vi.mocked(proposeFacts);
 const rules = vi.mocked(proposeRules);
 const repair = vi.mocked(repairRules);
+const fuzzer = vi.mocked(proposeScenarios);
+const boundaries = vi.mocked(tellBoundaries);
+const [ordinary, earlyIllness, abroad] = proposedScenarios.scenarios;
 
 const [benefit, exclusion] = proposedRules.rules;
 const unknownFact = {
@@ -41,6 +49,9 @@ beforeEach(async () => {
   vi.resetAllMocks();
   facts.mockResolvedValue(proposedFacts.facts as Fact[]);
   rules.mockResolvedValue(proposedRules.rules);
+  // Every strategy tells the same ordinary situation unless a test says more.
+  fuzzer.mockResolvedValue([ordinary]);
+  boundaries.mockResolvedValue([]);
 
   await analysis.set({
     ownerUid: 'alice',
@@ -73,11 +84,11 @@ beforeEach(async () => {
 });
 
 test('the facts and the rules are stored and the analysis moves on', async () => {
-  expect(await runPipeline('analysis-1')).toBe('fuzzing');
+  expect(await runPipeline('analysis-1')).toBe('comparing');
 
   const doc = await stored();
   expect(doc).toMatchObject({
-    status: 'fuzzing',
+    status: 'comparing',
     counts: { clauses: 3, rules: 3 },
   });
   expect(doc?.factSchema).toHaveLength(BASE_FACTS.length + 3);
@@ -111,7 +122,7 @@ test('an invalid rule is repaired once, and what still does not fit is kept as u
     { id: 'r-003', draft: stillBroken },
   ]);
 
-  expect(await runPipeline('analysis-1')).toBe('fuzzing');
+  expect(await runPipeline('analysis-1')).toBe('comparing');
 
   const reasons = expect.arrayContaining([
     expect.stringMatching(/preExisting/),
@@ -141,7 +152,7 @@ test('a rule the repair does not answer for is kept as unmodeled', async () => {
   rules.mockResolvedValue([benefit, unknownFact]);
   repair.mockRejectedValue(new Error('model unavailable'));
 
-  expect(await runPipeline('analysis-1')).toBe('fuzzing');
+  expect(await runPipeline('analysis-1')).toBe('comparing');
 
   expect(await storedRules()).toMatchObject([
     { id: 'r-001', kind: 'benefit' },
@@ -197,7 +208,7 @@ test.each([
     rules.mockResolvedValue([benefit, unknownFact]);
     repair.mockResolvedValue([{ id: 'r-002', draft: answer }]);
 
-    expect(await runPipeline('analysis-1')).toBe('fuzzing');
+    expect(await runPipeline('analysis-1')).toBe('comparing');
 
     expect(await storedRules()).toMatchObject([
       { id: 'r-001', kind: 'benefit' },
@@ -225,4 +236,215 @@ test('the slot is given back for the day it was taken, not the day of creation',
     (await db.doc(`users/alice/usage/${day}`).get()).data()?.started;
   expect(await started('2026-10-11')).toBe(0);
   expect(await started('2026-10-12')).toBe(1);
+});
+
+// From here on the analysis has its rules, and scenarios wait to be run.
+const factSchema = [...BASE_FACTS, ...(proposedFacts.facts as Fact[])];
+const uneventful = Object.fromEntries(
+  factSchema.map((fact) => [fact.key, fact.neutral]),
+);
+const scenario = (id: string, targetRuleId: string, facts: object) => ({
+  id,
+  story: 'You are admitted to hospital for four days.',
+  strategy: 'overlap',
+  frequency: 'common',
+  targetRuleIds: [targetRuleId],
+  stake: 5_000_000,
+  facts: { ...uneventful, inpatientCost: 5_000_000, ...facts },
+});
+const waiting = [
+  scenario('s-001', 'r-001', { daysSinceStart: 200 }),
+  scenario('s-002', 'r-002', { claimIsForIllness: true, daysSinceStart: 10 }),
+  scenario('s-003', 'r-003', { treatmentPlace: 'abroad' }),
+];
+const storedScenarios = async () =>
+  (await analysis.collection('scenarios').get()).docs.map((doc) =>
+    StoredScenario.parse(doc.data()),
+  );
+
+async function readyToRun(
+  scenarios: ({ id: string } & Record<string, unknown>)[],
+) {
+  await analysis.update({ status: 'running', factSchema });
+  for (const [n, rule] of proposedRules.rules.entries()) {
+    const id = `r-00${n + 1}`;
+    await analysis
+      .collection('rules')
+      .doc(id)
+      .set({ ...rule, id });
+  }
+  for (const item of scenarios) {
+    await analysis.collection('scenarios').doc(item.id).set(item);
+  }
+}
+
+test('every scenario is run by code and gets one outcome with its trace', async () => {
+  await readyToRun(waiting);
+
+  expect(await runPipeline('analysis-1')).toBe('comparing');
+
+  expect(
+    (await storedScenarios()).map(({ id, outcome }) => [
+      id,
+      outcome?.result,
+      outcome?.decidingRuleId,
+      outcome?.loss,
+    ]),
+  ).toEqual([
+    ['s-001', 'fine', null, 0],
+    ['s-002', 'bad', 'r-002', 5_000_000],
+    ['s-003', 'undetermined', 'r-003', 0],
+  ]);
+  expect((await storedScenarios())[1]!.outcome!.trace).toContainEqual(
+    expect.objectContaining({ ruleId: 'r-002' }),
+  );
+  expect(await stored()).toMatchObject({
+    status: 'comparing',
+    counts: { clauses: 3, fine: 1, partlyBad: 0, bad: 1, undetermined: 1 },
+  });
+  expect(facts).not.toHaveBeenCalled();
+});
+
+test('running the stored rules and scenarios again gives the same outcomes', async () => {
+  await readyToRun(waiting);
+  await runPipeline('analysis-1');
+
+  const again = (await analysis.collection('rules').get()).docs.map((doc) =>
+    Rule.parse(doc.data()),
+  );
+  const schema = FactSchema.parse((await stored())!.factSchema);
+
+  for (const { outcome, ...ran } of await storedScenarios()) {
+    expect(evaluate(again, schema, ran)).toEqual(outcome);
+  }
+});
+
+test('the run adds the outcome and leaves the rest of a scenario as it was', async () => {
+  const expectation = { result: 'fine', reason: 'An accident is covered.' };
+  await readyToRun([{ ...waiting[0]!, expectation }]);
+
+  await runPipeline('analysis-1');
+
+  const doc = await analysis.collection('scenarios').doc('s-001').get();
+  expect(doc.data()).toMatchObject({
+    expectation,
+    story: waiting[0]!.story,
+    outcome: { result: 'fine' },
+  });
+});
+
+test('a stored scenario that does not fit the facts fails the run, by name', async () => {
+  await readyToRun([{ ...waiting[0]!, facts: { inpatientCost: 5_000_000 } }]);
+
+  expect(await runPipeline('analysis-1')).toBe('failed');
+
+  expect(await stored()).toMatchObject({ status: 'failed', stage: 'running' });
+  expect(await startedOnCreationDay()).toBe(0);
+});
+
+test('scenarios of every strategy are checked, stored and run in one go', async () => {
+  fuzzer.mockImplementation(async (strategy) =>
+    strategy === 'baseline' ? [ordinary] : [earlyIllness, abroad, 'no story'],
+  );
+  boundaries.mockImplementation(async (drafts) =>
+    drafts.map(({ facts, targetRuleIds }) => ({
+      story: 'You are admitted with a fever.',
+      frequency: 'common',
+      stake: 1_000_000,
+      facts,
+      targetRuleIds,
+    })),
+  );
+
+  expect(await runPipeline('analysis-1')).toBe('comparing');
+
+  // The waiting period of r-002 gives three boundaries and the cost of r-001
+  // two, since a cost below zero is left out. The same facts told by four
+  // strategies are one scenario.
+  expect(
+    (await storedScenarios()).map(({ id, strategy, outcome }) => [
+      id,
+      strategy,
+      outcome?.result,
+    ]),
+  ).toEqual([
+    ['s-001', 'baseline', 'fine'],
+    ['s-002', 'boundary', 'bad'],
+    ['s-003', 'boundary', 'fine'],
+    ['s-004', 'boundary', 'fine'],
+    ['s-005', 'boundary', 'bad'],
+    ['s-006', 'boundary', 'fine'],
+    ['s-007', 'overlap', 'bad'],
+    ['s-008', 'overlap', 'undetermined'],
+  ]);
+  expect((await stored())!.counts).toEqual({
+    clauses: 3,
+    rules: 3,
+    scenarios: 8,
+    fine: 4,
+    partlyBad: 0,
+    bad: 3,
+    undetermined: 1,
+  });
+});
+
+test('the fuzzer is told the rules as stored, the facts, the seeds and the role', async () => {
+  await runPipeline('analysis-1');
+
+  expect(fuzzer).toHaveBeenCalledTimes(5);
+  expect(fuzzer).toHaveBeenCalledWith(
+    'procedure',
+    expect.arrayContaining([expect.objectContaining({ id: 'r-002' })]),
+    expect.arrayContaining([expect.objectContaining({ key: 'inpatientCost' })]),
+    expect.objectContaining({ seeds: expect.any(Object) }),
+    expect.objectContaining({ userRole: 'insured' }),
+    config.limits.modelCallSeconds.fuzzMost,
+  );
+});
+
+// The clock is moved while the rule writer works; Firestore runs as usual.
+test.each([
+  [0, 240],
+  [400, 150],
+  [500, 90],
+])(
+  'when the rules took %i s, a fuzzer call may take %i s',
+  async (used, seconds) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    rules.mockImplementation(async () => {
+      vi.setSystemTime(Date.now() + used * 1000);
+      return proposedRules.rules;
+    });
+
+    try {
+      await runPipeline('analysis-1');
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(fuzzer.mock.calls[0]![5]).toBe(seconds);
+    expect(boundaries.mock.calls[0]![2]).toBe(seconds);
+  },
+);
+
+test('one call of the fuzzer that fails does not cost the others', async () => {
+  fuzzer.mockImplementation(async (strategy) => {
+    if (strategy === 'overlap') throw new Error('model unavailable');
+    return [earlyIllness];
+  });
+  boundaries.mockRejectedValue(new Error('model unavailable'));
+
+  expect(await runPipeline('analysis-1')).toBe('comparing');
+
+  expect(await stored()).toMatchObject({ counts: { scenarios: 1, bad: 1 } });
+});
+
+test('with no scenario that fits, the run fails at the fuzzing and the slot is given back', async () => {
+  fuzzer.mockResolvedValue([{ ...ordinary, facts: { daysSinceStart: 5 } }]);
+
+  expect(await runPipeline('analysis-1')).toBe('failed');
+
+  expect(await stored()).toMatchObject({ status: 'failed', stage: 'fuzzing' });
+  expect(await storedScenarios()).toEqual([]);
+  expect(await startedOnCreationDay()).toBe(0);
 });

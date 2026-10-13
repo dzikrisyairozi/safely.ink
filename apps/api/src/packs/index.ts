@@ -1,4 +1,4 @@
-import type { DocType } from '@repo/api-types';
+import type { DocType, WrittenStrategy } from '@repo/api-types';
 import { general } from './general';
 import { insurance } from './insurance';
 import { terms } from './terms';
@@ -8,6 +8,9 @@ import { terms } from './terms';
 export type Pack = {
   // Facts that usually matter in this kind of document, in plain words.
   facts: string[];
+  // Situations worth trying, per strategy (F-FUZZ-4). Boundary scenarios
+  // are built in code from the rules and need none.
+  seeds: Record<WrittenStrategy, string[]>;
 };
 
 const packs: Partial<Record<DocType, Pack>> = { insurance, terms };

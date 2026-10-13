@@ -138,18 +138,36 @@
       "rules": {
         "title": "The rules could not be worked out",
         "description": "Something went wrong while we turned the clauses into rules. This run does not count against your daily limit; please upload the document again."
+      },
+      "fuzzing": {
+        "title": "The test situations could not be written",
+        "description": "Something went wrong while we wrote situations to test the rules against. This run does not count against your daily limit; please upload the document again."
+      },
+      "running": {
+        "title": "The rules could not be tested",
+        "description": "Something went wrong while we ran the situations through the rules. This run does not count against your daily limit; please upload the document again."
       }
     },
     "extractingRules": {
       "title": "Working out the rules",
       "description": "We are turning the clauses into rules that can be tested. This can take a minute or two. This page updates on its own."
     },
-    "rulesReady": {
-      "title": "We have read your document",
-      "description_one": "We found {{count}} rule in it. Testing it against real-life situations is the next step, and it is not available yet.",
-      "description_other": "We found {{count}} rules in it. Testing them against real-life situations is the next step, and it is not available yet.",
-      "link": "How we read your document"
-    }
+    "fuzzing": {
+      "title": "Writing test situations",
+      "description_one": "We found {{count}} rule in it. Now we are writing real-life situations to test it against. This can take a minute. This page updates on its own.",
+      "description_other": "We found {{count}} rules in it. Now we are writing real-life situations to test them against. This can take a minute. This page updates on its own."
+    },
+    "running": {
+      "title": "Testing the rules",
+      "description_one": "We are running {{count}} situation through the rules of your document. This takes a moment.",
+      "description_other": "We are running {{count}} situations through the rules of your document. This takes a moment."
+    },
+    "tested": {
+      "title": "We have tested your document",
+      "description_one": "We ran {{count}} real-life situation through its rules. Comparing the result with what a person would expect, and with the law, is the next step, and it is not available yet.",
+      "description_other": "We ran {{count}} real-life situations through its rules. Comparing the results with what a person would expect, and with the law, is the next step, and it is not available yet."
+    },
+    "rulesLink": "How we read your document"
   },
   "rules": {
     "eyebrow": "How we read your document",

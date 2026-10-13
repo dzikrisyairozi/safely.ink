@@ -36,9 +36,25 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       // Counts the runs whose slot was given back too, so those have a limit.
       attemptsPerUserPerDay: 30,
       // How long one call to a model may take. Cloud Run ends a request after
-      // 600 s: the Reader's calls run side by side in one request, the three
-      // of the rules stage run one after the other.
-      modelCallSeconds: { read: 540, rules: 150 },
+      // 600 s. The Reader's calls run side by side in one request. In the
+      // confirm request the facts, the rules and the repair run one after
+      // the other, then the fuzzer's calls side by side. A fuzzer call may
+      // take what is left of confirmSeconds, between fuzz and fuzzMost: the
+      // earlier calls seldom use their whole limit, and at 90 s the baseline
+      // call did not answer in 1 run of 3.
+      // Measured on the demo policy, whose 21 numbered clauses the Reader gives
+      // as 24 (2026-10-13): facts 66 to 78 s, rules 112 s to over 150 s, a
+      // fuzzer call 55 to 60 s. A repair of two rules did not answer in 60 s.
+      modelCallSeconds: {
+        read: 540,
+        facts: 100,
+        rules: 240,
+        repair: 120,
+        fuzz: 90,
+        fuzzMost: 240,
+      },
+      // In which the stages of the confirm request must end.
+      confirmSeconds: 550,
     },
 
     // Official legal sources per jurisdiction. `*` stands for one host label.

@@ -119,17 +119,24 @@ export const RuleDraft = ruleShape
   .refine(hasConditionUnlessUnmodeled, conditionMissing);
 export type RuleDraft = z.infer<typeof RuleDraft>;
 
+// How a scenario attacks the rules (F-FUZZ-4), in the order they are shown.
+export const Strategy = z.enum([
+  'baseline',
+  'boundary',
+  'overlap',
+  'definition',
+  'procedure',
+  'combination',
+]);
+export type Strategy = z.infer<typeof Strategy>;
+// The strategies a model writes. A boundary scenario is built by code.
+export const WrittenStrategy = Strategy.exclude(['boundary']);
+export type WrittenStrategy = z.infer<typeof WrittenStrategy>;
+
 export const Scenario = z.object({
   id: z.string(),
   story: z.string(),
-  strategy: z.enum([
-    'baseline',
-    'boundary',
-    'overlap',
-    'definition',
-    'procedure',
-    'combination',
-  ]),
+  strategy: Strategy,
   frequency: z.enum(['common', 'occasional', 'rare']),
   targetRuleIds: z.array(z.string()),
   // Money the user stands to get or keep; null if not about money.
@@ -153,6 +160,11 @@ export const Outcome = z.object({
   ),
 });
 export type Outcome = z.infer<typeof Outcome>;
+
+// The Firestore document analyses/{id}/scenarios/{id}. The outcome is there
+// once the scenario was run.
+export const StoredScenario = Scenario.extend({ outcome: Outcome.optional() });
+export type StoredScenario = z.infer<typeof StoredScenario>;
 
 // What a reasonable person in the user's role would expect, judged without
 // the fine print.
@@ -272,7 +284,16 @@ export const Analysis = z.object({
   meta: AnalysisMeta.nullable(), // null until the document is read
   factSchema: FactSchema.optional(), // from the rules stage on
   counts: z
-    .object({ clauses: z.number().int(), rules: z.number().int() })
+    .object({
+      clauses: z.number().int(),
+      rules: z.number().int(),
+      scenarios: z.number().int(),
+      // Scenarios by the result of their run.
+      fine: z.number().int(),
+      partlyBad: z.number().int(),
+      bad: z.number().int(),
+      undetermined: z.number().int(),
+    })
     .partial()
     .optional(),
 });

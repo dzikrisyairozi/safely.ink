@@ -88,3 +88,18 @@ test('a model that does not answer in time is an error, not a wait', async () =>
   vi.useRealTimers();
   model.hangs = false;
 });
+
+test('the repair has a time limit of its own', async () => {
+  vi.useFakeTimers();
+  model.hangs = true;
+
+  const call = repairRules([], [], factSchema, document);
+  const failed = expect(call).rejects.toThrow(/did not answer/);
+  await vi.advanceTimersByTimeAsync(
+    config.limits.modelCallSeconds.repair * 1000,
+  );
+
+  await failed;
+  vi.useRealTimers();
+  model.hangs = false;
+});

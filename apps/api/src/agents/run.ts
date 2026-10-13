@@ -6,7 +6,9 @@ import {
   stringifyContent,
 } from '@google/adk';
 import type { Part } from '@google/genai';
-import type { z } from 'zod';
+import type { AnalysisMeta } from '@repo/api-types';
+import { z } from 'zod';
+
 import { config } from '../config';
 
 type Call<Schema extends z.ZodObject, Accept extends z.ZodType> = {
@@ -75,4 +77,39 @@ export async function runAgent<
   // ADK can end with an empty answer and no error (ADR 3).
   if (!answer.trim()) throw new Error(`The ${name} returned an empty answer.`);
   return (accept ?? schema).parse(JSON.parse(answer)) as z.infer<Accept>;
+}
+
+// What every agent after the Reader is told about the document.
+export type Document = Pick<AnalysisMeta, 'docType' | 'title' | 'userRole'>;
+export const about = ({ docType, title, userRole }: Document) => ({
+  documentType: docType,
+  title,
+  userRole,
+});
+
+/**
+ * A call whose answer is a list. The model is held to the schema of an
+ * entry; the answer itself only has to be a list, because the caller's check
+ * judges each entry on its own and one that does not fit must not cost the
+ * others.
+ */
+export async function askForList(
+  model: string,
+  name: string,
+  instruction: string,
+  list: string,
+  entry: z.ZodType,
+  message: object,
+  seconds: number,
+): Promise<unknown[]> {
+  const answer = await runAgent({
+    name,
+    model,
+    instruction,
+    schema: z.object({ [list]: z.array(entry) }),
+    accept: z.object({ [list]: z.array(z.unknown()) }),
+    parts: [{ text: JSON.stringify(message) }],
+    seconds,
+  });
+  return answer[list]!;
 }

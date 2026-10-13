@@ -1,32 +1,51 @@
 import { FieldValue, type DocumentReference } from 'firebase-admin/firestore';
-import { AnalysisMeta, Clause, type AnalysisStatus } from '@repo/api-types';
+import {
+  AnalysisMeta,
+  Clause,
+  FactSchema,
+  Rule,
+  Scenario,
+  WrittenStrategy,
+  type AnalysisStatus,
+  type Outcome,
+} from '@repo/api-types';
 import {
   proposeFacts,
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
+import { config } from './config';
+import { evaluate } from './engine/evaluate';
+import { validateScenarios } from './engine/validate';
 import { db } from './firebase';
 import { packFor } from './packs';
+import { boundaryDrafts } from './pipeline/boundary';
 import {
   checkFacts,
   checkRules,
   demote,
   numbered,
 } from './pipeline/rule-check';
+import { checkScenarios } from './pipeline/scenario-check';
 import { releaseDailySlot } from './usage';
 
 const BATCH = 500; // Firestore's limit of writes in one batch
 
-/** Stores each item in a sub-collection of the analysis, under its ID. */
+/**
+ * Stores each item in a sub-collection of the analysis, under its ID. With
+ * `merge`, fields of a stored document that the item does not have stay.
+ */
 export async function saveAll(
   analysis: DocumentReference,
   name: string,
   items: { id: string }[],
+  merge = false,
 ) {
   for (let from = 0; from < items.length; from += BATCH) {
     const batch = db.batch();
     for (const item of items.slice(from, from + BATCH)) {
-      batch.set(analysis.collection(name).doc(item.id), item);
+      batch.set(analysis.collection(name).doc(item.id), item, { merge });
     }
     await batch.commit();
   }
@@ -88,15 +107,136 @@ async function extractRules(analysis: DocumentReference, meta: AnalysisMeta) {
   });
 }
 
+// Rules in the order of their IDs, which is the order evaluate() decides in.
+const storedRules = async (analysis: DocumentReference) =>
+  (await analysis.collection('rules').get()).docs.map((doc) =>
+    Rule.parse(doc.data()),
+  );
+
+// What the prompts aim for (F-FUZZ-1). A short document can give fewer.
+const SCENARIOS_AIMED_FOR = 20;
+
+// The model proposes situations; scenario-check.ts decides which are
+// stored. The facts of a boundary scenario are set by code.
+async function fuzz(
+  analysis: DocumentReference,
+  meta: AnalysisMeta,
+  deadline: number,
+) {
+  const rules = await storedRules(analysis);
+  const factSchema = FactSchema.parse(
+    (await analysis.get()).data()!.factSchema,
+  );
+  const pack = packFor(meta.docType);
+  // What the earlier calls left of the request, within the limits of a call.
+  const { fuzz: least, fuzzMost: most } = config.limits.modelCallSeconds;
+  const seconds = Math.min(
+    most,
+    Math.max(least, Math.floor((deadline - Date.now()) / 1000)),
+  );
+
+  // Side by side, and one call that fails does not cost the others.
+  const calls = [
+    ...WrittenStrategy.options.map((strategy) => ({
+      strategy,
+      entries: proposeScenarios(
+        strategy,
+        rules,
+        factSchema,
+        pack,
+        meta,
+        seconds,
+      ),
+    })),
+    {
+      strategy: 'boundary' as const,
+      entries: tellBoundaries(boundaryDrafts(rules, factSchema), meta, seconds),
+    },
+  ];
+  const answers = await Promise.allSettled(calls.map((call) => call.entries));
+  const proposals = answers.flatMap((answer, n) => {
+    const { strategy } = calls[n]!;
+    if (answer.status === 'rejected') {
+      console.error(answer.reason);
+      return [];
+    }
+    return answer.value.map((entry) => ({ strategy, entry }));
+  });
+
+  const { scenarios, dropped, uncovered } = checkScenarios(
+    proposals,
+    rules,
+    factSchema,
+    config.limits.scenariosPerAnalysis,
+  );
+  if (dropped.length > 0) console.warn('Scenarios dropped:', dropped);
+  if (uncovered.length > 0) {
+    console.warn(`No scenario tries ${uncovered.join(', ')}.`);
+  }
+  if (scenarios.length === 0) throw new Error('The rules gave no scenario.');
+  if (scenarios.length < SCENARIOS_AIMED_FOR) {
+    console.warn(`Only ${scenarios.length} scenarios.`);
+  }
+
+  await saveAll(analysis, 'scenarios', scenarios);
+  await analysis.update({
+    'counts.scenarios': scenarios.length,
+    updatedAt: updatedAt(),
+  });
+}
+
+// The outcome of every scenario is decided here, by code (F-RUN-2). It works
+// from what is stored, so running it again on the same analysis gives the
+// same result.
+async function runScenarios(analysis: DocumentReference) {
+  const rules = await storedRules(analysis);
+  const factSchema = FactSchema.parse(
+    (await analysis.get()).data()!.factSchema,
+  );
+  const scenarios = (await analysis.collection('scenarios').get()).docs.map(
+    (doc) => Scenario.parse(doc.data()),
+  );
+  const [issue] = validateScenarios(scenarios, rules, factSchema);
+  if (issue) throw new Error(`Scenario ${issue.id}: ${issue.message}`);
+
+  // Only the outcome is written: what a later stage adds to a scenario is
+  // not this stage's to replace.
+  const ran = scenarios.map((scenario) => ({
+    id: scenario.id,
+    outcome: evaluate(rules, factSchema, scenario),
+  }));
+  await saveAll(analysis, 'scenarios', ran, true);
+
+  const count = (result: Outcome['result']) =>
+    ran.filter(({ outcome }) => outcome.result === result).length;
+  await analysis.update({
+    'counts.fine': count('fine'),
+    'counts.partlyBad': count('partly_bad'),
+    'counts.bad': count('bad'),
+    'counts.undetermined': count('undetermined'),
+    updatedAt: updatedAt(),
+  });
+}
+
 type Stage = {
   status: AnalysisStatus;
-  run: (analysis: DocumentReference, meta: AnalysisMeta) => Promise<void>;
+  run: (
+    analysis: DocumentReference,
+    meta: AnalysisMeta,
+    // When the request must be done, in ms since the epoch.
+    deadline: number,
+  ) => Promise<void>;
+  // The status when the stage is done: the next stage, or where the
+  // analysis waits for a stage that is not built yet.
+  next: AnalysisStatus;
 };
 
-// In the order they run. A later milestone adds its stage to the end.
-const STAGES: Stage[] = [{ status: 'extracting_rules', run: extractRules }];
-// Where an analysis waits when every stage built so far is done.
-const AFTER_STAGES: AnalysisStatus = 'fuzzing';
+// In the order they run.
+const STAGES: Stage[] = [
+  { status: 'extracting_rules', run: extractRules, next: 'fuzzing' },
+  { status: 'fuzzing', run: fuzz, next: 'running' },
+  { status: 'running', run: runScenarios, next: 'comparing' },
+];
 
 /**
  * Runs the stages from the current status of the analysis on, and writes
@@ -106,12 +246,13 @@ export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
   const analysis = db.doc(`analyses/${analysisId}`);
   const data = (await analysis.get()).data()!;
   let status: AnalysisStatus = data.status;
+  const deadline = Date.now() + config.limits.confirmSeconds * 1000;
 
-  for (const [n, stage] of STAGES.entries()) {
+  for (const stage of STAGES) {
     if (stage.status !== status) continue;
     try {
-      await stage.run(analysis, AnalysisMeta.parse(data.meta));
-      status = STAGES[n + 1]?.status ?? AFTER_STAGES;
+      await stage.run(analysis, AnalysisMeta.parse(data.meta), deadline);
+      status = stage.next;
       await analysis.update({ status, updatedAt: updatedAt() });
     } catch (err) {
       console.error(err);

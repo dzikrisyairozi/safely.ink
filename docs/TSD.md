@@ -81,7 +81,8 @@ apps/
       app.ts              routes, auth middleware
       config.ts           env, model IDs, limits, legal-source allowlist
       pipeline.ts         stage orchestration, Firestore progress writes
-      pipeline/           pure checks on agent output (reader-check.ts, rule-check.ts)
+      pipeline/           pure code around the agents: reader-check.ts, rule-check.ts,
+                          boundary.ts, scenario-check.ts
       routes/             analyses.ts
       uploads.ts          fetch and check the uploaded files
       usage.ts            daily limit
@@ -141,8 +142,8 @@ language is derived from the document, not hard-coded per document type:
    repaired once, then demoted (rule → `unmodeled`) or dropped (scenario).
 
 Packs (`apps/api/src/packs/*.ts`) add prompt content only. A pack holds the facts worth
-looking for; scenario seeds per strategy arrive with the fuzzer and expectation hints with
-the judge. `insurance` and `terms` have their own pack. Every other type uses the general
+looking for and, per strategy, situations worth trying (the scenario seeds). Expectation
+hints arrive with the judge. `insurance` and `terms` have their own pack. Every other type uses the general
 pack (termination, auto-renewal, fees, unilateral change, liability, dispute venue) until
 its own is written.
 
@@ -158,7 +159,7 @@ analyses/{analysisId}
   grade, confidence
   clauses/{clauseId}        Clause
   rules/{ruleId}            Rule
-  scenarios/{scenarioId}    Scenario + Outcome + expectation { result, reason }
+  scenarios/{scenarioId}    Scenario + outcome: Outcome + expectation { result, reason }
   findings/{ruleId}         { status, reasoning, citations[] }
   traps/{trapId}            { title, severity, ruleId, scenarioIds[], action }
 
@@ -189,13 +190,13 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 
 All routes require `Authorization: Bearer <Firebase ID token>`, verified with the Admin SDK.
 
-| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------- | -------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                |
-| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read**, sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                             |
-| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `fuzzing` while the later stages are not built, or `failed`. A failed stage is that status with 200, not an HTTP error. |
-| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                                                                                                                                                                                                                                                                   |
-| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                                                                  |
+| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------- | -------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read**, sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                               |
+| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `comparing` while the later stages are not built, or `failed`. A failed stage is that status with 200, not an HTTP error. |
+| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                                                                                                                                                                                                                                                                     |
+| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                                                                    |
 
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
@@ -211,6 +212,11 @@ Request bodies are validated with the shared Zod schemas.
 analysis document after each step, and writes sub-collection documents as soon as they
 exist (so the UI updates live). A stage that throws sets `failed` with the stage name and
 gives back the daily slot of the day it was taken on (`reservedAt`).
+
+Built so far: `extracting_rules`, `fuzzing`, `running`. Each stage names the status that
+follows it, and the run starts at the stage that matches the status of the analysis. A
+stage reads its input from Firestore, not from the stage before it, so what is evaluated
+is what is stored. After `running` the analysis waits at `comparing`.
 
 ### 5.1 Reader (agent, Pro)
 
@@ -245,18 +251,53 @@ gives back the daily slot of the day it was taken on (`reservedAt`).
 - The answer to each call only has to be a list. Every fact and every rule in it is
   checked on its own, so one entry that does not fit does not cost the others. A fact key
   must be a camelCase name, and at most 35 proposed facts are kept.
-- A rule of a kind other than `benefit` whose condition is true when every fact has its
-  neutral value is invalid: it would make every scenario end badly.
+- Time limits per call: facts 100 s, rules 240 s, repair 120 s. The stages of the
+  confirm request must end within 550 s; the fuzzer gets what these calls leave of it
+  (5.3).
+- An `unmodeled` rule lists in `touches` only facts about that clause alone, and none
+  when there is no such fact: stage 4 of `evaluate()` answers `undetermined` as soon as
+  one touched fact is not neutral. A clause with a fixed amount, percentage or number of
+  days is written as a rule (a deductible as `deduct`, an annual limit as `cap`), not as
+  `unmodeled`.
+- An `exclusion`, `condition` or `deadline` whose condition is true when every fact has
+  its neutral value is invalid: it would make every scenario end badly. A `limit` or a
+  `charge` may be true there, because a deductible is taken from every claim.
+- Known gap: `daysSinceStart` is 0 when nothing happened, so a waiting period on an
+  illness is true at neutral, fails this check and is kept as `unmodeled`. Scenarios it
+  touches end `undetermined`.
 
-### 5.3 ScenarioFuzzer (agent, Flash)
+### 5.3 ScenarioFuzzer (agent, Flash, six calls)
 
-- Input: rules, fact schema, pack seeds, strategies (F-FUZZ-4), the user's role.
-- One call per strategy in parallel, then dedupe by fact equality and cap at 40.
-- Boundary scenarios are completed in code: for a rule `daysSinceStart < 30`, code emits
-  the facts for 29, 30 and 31 (all other facts at `neutral`) and asks the model only for
-  the story.
-- Post-check: `facts` has exactly the schema's keys with valid types; every
-  `targetRuleId` exists. Invalid scenarios are dropped.
+- Six calls side by side, none with a tool. Five return whole scenarios, one per
+  strategy (baseline, overlap, definition, procedure, combination). Input: rules (ID,
+  kind, summary, condition, the facts each touches), fact schema, the pack's seeds for that strategy, the user's
+  role. The output schema is built from the fact schema of the document, so the model is
+  asked for a value for every fact by name and type.
+- Boundary scenarios are built in code (`pipeline/boundary.ts`): for a rule
+  `daysSinceStart < 30`, code emits the facts for 29, 30 and 31. If the comparison is a
+  member of an `all` group at the top of the condition, the other comparisons of that
+  group are set so that they hold; otherwise a compound rule would never apply at its own
+  boundary. Every other fact is `neutral`. Under `any` and `not` all other facts are
+  `neutral`. The step is 1 for every unit, and at most 5 thresholds are used, rules
+  against the user first. The sixth call gets these situations in words and returns only
+  the story, the frequency and the stake.
+- A call may take what is left of the 550 s of the request when the stage starts, at
+  least 90 s and at most 240 s. The earlier calls seldom use their whole limit, and at a
+  fixed 90 s the baseline call did not answer in 1 live run of 3. A call that fails or
+  does not answer in time is logged and the stage goes on with the others.
+- Post-check and selection in code (`pipeline/scenario-check.ts`): a scenario is dropped
+  if it does not parse, has no story or one over 600 characters, lacks a fact or has one
+  the schema does not have, has a value of the wrong type, or targets a rule that does
+  not exist. Scenarios with the same value for every fact become one, with the targets
+  of both. Above the cap of 40 the order of keeping is: up to 4 baseline scenarios; every
+  boundary scenario, because one says something only next to its two neighbours; then
+  the first scenario of each rule against the user that has none yet (F-FUZZ-3); then one
+  of each strategy in turn. Code numbers what is kept `s-001` onwards.
+- Fewer than 20 scenarios is logged and the run goes on; none fails the stage. A rule
+  against the user that no scenario tries is logged by ID.
+
+The `running` stage then calls `evaluate()` for every stored scenario, writes the outcome
+into the scenario document and the four result counts into the analysis.
 
 ### 5.4 evaluate() (code)
 

@@ -5,10 +5,12 @@ import policy from '../../test/fixtures/reader-policy.json';
 import receipt from '../../test/fixtures/reader-receipt.json';
 import proposedFacts from '../../test/fixtures/rules-facts.json';
 import proposedRules from '../../test/fixtures/rules-rules.json';
+import proposedScenarios from '../../test/fixtures/fuzz-scenarios.json';
 import { app } from '../app';
 import { bucket, db } from '../firebase';
 import { readDocument } from '../agents/reader';
 import { proposeFacts, proposeRules } from '../agents/rule-extractor';
+import { proposeScenarios, tellBoundaries } from '../agents/scenario-fuzzer';
 
 // Run through `pnpm test`: Firestore and Storage are the emulators. Only the
 // token check and the model are replaced.
@@ -18,6 +20,7 @@ vi.mock('../firebase', async (original) => ({
 }));
 vi.mock('../agents/reader');
 vi.mock('../agents/rule-extractor');
+vi.mock('../agents/scenario-fuzzer');
 
 const reader = vi.mocked(readDocument);
 const ruleWriter = vi.mocked(proposeRules);
@@ -56,6 +59,8 @@ beforeEach(async () => {
   vi.mocked(proposeFacts).mockResolvedValue(proposedFacts.facts as Fact[]);
   ruleWriter.mockReset();
   ruleWriter.mockResolvedValue(proposedRules.rules);
+  vi.mocked(proposeScenarios).mockResolvedValue(proposedScenarios.scenarios);
+  vi.mocked(tellBoundaries).mockResolvedValue([]);
   await upload('alice', 'analysis-1', '0-page.jpg');
 });
 
@@ -273,11 +278,11 @@ test('the owner confirms the details and the rules are derived', async () => {
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({
     analysisId: 'analysis-1',
-    status: 'fuzzing',
+    status: 'comparing',
   });
   expect(await stored('analysis-1')).toMatchObject({
-    status: 'fuzzing',
-    counts: { clauses: 3, rules: 3 },
+    status: 'comparing',
+    counts: { clauses: 3, rules: 3, scenarios: 3, fine: 1, bad: 1 },
     meta: {
       docType: 'loan',
       jurisdiction: 'SG',

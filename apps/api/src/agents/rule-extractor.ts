@@ -1,11 +1,5 @@
 import { z } from 'zod';
-import {
-  Fact,
-  RuleDraft,
-  type AnalysisMeta,
-  type Clause,
-  type FactSchema,
-} from '@repo/api-types';
+import { Fact, RuleDraft, type Clause, type FactSchema } from '@repo/api-types';
 import { config } from '../config';
 import type { Pack } from '../packs';
 import {
@@ -14,7 +8,7 @@ import {
   type Invalid,
   type Proposal,
 } from '../pipeline/rule-check';
-import { runAgent } from './run';
+import { about, askForList, type Document } from './run';
 
 // The clauses are untrusted input (TSD 5.8). No call here has a tool, and
 // what comes back is only a proposal: pipeline/rule-check.ts decides.
@@ -103,18 +97,34 @@ effect:
 - charge: type "charge", with either amount or percent in the same way.
 - unmodeled: null.
 
-touches: the fact keys the rule depends on. For an unmodeled rule, the facts
-whose value would make the clause matter.
+touches: the fact keys the rule depends on. For an unmodeled rule, only the
+facts that are about that clause and nothing else, such as "treatment was
+judged medically necessary". A situation in which one of them is not neutral
+is reported as one nobody can decide. So never list a fact that differs from
+its neutral value in most situations, such as the days since the start or
+the amount claimed. If no fact is about that clause alone, touches is empty.
 
 Every fact in the message has a neutral value: its value in an uneventful
-situation, in which nothing goes against the user. A rule of any kind other
-than benefit must be false when every fact has its neutral value. If yours is
-true there, the condition is the wrong way round.
+situation, in which nothing goes against the user. An exclusion, a condition
+or a deadline must be false when every fact has its neutral value. If yours
+is true there, the condition is the wrong way round. A limit or a charge may
+be true there when the document applies it every time, as with a deductible.
 
 Use unmodeled when the clause depends on someone's discretion or on a vague
 term ("as determined by us", "reasonable", "at our sole discretion"), or when
 the facts in the message cannot express it. Then when is null and effect is
 null. Do not invent a condition for such a clause, and do not leave it out.
+
+A clause that states a fixed amount, a percentage or a number of days is not
+vague. Write it as a rule:
+- An amount the user always pays first (a deductible, an excess) is a limit
+  with effect "deduct" and that amount. Its condition is that there is
+  something to pay, such as the amount claimed being above 0.
+- A most that is paid (an annual limit, a sub-limit) is a limit with effect
+  "cap" and that amount. Its condition is the amount being above it.
+- Money that is not returned or must be paid in a named situation is a
+  charge, or a condition with effect "deny", whose condition is that
+  situation.
 
 Write one rule for each separate consequence. A clause can give several
 rules, and a rule can cite several clauses. Skip a clause that neither gives
@@ -178,13 +188,6 @@ const proposedRule = z.object({
   touches,
 });
 
-type Document = Pick<AnalysisMeta, 'docType' | 'title' | 'userRole'>;
-
-const about = ({ docType, title, userRole }: Document) => ({
-  documentType: docType,
-  title,
-  userRole,
-});
 // The page is of no use to the model, and the gloss is: it is the English.
 const wording = (clauses: Clause[]) =>
   clauses.map(({ id, number, heading, text, gloss }) => ({
@@ -195,27 +198,7 @@ const wording = (clauses: Clause[]) =>
     gloss,
   }));
 
-// The model is held to the schema of an entry. The answer itself only has to
-// be a list: pipeline/rule-check.ts judges each entry on its own, so one
-// that does not fit does not cost the others.
-async function ask(
-  name: string,
-  instruction: string,
-  list: 'facts' | 'rules',
-  entry: z.ZodType,
-  message: object,
-): Promise<unknown[]> {
-  const answer = await runAgent({
-    name,
-    model: config.models.pro,
-    instruction,
-    schema: z.object({ [list]: z.array(entry) }),
-    accept: z.object({ [list]: z.array(z.unknown()) }),
-    parts: [{ text: JSON.stringify(message) }],
-    seconds: config.limits.modelCallSeconds.rules,
-  });
-  return answer[list]!;
-}
+const ask = askForList.bind(null, config.models.pro);
 
 /** Call 1: the facts this document depends on. Unchecked. */
 export const proposeFacts = (
@@ -223,11 +206,18 @@ export const proposeFacts = (
   pack: Pack,
   document: Document,
 ): Promise<unknown[]> =>
-  ask('fact_finder', FACTS_INSTRUCTION, 'facts', Fact, {
-    ...about(document),
-    factsThatUsuallyMatter: pack.facts,
-    clauses: wording(clauses),
-  });
+  ask(
+    'fact_finder',
+    FACTS_INSTRUCTION,
+    'facts',
+    Fact,
+    {
+      ...about(document),
+      factsThatUsuallyMatter: pack.facts,
+      clauses: wording(clauses),
+    },
+    config.limits.modelCallSeconds.facts,
+  );
 
 /** Call 2: rules over the fact schema. Unchecked. */
 export const proposeRules = (
@@ -235,11 +225,18 @@ export const proposeRules = (
   factSchema: FactSchema,
   document: Document,
 ): Promise<unknown[]> =>
-  ask('rule_writer', RULES_INSTRUCTION, 'rules', proposedRule, {
-    ...about(document),
-    facts: factSchema,
-    clauses: wording(clauses),
-  });
+  ask(
+    'rule_writer',
+    RULES_INSTRUCTION,
+    'rules',
+    proposedRule,
+    {
+      ...about(document),
+      facts: factSchema,
+      clauses: wording(clauses),
+    },
+    config.limits.modelCallSeconds.rules,
+  );
 
 const Answered = z.looseObject({ id: z.string() });
 
@@ -265,6 +262,7 @@ export async function repairRules(
         reasons: issues,
       })),
     },
+    config.limits.modelCallSeconds.repair,
   );
   // An entry that does not say which rule it corrects is of no use.
   return rules.flatMap((entry) => {

@@ -15,4 +15,27 @@ export const general: Pack = {
     'whether money the user handed over (a deposit, a prepayment) is returned',
     'where and how a dispute must be brought',
   ],
+  seeds: {
+    baseline: [
+      'both sides do what the agreement says for its whole term',
+      'the user ends the agreement with the notice it asks for',
+    ],
+    overlap: [
+      'the user is allowed to do something, but one detail of how they did it is not allowed',
+      'the user meets an obligation late because the other party was late first',
+    ],
+    definition: [
+      'a situation at the edge of a term the agreement defines',
+      'something the user takes for normal use and the agreement may call a breach',
+    ],
+    procedure: [
+      'a notice given a few days late, or by message when the agreement asks for a letter',
+      'a payment a few days late',
+      'a required document or approval is missing',
+    ],
+    combination: [
+      'the user leaves early and a fee, a lost deposit and a notice period apply together',
+      'the other party changes a term and the user who objects is still bound for months',
+    ],
+  },
 };
