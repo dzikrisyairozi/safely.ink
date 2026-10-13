@@ -1,5 +1,6 @@
 import {
   DocType,
+  isLawChecked,
   type AnalysisMeta,
   type Clause,
   type ReaderOutput,
@@ -14,14 +15,9 @@ export type Reading =
  * Turns what the Reader returned into what the analysis becomes. The model
  * proposes; this function decides. Pure: no I/O and no model call.
  *
- * `pageCount` comes from the files, not from the model. `lawJurisdictions`
- * are the countries the legal comparison covers.
+ * `pageCount` comes from the files, not from the model.
  */
-export function checkReading(
-  read: ReaderOutput,
-  pageCount: number,
-  lawJurisdictions: string[],
-): Reading {
+export function checkReading(read: ReaderOutput, pageCount: number): Reading {
   if (!read.isPolicyOrContract) return { status: 'rejected' };
 
   const onAPage = (page: number) => page >= 1 && page <= pageCount;
@@ -48,7 +44,7 @@ export function checkReading(
       parties: read.parties,
       userRole: null,
       jurisdiction,
-      lawChecked: lawJurisdictions.includes(jurisdiction),
+      lawChecked: isLawChecked(jurisdiction),
       language: read.language,
       pageCount,
       unreadablePages: [...new Set(read.unreadablePages.filter(onAPage))].sort(

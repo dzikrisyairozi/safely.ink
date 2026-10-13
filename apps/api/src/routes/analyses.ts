@@ -4,7 +4,6 @@ import {
   AnalysisId,
   ConfirmAnalysisRequest,
   CreateAnalysisRequest,
-  LAW_JURISDICTIONS,
   isLawChecked,
   type AnalysisStatus,
   type Clause,
@@ -98,7 +97,6 @@ analyses.post('/', async (c) => {
     const reading = checkReading(
       await readDocument(uploads.files, uploads.pageCount),
       uploads.pageCount,
-      [...LAW_JURISDICTIONS],
     );
     if (reading.status === 'awaiting_confirmation') {
       await saveClauses(analysis, reading.clauses);
@@ -137,6 +135,8 @@ analyses.post('/', async (c) => {
 // Stores what the user confirmed. The remaining stages attach here in M4.
 analyses.post('/:id/confirm', async (c) => {
   const id = AnalysisId.safeParse(c.req.param('id'));
+  if (!id.success)
+    return c.json(failure('not_found', 'No such analysis.'), 404);
   const body = ConfirmAnalysisRequest.safeParse(
     await c.req.json().catch(() => null),
   );
@@ -154,7 +154,6 @@ analyses.post('/:id/confirm', async (c) => {
   const jurisdiction = body.data.jurisdiction.trim().toUpperCase();
 
   const outcome = await db.runTransaction(async (tx) => {
-    if (!id.success) return 'not_found';
     const analysis = db.doc(`analyses/${id.data}`);
     const data = (await tx.get(analysis)).data();
     // Someone else's analysis looks the same as one that does not exist.

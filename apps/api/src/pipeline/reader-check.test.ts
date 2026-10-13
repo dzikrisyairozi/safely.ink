@@ -5,7 +5,6 @@ import receipt from '../../test/fixtures/reader-receipt.json';
 import { checkReading } from './reader-check';
 
 // The fixtures are Reader output as the model returns it, before any check.
-const LAW = ['ID', 'SG', 'AU'];
 const read = (changes: Partial<ReaderOutput> = {}) =>
   ReaderOutput.parse({ ...policy, ...changes });
 const clause = (changes: Partial<ReaderOutput['clauses'][number]>) => ({
@@ -25,7 +24,7 @@ function accepted(reading: ReturnType<typeof checkReading>) {
 }
 
 test('a policy waits for confirmation with numbered clause IDs', () => {
-  const { meta, clauses } = accepted(checkReading(read(), 12, LAW));
+  const { meta, clauses } = accepted(checkReading(read(), 12));
 
   expect(clauses.map((c) => c.id)).toEqual(['c-001', 'c-002', 'c-003']);
   expect(clauses[0]).toMatchObject({
@@ -44,29 +43,27 @@ test('a policy waits for confirmation with numbered clause IDs', () => {
 });
 
 test('a restaurant receipt is rejected', () => {
-  expect(checkReading(ReaderOutput.parse(receipt), 1, LAW)).toEqual({
+  expect(checkReading(ReaderOutput.parse(receipt), 1)).toEqual({
     status: 'rejected',
   });
 });
 
 test('a document type outside the tuned five becomes other', () => {
   const { meta } = accepted(
-    checkReading(read({ docType: 'Gym membership' }), 12, LAW),
+    checkReading(read({ docType: 'Gym membership' }), 12),
   );
 
   expect(meta.docType).toBe('other');
 });
 
 test('a tuned type is recognised whatever its case', () => {
-  const { meta } = accepted(checkReading(read({ docType: ' NDA ' }), 12, LAW));
+  const { meta } = accepted(checkReading(read({ docType: ' NDA ' }), 12));
 
   expect(meta.docType).toBe('nda');
 });
 
 test('a jurisdiction without a law check is kept and marked unchecked', () => {
-  const { meta } = accepted(
-    checkReading(read({ jurisdiction: 'my' }), 12, LAW),
-  );
+  const { meta } = accepted(checkReading(read({ jurisdiction: 'my' }), 12));
 
   expect(meta).toMatchObject({ jurisdiction: 'MY', lawChecked: false });
 });
@@ -79,7 +76,7 @@ test('clauses without text or on a page that does not exist are dropped', () => 
     clause({ text: 'Kept.', page: 12 }),
   ];
 
-  const reading = accepted(checkReading(read({ clauses }), 12, LAW));
+  const reading = accepted(checkReading(read({ clauses }), 12));
 
   expect(reading.clauses).toEqual(
     [clause({ text: 'Kept.', page: 12 })].map((c) => ({ ...c, id: 'c-001' })),
@@ -89,14 +86,14 @@ test('clauses without text or on a page that does not exist are dropped', () => 
 test('a contract with no usable clause fails instead of passing empty', () => {
   const clauses = [clause({ text: '' })];
 
-  expect(checkReading(read({ clauses }), 12, LAW)).toEqual({
+  expect(checkReading(read({ clauses }), 12)).toEqual({
     status: 'failed',
   });
 });
 
 test('unreadable pages are reported once, in order, within the document', () => {
   const { meta } = accepted(
-    checkReading(read({ unreadablePages: [7, 3, 7, 0, 99] }), 12, LAW),
+    checkReading(read({ unreadablePages: [7, 3, 7, 0, 99] }), 12),
   );
 
   expect(meta.unreadablePages).toEqual([3, 7]);
@@ -106,6 +103,6 @@ test('the same reading always gives the same result and is not changed', () => {
   const input = read();
   const before = structuredClone(input);
 
-  expect(checkReading(input, 12, LAW)).toEqual(checkReading(input, 12, LAW));
+  expect(checkReading(input, 12)).toEqual(checkReading(input, 12));
   expect(input).toEqual(before);
 });
