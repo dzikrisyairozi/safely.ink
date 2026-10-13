@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// Uploads are write-once: no update, and deletion goes through the API.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /uploads/{uid}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && resource == null
+        && request.resource.size <= 30 * 1024 * 1024
+        && (request.resource.contentType == 'application/pdf'
+          || request.resource.contentType.matches('image/.*'));
+    }
+  }
+}

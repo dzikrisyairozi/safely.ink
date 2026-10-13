@@ -9,8 +9,8 @@
     "lint": "eslint .",
     "lint:check": "eslint . --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "firebase emulators:exec --config ../../firebase.json --project demo-policy-police --only firestore,storage \"vitest run\"",
+    "test:watch": "vitest --dir src"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",
@@ -20,9 +20,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^26.6.3",
     "eslint": "^9.39.5",
+    "firebase": "^13.0.0",
     "globals": "^17.12.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.0",
