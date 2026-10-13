@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import {
+  Fact,
   RuleDraft,
   type Clause,
-  type Fact,
   type FactSchema,
   type Rule,
 } from '@repo/api-types';
@@ -56,12 +56,13 @@ export const BASE_FACTS: FactSchema = [
  * The fact schema of a document: the base facts, then the facts the model
  * proposed that fit their own definition. Pure, like everything here.
  */
-export function checkFacts(proposed: Fact[]): FactSchema {
+export function checkFacts(proposed: unknown[]): FactSchema {
   const taken = new Set(BASE_FACTS.map((fact) => fact.key));
-  const own = proposed.filter((fact) => {
-    if (taken.has(fact.key)) return false;
-    taken.add(fact.key);
-    return true;
+  const own = proposed.flatMap((entry) => {
+    const fact = Fact.safeParse(entry);
+    if (!fact.success || taken.has(fact.data.key)) return [];
+    taken.add(fact.data.key);
+    return [fact.data];
   });
   const broken = new Set(validateFactSchema(own).map((issue) => issue.id));
   return [...BASE_FACTS, ...own.filter((fact) => !broken.has(fact.key))];

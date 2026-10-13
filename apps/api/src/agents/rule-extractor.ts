@@ -194,53 +194,52 @@ const wording = (clauses: Clause[]) =>
     gloss,
   }));
 
-const ask = <Schema extends z.ZodObject>(
+// The model is held to the schema of an entry. The answer itself only has to
+// be a list: pipeline/rule-check.ts judges each entry on its own, so one
+// that does not fit does not cost the others.
+async function ask(
   name: string,
   instruction: string,
-  schema: Schema,
+  list: 'facts' | 'rules',
+  entry: z.ZodType,
   message: object,
-) =>
-  runAgent({
+): Promise<unknown[]> {
+  const answer = await runAgent({
     name,
     model: config.models.pro,
     instruction,
-    schema,
+    schema: z.object({ [list]: z.array(entry) }),
+    accept: z.object({ [list]: z.array(z.unknown()) }),
     parts: [{ text: JSON.stringify(message) }],
   });
+  return answer[list]!;
+}
 
 /** Call 1: the facts this document depends on. Unchecked. */
-export async function proposeFacts(
+export const proposeFacts = (
   clauses: Clause[],
   pack: Pack,
   document: Document,
-): Promise<Fact[]> {
-  const { facts } = await ask(
-    'fact_finder',
-    FACTS_INSTRUCTION,
-    z.object({ facts: z.array(Fact) }),
-    {
-      ...about(document),
-      factsThatUsuallyMatter: pack.facts,
-      clauses: wording(clauses),
-    },
-  );
-  return facts;
-}
+): Promise<unknown[]> =>
+  ask('fact_finder', FACTS_INSTRUCTION, 'facts', Fact, {
+    ...about(document),
+    factsThatUsuallyMatter: pack.facts,
+    clauses: wording(clauses),
+  });
 
 /** Call 2: rules over the fact schema. Unchecked. */
-export async function proposeRules(
+export const proposeRules = (
   clauses: Clause[],
   factSchema: FactSchema,
   document: Document,
-): Promise<unknown[]> {
-  const { rules } = await ask(
-    'rule_writer',
-    RULES_INSTRUCTION,
-    z.object({ rules: z.array(proposedRule) }),
-    { ...about(document), facts: factSchema, clauses: wording(clauses) },
-  );
-  return rules;
-}
+): Promise<unknown[]> =>
+  ask('rule_writer', RULES_INSTRUCTION, 'rules', proposedRule, {
+    ...about(document),
+    facts: factSchema,
+    clauses: wording(clauses),
+  });
+
+const Answered = z.looseObject({ id: z.string() });
 
 /** One more try for the rules the post-check sent back. Unchecked. */
 export async function repairRules(
@@ -249,10 +248,11 @@ export async function repairRules(
   factSchema: FactSchema,
   document: Document,
 ): Promise<Proposal[]> {
-  const { rules } = await ask(
+  const rules = await ask(
     'rule_repairer',
     REPAIR_INSTRUCTION,
-    z.object({ rules: z.array(proposedRule.extend({ id: z.string() })) }),
+    'rules',
+    proposedRule.extend({ id: z.string() }),
     {
       ...about(document),
       facts: factSchema,
@@ -264,5 +264,11 @@ export async function repairRules(
       })),
     },
   );
-  return rules.map(({ id, ...draft }) => ({ id, draft }));
+  // An entry that does not say which rule it corrects is of no use.
+  return rules.flatMap((entry) => {
+    const answered = Answered.safeParse(entry);
+    if (!answered.success) return [];
+    const { id, ...draft } = answered.data;
+    return [{ id, draft }];
+  });
 }

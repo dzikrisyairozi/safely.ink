@@ -9,25 +9,32 @@ import type { Part } from '@google/genai';
 import type { z } from 'zod';
 import { config } from '../config';
 
-type Call<Schema extends z.ZodObject> = {
+type Call<Schema extends z.ZodObject, Accept extends z.ZodType> = {
   name: string;
   model: string;
   instruction: string;
-  schema: Schema;
+  schema: Schema; // what the model is asked for
+  // What the answer must be to be used at all, when that is less than the
+  // schema because the caller checks the rest itself.
+  accept?: Accept;
   parts: Part[];
 };
 
 /**
  * One call to a model that has no tools. What it reads is untrusted
- * (TSD 5.8), so the answer is used only if it parses with the schema.
+ * (TSD 5.8), so the answer is used only if it parses.
  */
-export async function runAgent<Schema extends z.ZodObject>({
+export async function runAgent<
+  Schema extends z.ZodObject,
+  Accept extends z.ZodType = Schema,
+>({
   name,
   model,
   instruction,
   schema,
+  accept,
   parts,
-}: Call<Schema>): Promise<z.infer<Schema>> {
+}: Call<Schema, Accept>): Promise<z.infer<Accept>> {
   const apiKey = config.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set.');
 
@@ -49,5 +56,5 @@ export async function runAgent<Schema extends z.ZodObject>({
   }
   // ADK can end with an empty answer and no error (ADR 3).
   if (!answer.trim()) throw new Error(`The ${name} returned an empty answer.`);
-  return schema.parse(JSON.parse(answer));
+  return (accept ?? schema).parse(JSON.parse(answer)) as z.infer<Accept>;
 }
