@@ -9,7 +9,7 @@ service firebase.storage {
         && resource == null
         && request.resource.size <= 30 * 1024 * 1024
         && (request.resource.contentType == 'application/pdf'
-          || request.resource.contentType.matches('image/.*'));
+          || request.resource.contentType.matches('image/(jpeg|png|webp|heic|heif)'));
     }
   }
 }

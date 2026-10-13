@@ -158,13 +158,23 @@ describe('storage: uploads', () => {
     );
   });
 
-  test('other content types are rejected', async () => {
-    const file = ref(alice().storage(), 'uploads/alice/a2/0-run.exe');
+  test.each(['image/jpeg', 'image/webp', 'image/heic'])(
+    '%s is accepted',
+    async (type) => {
+      const file = ref(alice().storage(), `uploads/alice/a2/${type}`);
 
-    await assertFails(
-      uploadBytes(file, bytes, { contentType: 'application/x-msdownload' }),
-    );
-  });
+      await assertSucceeds(uploadBytes(file, bytes, { contentType: type }));
+    },
+  );
+
+  test.each(['application/x-msdownload', 'image/svg+xml', 'image/gif'])(
+    '%s is rejected',
+    async (type) => {
+      const file = ref(alice().storage(), `uploads/alice/a2/${type}`);
+
+      await assertFails(uploadBytes(file, bytes, { contentType: type }));
+    },
+  );
 
   test('files over 30 MB are rejected', async () => {
     const file = ref(alice().storage(), 'uploads/alice/a2/0-big.pdf');

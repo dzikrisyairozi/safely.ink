@@ -163,8 +163,13 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 - `analyses/**`: read if the analysis `ownerUid == request.auth.uid` (sub-collections check
   the parent). **No client writes**; only the API (Admin SDK) writes.
 - `lawPages/**`, `users/**`: no client access.
-- Storage `uploads/{uid}/**`: create if `request.auth.uid == uid`, content type is PDF or
-  image, size ≤ 30 MB. Read by owner. No update.
+- Storage `uploads/{uid}/**`: create if `request.auth.uid == uid`, content type is PDF,
+  JPEG, PNG, WebP or HEIC (F-UP-1), size ≤ 30 MB. Read by owner. No update. The content
+  type is declared by the client, so the reader checks the real file type.
+- **Accepted risk:** the rules do not limit how many files a signed-in user uploads, and
+  uploads do not pass through the API's daily quota. For the hackathon this is bounded
+  only by the 7-day lifecycle rule and a billing budget alert. The fix, if needed, is
+  signed upload URLs issued by the API after its quota check, with client writes closed.
 - Storage lifecycle: delete objects under `uploads/` after 7 days (F-HIST-3).
 
 ## 4. API
