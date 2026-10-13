@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import {
   Scenario,
-  type AnalysisMeta,
   type Fact,
   type FactSchema,
   type Rule,
@@ -10,7 +9,7 @@ import {
 import { config } from '../config';
 import type { Pack } from '../packs';
 import type { BoundaryDraft } from '../pipeline/boundary';
-import { runAgent } from './run';
+import { about, askForList, type Document } from './run';
 
 // The rule summaries come from the document, so they are untrusted input
 // (TSD 5.8). No call here has a tool, and what comes back is only a
@@ -90,13 +89,6 @@ different from an uneventful day; everything else is as usual. The values are
 chosen to fall just before, on or just after a limit in the document. Use
 the exact values given. Return one entry per situation, with its n.`;
 
-type Document = Pick<AnalysisMeta, 'docType' | 'title' | 'userRole'>;
-const about = ({ docType, title, userRole }: Document) => ({
-  documentType: docType,
-  title,
-  userRole,
-});
-
 const { story, frequency, targetRuleIds } = Scenario.shape;
 const stake = z.number().nullable();
 
@@ -107,27 +99,7 @@ const valueOf = (fact: Fact) =>
       ? z.boolean()
       : z.enum(fact.values ?? []);
 
-// The answer only has to be a list: the scenario check judges each entry on
-// its own, so one that does not fit does not cost the others.
-async function ask(
-  name: string,
-  instruction: string,
-  list: 'scenarios' | 'stories',
-  entry: z.ZodType,
-  message: object,
-  seconds: number,
-): Promise<unknown[]> {
-  const answer = await runAgent({
-    name,
-    model: config.models.flash,
-    instruction,
-    schema: z.object({ [list]: z.array(entry) }),
-    accept: z.object({ [list]: z.array(z.unknown()) }),
-    parts: [{ text: JSON.stringify(message) }],
-    seconds,
-  });
-  return answer[list]!;
-}
+const ask = askForList.bind(null, config.models.flash);
 
 /**
  * Scenarios of one strategy. The model is asked for a value for each fact

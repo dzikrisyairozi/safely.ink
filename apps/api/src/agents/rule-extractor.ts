@@ -1,11 +1,5 @@
 import { z } from 'zod';
-import {
-  Fact,
-  RuleDraft,
-  type AnalysisMeta,
-  type Clause,
-  type FactSchema,
-} from '@repo/api-types';
+import { Fact, RuleDraft, type Clause, type FactSchema } from '@repo/api-types';
 import { config } from '../config';
 import type { Pack } from '../packs';
 import {
@@ -14,7 +8,7 @@ import {
   type Invalid,
   type Proposal,
 } from '../pipeline/rule-check';
-import { runAgent } from './run';
+import { about, askForList, type Document } from './run';
 
 // The clauses are untrusted input (TSD 5.8). No call here has a tool, and
 // what comes back is only a proposal: pipeline/rule-check.ts decides.
@@ -194,13 +188,6 @@ const proposedRule = z.object({
   touches,
 });
 
-type Document = Pick<AnalysisMeta, 'docType' | 'title' | 'userRole'>;
-
-const about = ({ docType, title, userRole }: Document) => ({
-  documentType: docType,
-  title,
-  userRole,
-});
 // The page is of no use to the model, and the gloss is: it is the English.
 const wording = (clauses: Clause[]) =>
   clauses.map(({ id, number, heading, text, gloss }) => ({
@@ -211,28 +198,7 @@ const wording = (clauses: Clause[]) =>
     gloss,
   }));
 
-// The model is held to the schema of an entry. The answer itself only has to
-// be a list: pipeline/rule-check.ts judges each entry on its own, so one
-// that does not fit does not cost the others.
-async function ask(
-  name: string,
-  instruction: string,
-  list: 'facts' | 'rules',
-  entry: z.ZodType,
-  message: object,
-  seconds: number,
-): Promise<unknown[]> {
-  const answer = await runAgent({
-    name,
-    model: config.models.pro,
-    instruction,
-    schema: z.object({ [list]: z.array(entry) }),
-    accept: z.object({ [list]: z.array(z.unknown()) }),
-    parts: [{ text: JSON.stringify(message) }],
-    seconds,
-  });
-  return answer[list]!;
-}
+const ask = askForList.bind(null, config.models.pro);
 
 /** Call 1: the facts this document depends on. Unchecked. */
 export const proposeFacts = (
