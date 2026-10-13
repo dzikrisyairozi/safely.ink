@@ -131,6 +131,7 @@
       "employment": "Employment contract",
       "nda": "Non-disclosure agreement",
       "lease": "Lease",
+      "terms": "Terms and conditions",
       "other": "Another kind of contract"
     },
     "confirmed": {

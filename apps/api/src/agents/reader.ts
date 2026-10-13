@@ -27,13 +27,15 @@ A receipt, invoice, letter, ID card, statement, form or photo of something
 else is false. When false, return empty lists and empty strings for the rest.
 
 docType: "insurance", "loan", "employment", "nda" or "lease" when the document
-is one of those. Otherwise a short English name of what it is.
+is one of those. "terms" for terms of service, terms and conditions, or the
+terms of a membership or subscription. Otherwise a short English name of what
+it is.
 
 title: the title as printed. If there is none, a short description.
 
 parties: every named party with its role as one lowercase English noun, such
 as "insurer", "insured", "lender", "borrower", "employer", "employee",
-"landlord", "tenant". Give two parties different roles.
+"landlord", "tenant", "provider", "customer". Give two parties different roles.
 
 jurisdiction: the ISO 3166-1 alpha-2 code of the country whose law governs the
 document. Take it from the governing-law clause. If there is none, use other

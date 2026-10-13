@@ -10,6 +10,7 @@ export const DocType = z.enum([
   'employment',
   'nda',
   'lease',
+  'terms', // terms of service, terms and conditions
   'other',
 ]);
 export type DocType = z.infer<typeof DocType>;
