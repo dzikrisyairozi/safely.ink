@@ -81,6 +81,10 @@ apps/
       app.ts              routes, auth middleware
       config.ts           env, model IDs, limits, legal-source allowlist
       pipeline.ts         stage orchestration, Firestore progress writes
+      pipeline/           pure checks on agent output (reader-check.ts)
+      routes/             analyses.ts
+      uploads.ts          fetch and check the uploaded files
+      usage.ts            daily limit
       agents/             reader, rule-extractor, scenario-fuzzer, expectation-judge, legal-researcher
       packs/              one file per document type: scenario seeds, expectation hints
       engine/             evaluate.ts, score.ts, validate.ts  (pure functions, no I/O)
@@ -181,18 +185,20 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 
 All routes require `Authorization: Bearer <Firebase ID token>`, verified with the Admin SDK.
 
-| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                 |
-| -------- | -------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                |
-| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks the daily limit and that the files exist under the caller's upload path. Creates the analysis, runs **Read**, sets `awaiting_confirmation` or `rejected`, returns. |
-| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only. Runs the remaining stages. Holds the request open until `done` or `failed`.                                                                                   |
-| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                   |
-| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                  |
+| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                                                                                                                                                                                                            |
+| -------- | -------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                           |
+| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read**, sets `awaiting_confirmation`, `rejected` (slot given back) or `failed`, returns `{ analysisId, status }`. 409 if the analysis exists. |
+| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`. The remaining stages attach here in M4 and will hold the request open until `done` or `failed`.                                                                                                           |
+| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                                                                                                                                                                                                              |
+| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                             |
 
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
 
-Errors: `{ error: { code, message } }` with HTTP 400 / 401 / 403 / 404 / 429 / 500.
+Errors: `{ error: { code, message } }` with HTTP 400 / 401 / 403 / 404 / 409 / 429 / 500.
+A 429 `daily_limit` also carries `resetAt`, the next UTC midnight. Upload refusals use the
+codes `file_missing`, `unsupported_type`, `mixed_input`, `too_large` and `too_many_pages`.
 Request bodies are validated with the shared Zod schemas.
 
 ## 5. Pipeline
@@ -208,7 +214,11 @@ exist (so the UI updates live).
 - Output (structured): `meta` (including `isPolicyOrContract`, parties with roles) and `Clause[]`.
 - Post-check in code: clause text non-empty; pages within range; `rejected` if
   `isPolicyOrContract` is false (F-READ-4). `docType` outside the five tuned types → `other`.
-- Very long documents: process in page windows of 40 with clause IDs offset per window.
+- Very long documents: process in page windows of 40. The windows are joined before the
+  post-check, which numbers the clauses, so IDs are unique without an offset.
+- The page count comes from the files (PDF page tree, or the number of images), not from
+  the model. Files reach the model through the Gemini Files API and are deleted from it
+  after the call.
 
 ### 5.2 RuleExtractor (agent, Pro, two calls)
 
