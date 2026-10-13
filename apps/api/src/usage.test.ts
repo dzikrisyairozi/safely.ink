@@ -1,4 +1,5 @@
 import { beforeEach, expect, test } from 'vitest';
+import { config } from './config';
 import { db } from './firebase';
 import { nextReset, releaseDailySlot, reserveDailySlot } from './usage';
 
@@ -59,4 +60,16 @@ test('releasing with nothing reserved leaves the count at zero', async () => {
   await releaseDailySlot('alice', noon);
 
   expect((await started()) ?? 0).toBe(0);
+});
+
+test('a slot that was given back still counts as an attempt', async () => {
+  await db
+    .doc('users/alice/usage/2026-10-13')
+    .set({ started: 0, attempts: config.limits.attemptsPerUserPerDay - 1 });
+
+  expect(await reserveDailySlot('alice', noon)).toBe(true);
+  await releaseDailySlot('alice', noon);
+
+  expect(await reserveDailySlot('alice', noon)).toBe(false);
+  expect(await started()).toBe(0);
 });

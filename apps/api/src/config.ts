@@ -33,6 +33,8 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       uploadMaxPages: UPLOAD_LIMITS.maxPages,
       scenariosPerAnalysis: 40,
       analysesPerUserPerDay: 10,
+      // Counts the runs whose slot was given back too, so those have a limit.
+      attemptsPerUserPerDay: 30,
     },
 
     // Official legal sources per jurisdiction. `*` stands for one host label.

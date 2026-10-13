@@ -159,7 +159,8 @@ analyses/{analysisId}
   findings/{ruleId}         { status, reasoning, citations[] }
   traps/{trapId}            { title, severity, ruleId, scenarioIds[], action }
 
-users/{uid}/usage/{yyyy-mm-dd}   { started }             // daily limit, F-UP-5
+users/{uid}/usage/{yyyy-mm-dd}   { started, attempts }   // daily limit, F-UP-5; attempts
+                                                         // never goes down, cap 30
 
 lawPages/{sha256(url)}                                   // F-CMP-6
   url, host, jurisdiction, text, fetchedAt
