@@ -38,8 +38,9 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       // How long one call to a model may take. Cloud Run ends a request after
       // 600 s: the Reader's calls run side by side in one request. In the
       // confirm request the three of the rules stage run one after the
-      // other, then those of the fuzzer side by side: 510 s at most.
-      modelCallSeconds: { read: 540, rules: 150, fuzz: 60 },
+      // other, then those of the fuzzer side by side: 540 s at most.
+      // A fuzzer call on a 19-rule policy took 55 to 60 s (2026-10-13).
+      modelCallSeconds: { read: 540, rules: 150, fuzz: 90 },
     },
 
     // Official legal sources per jurisdiction. `*` stands for one host label.

@@ -269,13 +269,14 @@ is what is stored. After `running` the analysis waits at `comparing`.
   `neutral`. The step is 1 for every unit, and at most 5 thresholds are used, rules
   against the user first. The sixth call gets these situations in words and returns only
   the story, the frequency and the stake.
-- A call that fails or does not answer in 60 s is logged and the stage goes on with the
+- A call that fails or does not answer in 90 s is logged and the stage goes on with the
   others.
 - Post-check and selection in code (`pipeline/scenario-check.ts`): a scenario is dropped
   if it does not parse, has no story or one over 600 characters, lacks a fact or has one
   the schema does not have, has a value of the wrong type, or targets a rule that does
   not exist. Scenarios with the same value for every fact become one, with the targets
-  of both. Above the cap of 40 the order of keeping is: up to 4 baseline scenarios; then
+  of both. Above the cap of 40 the order of keeping is: up to 4 baseline scenarios; every
+  boundary scenario, because one says something only next to its two neighbours; then
   the first scenario of each rule against the user that has none yet (F-FUZZ-3); then one
   of each strategy in turn. Code numbers what is kept `s-001` onwards.
 - Fewer than 20 scenarios is logged and the run goes on; none fails the stage. A rule
