@@ -341,6 +341,17 @@
     "trace": "Bagaimana aturan memutuskannya",
     "because": "Karena: {{fact}}",
     "clause": "Yang dinyatakan dokumen",
+    "law": {
+      "title": "Yang dinyatakan hukum",
+      "status": {
+        "conflicts": "Hukum tidak mengizinkan ini.",
+        "restricted": "Hukum mengizinkan ini hanya dengan syarat.",
+        "permitted": "Hukum mengizinkan ini.",
+        "no_finding": "Kami tidak menemukan hukum yang mengatur hal ini."
+      },
+      "source": "Buka sumber resmi",
+      "unavailable": "Pencarian hukum tidak tersedia. Coba lagi nanti dari laporan."
+    },
     "frequency": {
       "common": "Sering terjadi",
       "occasional": "Kadang terjadi",

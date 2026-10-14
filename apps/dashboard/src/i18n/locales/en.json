@@ -341,6 +341,17 @@
     "trace": "How the rules decided it",
     "because": "Because of: {{fact}}",
     "clause": "What the document says",
+    "law": {
+      "title": "What the law says",
+      "status": {
+        "conflicts": "The law does not allow this.",
+        "restricted": "The law allows this only under conditions.",
+        "permitted": "The law allows this.",
+        "no_finding": "We found no law that settles this."
+      },
+      "source": "Open the official source",
+      "unavailable": "Law lookup unavailable. Try again later from the report."
+    },
     "frequency": {
       "common": "Happens often",
       "occasional": "Happens now and then",

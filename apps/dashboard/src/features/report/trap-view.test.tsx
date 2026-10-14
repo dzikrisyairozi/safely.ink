@@ -6,6 +6,7 @@ import type {
   Clause,
   Fact,
   Rule,
+  StoredFinding,
   StoredScenario,
   Trap,
 } from '@repo/api-types';
@@ -183,4 +184,93 @@ test('the deciding clause is quoted with its page and gloss', () => {
   expect(quoted.textContent).toMatch(/Clause 4\.1, page 3/);
   expect(quoted.textContent).toMatch(/Tidak ada manfaat dalam 30 hari pertama/);
   expect(quoted.textContent).toMatch(/No benefit in the first 30 days/);
+});
+
+const lawChecked: Analysis = {
+  ...analysis,
+  meta: {
+    docType: 'insurance',
+    title: 'Polis',
+    parties: [],
+    userRole: 'insured',
+    jurisdiction: 'ID',
+    lawChecked: true,
+    detected: { docType: 'insurance', jurisdiction: 'ID' },
+    language: 'id',
+    pageCount: 3,
+    unreadablePages: [],
+  },
+};
+const finding: StoredFinding = {
+  ruleId: 'r-001',
+  status: 'conflicts',
+  reasoning: 'The law forbids a clause that moves the insurer’s duty to you.',
+  citations: [
+    {
+      instrument: 'Undang-Undang Nomor 8 Tahun 1999',
+      section: 'Pasal 18 ayat (1)',
+      quote: 'a. menyatakan pengalihan tanggung jawab pelaku usaha;',
+      url: 'https://pasal.id/peraturan/uu/uu-no-8-tahun-1999/pasal-18',
+    },
+  ],
+  error: null,
+};
+const showLaw = (shown: StoredFinding | undefined, on = lawChecked) =>
+  render(
+    <TrapView
+      id="analysis-1"
+      analysis={on}
+      trap={trap}
+      rules={rules}
+      scenarios={scenarios}
+      clauses={clauses}
+      finding={shown}
+    />,
+  );
+const lawSection = () =>
+  screen.getByRole('heading', { name: 'What the law says' }).parentElement!;
+
+test('the legal finding shows what the law says, its quote and a link to the official page', () => {
+  showLaw(finding);
+
+  const law = lawSection();
+  expect(law.textContent).toMatch(/The law does not allow this\./);
+  expect(law.textContent).toMatch(/moves the insurer’s duty/);
+  expect(law.textContent).toMatch(
+    /Undang-Undang Nomor 8 Tahun 1999 · Pasal 18 ayat \(1\)/,
+  );
+  expect(law.textContent).toMatch(/pengalihan tanggung jawab/);
+  const link = within(law).getByRole('link', {
+    name: 'Open the official source',
+  });
+  expect(link.getAttribute('href')).toBe(finding.citations[0]!.url);
+  expect(link.getAttribute('target')).toBe('_blank');
+});
+
+test('a rule the law says nothing about says so, without citations', () => {
+  showLaw({ ...finding, status: 'no_finding', reasoning: '', citations: [] });
+
+  expect(lawSection().textContent).toMatch(/We found no law that settles this/);
+  expect(within(lawSection()).queryByRole('link')).toBeNull();
+});
+
+test('a lookup that was unavailable says to try again', () => {
+  showLaw({
+    ...finding,
+    status: 'no_finding',
+    citations: [],
+    error: 'lookup_unavailable',
+  });
+
+  expect(lawSection().textContent).toMatch(/Law lookup unavailable/);
+});
+
+test('a report without a law check, or with no finding yet, has no law section', () => {
+  showLaw(finding, analysis);
+  expect(screen.queryByText('What the law says')).toBeNull();
+});
+
+test('a trap whose rule was not looked up has no law section', () => {
+  showLaw(undefined);
+  expect(screen.queryByText('What the law says')).toBeNull();
 });

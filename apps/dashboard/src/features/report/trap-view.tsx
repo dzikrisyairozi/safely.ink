@@ -5,6 +5,7 @@ import type {
   Clause,
   FactSchema,
   Rule,
+  StoredFinding,
   StoredScenario,
   Trap,
 } from '@repo/api-types';
@@ -35,6 +36,7 @@ export function TrapView({
   rules,
   scenarios,
   clauses,
+  finding,
 }: {
   id: string;
   analysis: Analysis;
@@ -42,6 +44,7 @@ export function TrapView({
   rules: Rule[];
   scenarios: StoredScenario[];
   clauses: Clause[];
+  finding?: StoredFinding; // of the trap's rule, once the law was looked up
 }) {
   const { t, i18n } = useTranslation('dashboard');
   const factSchema = analysis.factSchema ?? [];
@@ -179,6 +182,47 @@ export function TrapView({
           ))}
         </section>
       )}
+
+      {analysis.meta?.lawChecked && finding && <LawSection finding={finding} />}
     </div>
+  );
+}
+
+/** What the law says about the trap's rule, with its checked citations. */
+function LawSection({ finding }: { finding: StoredFinding }) {
+  const { t } = useTranslation('dashboard');
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-xl tracking-tight">{t('trap.law.title')}</h2>
+      {finding.error ? (
+        <p className="text-muted-foreground">{t('trap.law.unavailable')}</p>
+      ) : (
+        <>
+          <p className="font-medium">
+            {t(`trap.law.status.${finding.status}`)}
+          </p>
+          {finding.reasoning && <p>{finding.reasoning}</p>}
+          {finding.citations.map((citation, n) => (
+            <figure key={n} className="space-y-2 rounded-md border p-4">
+              <figcaption className="font-mono text-xs text-muted-foreground">
+                {citation.instrument} · {citation.section}
+              </figcaption>
+              <blockquote className="whitespace-pre-line font-serif">
+                {citation.quote}
+              </blockquote>
+              <a
+                href={citation.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm underline"
+              >
+                {t('trap.law.source')}
+              </a>
+            </figure>
+          ))}
+        </>
+      )}
+    </section>
   );
 }
