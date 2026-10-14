@@ -341,6 +341,8 @@ type Stage = {
   // The sub-collection the stage writes from scratch. Running scenarios only
   // adds their outcomes, which a second run writes over.
   writes: string | null;
+  // Fields of the analysis a screen shows as this stage's result.
+  results?: string[];
 };
 
 // In the order they run.
@@ -353,7 +355,13 @@ const STAGES: Stage[] = [
   },
   { status: 'fuzzing', run: fuzz, next: 'running', writes: 'scenarios' },
   { status: 'running', run: runScenarios, next: 'comparing', writes: null },
-  { status: 'comparing', run: compare, next: 'done', writes: 'traps' },
+  {
+    status: 'comparing',
+    run: compare,
+    next: 'done',
+    writes: 'traps',
+    results: ['grade', 'points', 'confidence', 'counts.judged', 'counts.traps'],
+  },
 ];
 
 /** True for a status that is a stage a failed run can resume from. */
@@ -368,8 +376,16 @@ export async function clearStage(
   analysis: DocumentReference,
   status: AnalysisStatus,
 ) {
-  const writes = STAGES.find((stage) => stage.status === status)?.writes;
-  if (writes) await db.recursiveDelete(analysis.collection(writes));
+  const stage = STAGES.find((candidate) => candidate.status === status);
+  if (stage?.writes)
+    await db.recursiveDelete(analysis.collection(stage.writes));
+  if (stage?.results) {
+    await analysis.update(
+      Object.fromEntries(
+        stage.results.map((field) => [field, FieldValue.delete()]),
+      ),
+    );
+  }
 }
 
 /**

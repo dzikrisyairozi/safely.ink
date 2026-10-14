@@ -536,3 +536,32 @@ test('a retry that cannot clear its stage still gives its slot back', async () =
   update.mockRestore();
   logged.mockRestore();
 });
+
+test('a retry at comparing starts without the grade of the failed attempt', async () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  await create('alice', 'analysis-1');
+  await confirm('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update({
+    status: 'failed',
+    stage: 'comparing',
+    grade: 'F',
+    points: 0,
+    confidence: 'low',
+    'counts.judged': 9,
+    'counts.traps': 9,
+  });
+  vi.mocked(judge).mockRejectedValue(new Error('model unavailable'));
+
+  await retry('alice', 'analysis-1');
+
+  const analysis = (await stored('analysis-1'))!;
+  expect(analysis).toMatchObject({ status: 'failed', stage: 'comparing' });
+  expect([analysis.grade, analysis.points, analysis.confidence]).toEqual([
+    undefined,
+    undefined,
+    undefined,
+  ]);
+  expect(analysis.counts.judged).toBeUndefined();
+  expect(analysis.counts.traps).toBeUndefined();
+  logged.mockRestore();
+});
