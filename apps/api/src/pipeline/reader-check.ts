@@ -3,6 +3,7 @@ import {
   isLawChecked,
   type AnalysisMeta,
   type Clause,
+  type CreateAnalysisRequest,
   type ReaderOutput,
 } from '@repo/api-types';
 
@@ -15,9 +16,15 @@ export type Reading =
  * Turns what the Reader returned into what the analysis becomes. The model
  * proposes; this function decides. Pure: no I/O and no model call.
  *
- * `pageCount` comes from the files, not from the model.
+ * `pageCount` comes from the files, not from the model. `pick` is what the
+ * user said the document is; it wins over what the Reader found, which is
+ * kept in `detected` so the user can be told when the two differ.
  */
-export function checkReading(read: ReaderOutput, pageCount: number): Reading {
+export function checkReading(
+  read: ReaderOutput,
+  pageCount: number,
+  pick: Pick<CreateAnalysisRequest, 'docType' | 'jurisdiction'>,
+): Reading {
   if (!read.isPolicyOrContract) return { status: 'rejected' };
 
   const onAPage = (page: number) => page >= 1 && page <= pageCount;
@@ -33,18 +40,21 @@ export function checkReading(read: ReaderOutput, pageCount: number): Reading {
   if (clauses.length === 0) return { status: 'failed' };
 
   const docType = DocType.safeParse(read.docType.trim().toLowerCase());
-  const jurisdiction = read.jurisdiction.trim().toUpperCase();
 
   return {
     status: 'awaiting_confirmation',
     clauses,
     meta: {
-      docType: docType.success ? docType.data : 'other',
+      docType: pick.docType,
       title: read.title.trim(),
       parties: read.parties,
       userRole: null,
-      jurisdiction,
-      lawChecked: isLawChecked(jurisdiction),
+      jurisdiction: pick.jurisdiction,
+      lawChecked: isLawChecked(pick.jurisdiction),
+      detected: {
+        docType: docType.success ? docType.data : 'other',
+        jurisdiction: read.jurisdiction.trim().toUpperCase(),
+      },
       language: read.language,
       pageCount,
       unreadablePages: [...new Set(read.unreadablePages.filter(onAPage))].sort(

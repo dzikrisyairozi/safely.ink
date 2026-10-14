@@ -14,6 +14,8 @@ test('a file name with dots in a row is still accepted by the API', () => {
   const request = CreateAnalysisRequest.safeParse({
     analysisId: 'analysis-1',
     files: [storedName(file('scan..final...pdf'), 3)],
+    docType: 'insurance',
+    jurisdiction: 'ID',
   });
 
   expect(request.success).toBe(true);

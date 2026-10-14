@@ -84,6 +84,7 @@ beforeEach(async () => {
       userRole: 'insured',
       jurisdiction: 'ID',
       lawChecked: true,
+      detected: { docType: 'insurance', jurisdiction: 'ID' },
       language: 'id',
       pageCount: 3,
       unreadablePages: [],

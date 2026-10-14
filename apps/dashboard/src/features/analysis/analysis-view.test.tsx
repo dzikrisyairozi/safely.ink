@@ -22,6 +22,7 @@ const meta: AnalysisMeta = {
   userRole: null,
   jurisdiction: 'ID',
   lawChecked: true,
+  detected: { docType: 'insurance', jurisdiction: 'ID' },
   language: 'id',
   pageCount: 12,
   unreadablePages: [],
@@ -97,6 +98,18 @@ test('a country without a law check is named, and the run is not blocked', () =>
   );
   fireEvent.click(screen.getByLabelText(/Budi Santoso/));
   expect(confirmButton()).toHaveProperty('disabled', false);
+});
+
+test('a global document runs without a legal comparison', () => {
+  show(
+    analysis({ meta: { ...meta, jurisdiction: 'GLOBAL', lawChecked: false } }),
+  );
+
+  expect(screen.getByLabelText('Governing country')).toHaveProperty(
+    'value',
+    'GLOBAL',
+  );
+  expect(screen.getByText(/No single country's law applies/)).toBeTruthy();
 });
 
 test('a type outside the tuned five is announced as a general analysis', () => {

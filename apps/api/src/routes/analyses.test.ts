@@ -51,8 +51,15 @@ const post = (path: string, uid: string, body: unknown) =>
     body: JSON.stringify(body),
   });
 
-const create = (uid: string, analysisId: string, files = ['0-page.jpg']) =>
-  post('/v1/analyses', uid, { analysisId, files });
+// What the user says the document is before uploading it.
+const pick = { docType: 'insurance', jurisdiction: 'ID' };
+
+const create = (
+  uid: string,
+  analysisId: string,
+  files = ['0-page.jpg'],
+  said = pick,
+) => post('/v1/analyses', uid, { analysisId, files, ...said });
 
 const stored = async (analysisId: string) =>
   (await db.doc(`analyses/${analysisId}`).get()).data();
@@ -97,6 +104,41 @@ test('a policy is read into details and clauses and waits for confirmation', asy
     'c-003',
   ]);
   expect(await startedToday('alice')).toBe(1);
+});
+
+test("the user's type and country are stored, and the reader's beside them", async () => {
+  await create('alice', 'analysis-1', undefined, {
+    docType: 'loan',
+    jurisdiction: 'JP',
+  });
+
+  expect(await stored('analysis-1')).toMatchObject({
+    meta: {
+      docType: 'loan',
+      jurisdiction: 'JP',
+      lawChecked: false,
+      detected: { docType: 'insurance', jurisdiction: 'ID' },
+    },
+  });
+});
+
+test.each([
+  ['without a type', { jurisdiction: 'ID' }],
+  ['without a country', { docType: 'insurance' }],
+  [
+    'from a country outside the list',
+    { docType: 'insurance', jurisdiction: 'US' },
+  ],
+])('an upload %s is refused before anything is read', async (_, said) => {
+  const res = await post('/v1/analyses', 'alice', {
+    analysisId: 'analysis-1',
+    files: ['0-page.jpg'],
+    ...said,
+  });
+
+  expect(res.status).toBe(400);
+  expect(reader).not.toHaveBeenCalled();
+  expect(await startedToday('alice')).toBe(0);
 });
 
 test('the reader gets the pages in the order the user gave', async () => {
@@ -268,7 +310,7 @@ test('the eleventh analysis of the day is refused with the reset time', async ()
 
 const confirmation = {
   docType: 'loan',
-  jurisdiction: 'sg',
+  jurisdiction: 'SG',
   userRole: 'insured',
 };
 const confirm = (uid: string, analysisId: string, body = confirmation) =>

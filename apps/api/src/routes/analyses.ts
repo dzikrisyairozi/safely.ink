@@ -40,12 +40,15 @@ analyses.post('/', async (c) => {
   );
   if (!body.success) {
     return c.json(
-      failure('invalid_request', 'Send an analysis ID and 1 to 30 file names.'),
+      failure(
+        'invalid_request',
+        'Send an analysis ID, 1 to 30 file names, the document type and the country.',
+      ),
       400,
     );
   }
   const uid = c.get('uid');
-  const { analysisId, files } = body.data;
+  const { analysisId, files, docType, jurisdiction } = body.data;
 
   // The path is built from the caller's uid, so only their files can match.
   const uploads = await loadUploads(uid, analysisId, files);
@@ -88,6 +91,7 @@ analyses.post('/', async (c) => {
     const reading = checkReading(
       await readDocument(uploads.files, uploads.pageCount),
       uploads.pageCount,
+      { docType, jurisdiction },
     );
     if (reading.status === 'awaiting_confirmation') {
       await saveAll(analysis, 'clauses', reading.clauses);
@@ -142,8 +146,7 @@ analyses.post('/:id/confirm', async (c) => {
     );
   }
   const uid = c.get('uid');
-  const { docType, userRole } = body.data;
-  const jurisdiction = body.data.jurisdiction.trim().toUpperCase();
+  const { docType, jurisdiction, userRole } = body.data;
 
   const outcome = await db.runTransaction(async (tx) => {
     const analysis = db.doc(`analyses/${id.data}`);

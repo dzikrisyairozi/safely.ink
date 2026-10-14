@@ -2,9 +2,10 @@ import { useState, type JSX, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from '@repo/i18n';
 import {
+  COUNTRIES,
   DocType,
-  LAW_JURISDICTIONS,
-  NO_COUNTRY,
+  GLOBAL,
+  Jurisdiction,
   isLawChecked,
   type Analysis,
   type AnalysisMeta,
@@ -53,8 +54,8 @@ function ConfirmDetails({
 }) {
   const { t, i18n } = useTranslation('dashboard');
   const [docType, setDocType] = useState(meta.docType);
-  const [jurisdiction, setJurisdiction] = useState(
-    meta.jurisdiction || NO_COUNTRY,
+  const [jurisdiction, setJurisdiction] = useState<Jurisdiction>(
+    Jurisdiction.safeParse(meta.jurisdiction).data ?? GLOBAL,
   );
   const [userRole, setUserRole] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -62,16 +63,14 @@ function ConfirmDetails({
 
   const countries = new Intl.DisplayNames([i18n.language], { type: 'region' });
   const countryName = (code: string) => {
-    if (code === NO_COUNTRY) return t('analysis.confirm.otherCountry');
+    if (code === GLOBAL) return t('analysis.confirm.global');
     try {
       return countries.of(code) ?? code;
     } catch {
       return code; // not a region code; show what the document said
     }
   };
-  const jurisdictions = [
-    ...new Set([...LAW_JURISDICTIONS, jurisdiction, NO_COUNTRY]),
-  ];
+  const jurisdictions = [...COUNTRIES, GLOBAL];
 
   const submit = async () => {
     setFailed(false);
@@ -140,7 +139,9 @@ function ConfirmDetails({
           <select
             className={FIELD}
             value={jurisdiction}
-            onChange={(event) => setJurisdiction(event.target.value)}
+            onChange={(event) =>
+              setJurisdiction(Jurisdiction.parse(event.target.value))
+            }
           >
             {jurisdictions.map((code) => (
               <option key={code} value={code}>
@@ -158,9 +159,11 @@ function ConfirmDetails({
       )}
       {!isLawChecked(jurisdiction) && (
         <p className="text-sm text-muted-foreground">
-          {t('analysis.confirm.lawSkipped', {
-            country: countryName(jurisdiction),
-          })}
+          {jurisdiction === GLOBAL
+            ? t('analysis.confirm.lawSkippedGlobal')
+            : t('analysis.confirm.lawSkipped', {
+                country: countryName(jurisdiction),
+              })}
         </p>
       )}
 
