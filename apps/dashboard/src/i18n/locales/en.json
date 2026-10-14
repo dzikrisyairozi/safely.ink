@@ -299,7 +299,13 @@
       "traps": "Traps"
     },
     "generalAnalysis": "General analysis: this kind of document is checked with the general rules.",
-    "lawNotYet": "The law of {{country}} is not checked in this report yet. The situations ran on the document's own rules.",
+    "lawChecked": "Compared with official sources of the law of {{country}}. Each citation was found on the page it links to.",
+    "lawNotYet": "We do not check the law of {{country}} yet, so this report has no legal comparison. The situations ran on the document's own rules.",
+    "lawUnavailable": {
+      "title": "Some of the law could not be looked up",
+      "description": "The official sources did not answer in time. The grade counts only what was found; checking again may change it.",
+      "button": "Check the law again"
+    },
     "lawGlobal": "Global: no single country's law applies, so the law is not checked. The situations ran on the document's own rules.",
     "incomplete": {
       "title": "Incomplete document",

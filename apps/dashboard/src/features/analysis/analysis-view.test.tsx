@@ -47,6 +47,7 @@ const show = (
       rules={[]}
       scenarios={[]}
       clauses={[]}
+      findings={[]}
       onConfirm={onConfirm}
       onRetry={onRetry}
     />,
@@ -394,6 +395,7 @@ test('a finished report waits for its traps instead of saying there are none', (
       rules={[]}
       scenarios={[]}
       clauses={[]}
+      findings={[]}
       onConfirm={vi.fn(async () => {})}
       onRetry={vi.fn(async () => {})}
     />
