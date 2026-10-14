@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LOCALES } from '@/lib/site';
@@ -11,17 +11,14 @@ import {
 } from './blog';
 
 describe('posts', () => {
-  it('has every article in every language', () => {
-    for (const post of POSTS) {
-      for (const locale of LOCALES) {
-        const file = join(
-          process.cwd(),
-          'content/blog',
-          locale,
-          `${post.slug}.mdx`,
-        );
-        expect(existsSync(file), file).toBe(true);
-      }
+  it('lists exactly the articles that exist, in every language', () => {
+    const slugs = POSTS.map((post) => post.slug).sort();
+    for (const locale of LOCALES) {
+      const files = readdirSync(join(process.cwd(), 'content/blog', locale))
+        .filter((file) => file.endsWith('.mdx'))
+        .map((file) => file.replace(/.mdx$/, ''))
+        .sort();
+      expect(files, locale).toEqual(slugs);
     }
   });
 
