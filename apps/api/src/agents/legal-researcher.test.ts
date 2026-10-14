@@ -182,3 +182,23 @@ test('a page the model would not copy gives nothing', async () => {
 
   expect(await readLawPage('https://peraturan.bpk.go.id/a.pdf')).toBeNull();
 });
+
+test('the pages of one assessment are cut to one budget, in the order found', async () => {
+  model.answer = JSON.stringify({
+    status: 'no_finding',
+    reasoning: 'r',
+    citations: [],
+  });
+  const page = (n: number) => ({
+    url: `https://www.legislation.gov.au/${n}`,
+    text: 'x'.repeat(1_000_000),
+  });
+
+  await assessLaw(rule, meta, [page(1), page(2), page(3)]);
+
+  const sent = JSON.parse(model.message).pages as {
+    url: string;
+    text: string;
+  }[];
+  expect(sent.map(({ text }) => text.length)).toEqual([1_000_000, 500_000]);
+});
