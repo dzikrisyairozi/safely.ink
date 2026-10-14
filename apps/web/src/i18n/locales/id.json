@@ -11,7 +11,9 @@
     "label": "safely.ink"
   },
   "footer": {
-    "disclaimer": "Alat informasi, bukan nasihat hukum"
+    "disclaimer": "Alat informasi, bukan nasihat hukum",
+    "tagline": "Policy fuzzer: menguji ketentuan dengan skenario sulit sebelum ketentuan itu merugikan Anda.",
+    "contact": "Ada pertanyaan, atau menemukan kesalahan kami?"
   },
   "notFound": {
     "title": "Halaman ini tidak ada dalam kontrak",
@@ -21,5 +23,14 @@
   "meta": {
     "title": "safely.ink: uji polis atau kontrak sebelum Anda tanda tangan",
     "description": "safely.ink adalah policy fuzzer. Unggah polis asuransi, perjanjian pinjaman, atau kontrak lain: safely.ink mengubah isinya menjadi aturan, menjalankan puluhan skenario sulit, lalu menunjukkan di mana posisi Anda lebih buruk dari yang Anda kira atau dari yang diizinkan hukum."
+  },
+  "nav": {
+    "skip": "Langsung ke konten",
+    "home": "Beranda safely.ink",
+    "language": "Bahasa",
+    "theme": "Ganti mode terang dan gelap"
+  },
+  "cta": {
+    "check": "Periksa dokumen"
   }
 }

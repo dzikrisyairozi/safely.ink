@@ -11,7 +11,9 @@
     "label": "safely.ink"
   },
   "footer": {
-    "disclaimer": "An information tool, not legal advice"
+    "disclaimer": "An information tool, not legal advice",
+    "tagline": "A policy fuzzer: it attacks the fine print with tricky scenarios before the fine print gets the chance to attack you.",
+    "contact": "Questions, or found something we got wrong?"
   },
   "notFound": {
     "title": "This page is not in the contract",
@@ -21,5 +23,14 @@
   "meta": {
     "title": "safely.ink: stress-test a policy or contract before you sign",
     "description": "safely.ink is a policy fuzzer. Upload an insurance policy, loan agreement or other contract: it turns the wording into rules, runs dozens of tricky scenarios through them, and shows where you end up worse off than you would expect or than the law allows."
+  },
+  "nav": {
+    "skip": "Skip to content",
+    "home": "safely.ink home",
+    "language": "Language",
+    "theme": "Switch between light and dark"
+  },
+  "cta": {
+    "check": "Check a document"
   }
 }

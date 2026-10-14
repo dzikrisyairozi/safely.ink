@@ -6,7 +6,6 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Scene from '@/components/scene';
 import { useTranslation } from '@repo/i18n';
-import { WebLanguageSwitcher } from '@/i18n/client';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5174';
 
@@ -32,11 +31,6 @@ export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <Scene />
-
-      {/* Language Switcher — fixed top-right */}
-      <div className="absolute top-6 right-6 z-20">
-        <WebLanguageSwitcher />
-      </div>
 
       <div className="container px-4 md:px-6 z-10">
         <motion.div

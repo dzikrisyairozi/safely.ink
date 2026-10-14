@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Newsreader } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import '../globals.css';
-import { WebI18nProvider } from '@/i18n/client';
+import { Footer } from '@/components/site/footer';
+import { Header } from '@/components/site/header';
+import { Providers } from '@/i18n/client';
 import { getT } from '@/i18n/translate';
 import { JsonLd, organizationLd, websiteLd } from '@/lib/seo';
 import {
@@ -62,14 +64,17 @@ export default async function RootLayout({
   if (!isLocale(locale)) notFound();
 
   return (
-    <html lang={locale} className="dark" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body
         className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} font-sans antialiased bg-background text-foreground`}
-        suppressHydrationWarning
       >
         <JsonLd data={organizationLd()} />
         <JsonLd data={websiteLd(locale, getT(locale)('meta.description'))} />
-        <WebI18nProvider locale={locale}>{children}</WebI18nProvider>
+        <Providers locale={locale}>
+          <Header locale={locale} />
+          {children}
+          <Footer locale={locale} />
+        </Providers>
       </body>
     </html>
   );
