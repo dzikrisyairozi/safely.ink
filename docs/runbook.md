@@ -148,17 +148,40 @@ The dashboard is served at `https://safely-ink.web.app`. That domain and
 `localhost` are authorised for sign-in by default; a custom domain must be added under
 Authentication → Settings → Authorised domains.
 
+### Landing on App Hosting **(not yet run)**
+
+`apps/web` is a Next.js server (the locale proxy and the Open Graph images need one), so
+it runs on Firebase App Hosting rather than static Hosting. Its settings and the two
+`NEXT_PUBLIC_*` values are in `apps/web/apphosting.yaml`.
+
+```bash
+# Once: create the backend. Root directory apps/web; live branch main; region closest
+# to Jakarta that App Hosting offers (the CLI lists them).
+pnpm exec firebase apphosting:backends:create --project safely-ink
+
+# Later deploys build from the connected GitHub branch on push, or by hand:
+pnpm exec firebase apphosting:rollouts:create <backend-id> --project safely-ink --git-branch main
+```
+
+Check on the `*.hosted.app` URL it prints: `/` and `/id` load, `/en` answers 308 to `/`,
+`/robots.txt`, `/sitemap.xml` and `/opengraph-image` load.
+
+If App Hosting cannot build the pnpm workspace (TSD 13.3), the fallback is a container:
+`output: 'standalone'` in `apps/web/next.config.ts`, a Dockerfile like the API's, and a
+Cloud Run service `web` in `asia-southeast2`.
+
 ### Custom domains **(not yet run)**
 
 The landing page is served from `safely.ink` and the dashboard from `app.safely.ink`.
 
-1. Firebase console → Hosting → Add custom domain, once per domain. Add the DNS records
-   it shows at the registrar and wait for the certificate.
-2. Authentication → Settings → Authorised domains: add `app.safely.ink`.
-3. Set `ALLOWED_ORIGIN=https://app.safely.ink` on the Cloud Run service and redeploy it;
+1. Firebase console → App Hosting → the web backend → Settings → Domains: add
+   `safely.ink` (and `www.safely.ink`, redirecting to it). Add the DNS records it shows
+   at the registrar and wait for the certificate.
+2. Firebase console → Hosting → Add custom domain: `app.safely.ink`, same steps.
+3. Authentication → Settings → Authorised domains: add `app.safely.ink`.
+4. Set `ALLOWED_ORIGIN=https://app.safely.ink` on the Cloud Run service and redeploy it;
    the API allows one origin only.
-4. Set `NEXT_PUBLIC_SITE_URL=https://safely.ink` and
-   `NEXT_PUBLIC_APP_URL=https://app.safely.ink` for the landing build.
+5. Search Console: add the domain property `safely.ink` and put its TXT record in DNS.
 
 ### API on Cloud Run
 
