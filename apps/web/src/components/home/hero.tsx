@@ -1,8 +1,8 @@
 import { ArrowRight } from 'lucide-react';
-import { Pangolin } from '@repo/ui/components/brand/pangolin';
 import { Button } from '@repo/ui/components/ui/button';
 import { getT } from '@/i18n/translate';
 import { APP_URL, type Locale } from '@/lib/site';
+import { HeroVisual } from './hero-visual';
 
 export function Hero({ locale }: { locale: Locale }) {
   const t = getT(locale);
@@ -45,12 +45,7 @@ export function Hero({ locale }: { locale: Locale }) {
             {t('notice')}
           </p>
         </div>
-        <div className="relative mx-auto w-full max-w-sm md:max-w-none">
-          <Pangolin
-            variant="ball"
-            className="aspect-square w-full text-foreground"
-          />
-        </div>
+        <HeroVisual />
       </div>
     </section>
   );
