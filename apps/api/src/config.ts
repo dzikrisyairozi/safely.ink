@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { UPLOAD_LIMITS, type LawJurisdiction } from '@repo/api-types';
+import {
+  GRADE_FORMULA,
+  UPLOAD_LIMITS,
+  type LawJurisdiction,
+} from '@repo/api-types';
 import type { ScoreWeights } from './engine/score';
 
 const Env = z.object({
@@ -90,14 +94,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
         { from: 2, value: 'medium' },
         { from: 0, value: 'low' },
       ],
-      penalty: { critical: 20, high: 10, medium: 5, low: 2 },
-      gradeBands: [
-        { from: 90, value: 'A' },
-        { from: 75, value: 'B' },
-        { from: 60, value: 'C' },
-        { from: 40, value: 'D' },
-        { from: 0, value: 'F' },
-      ],
+      ...GRADE_FORMULA,
       undeterminedShare: { high: 0.1, medium: 0.25 },
     } satisfies ScoreWeights,
   });

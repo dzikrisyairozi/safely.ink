@@ -208,6 +208,23 @@ export type Severity = z.infer<typeof Severity>;
 export const Grade = z.enum(['A', 'B', 'C', 'D', 'F']);
 export type Grade = z.infer<typeof Grade>;
 
+// How the grade follows from the traps (TSD 5.7, F-TRAP-4): 100 minus the
+// points of each trap, then the first band reached, highest first. The API
+// grades with these and the report shows them, so the two cannot differ.
+export const GRADE_FORMULA: {
+  penalty: Record<Severity, number>;
+  gradeBands: { from: number; value: Grade }[];
+} = {
+  penalty: { critical: 20, high: 10, medium: 5, low: 2 },
+  gradeBands: [
+    { from: 90, value: 'A' },
+    { from: 75, value: 'B' },
+    { from: 60, value: 'C' },
+    { from: 40, value: 'D' },
+    { from: 0, value: 'F' },
+  ],
+};
+
 export const Confidence = z.enum(['high', 'medium', 'low']);
 export type Confidence = z.infer<typeof Confidence>;
 

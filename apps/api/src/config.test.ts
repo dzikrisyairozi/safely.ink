@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import { GRADE_FORMULA } from '@repo/api-types';
 import { loadConfig } from './config';
 import { score } from './engine/score';
 
@@ -95,4 +96,11 @@ test('the calls of the confirm request end before Cloud Run ends the request', (
   ).toBeLessThanOrEqual(confirmSeconds);
   expect(call.fuzzMost).toBeGreaterThanOrEqual(call.fuzz);
   expect(confirmSeconds).toBeLessThan(900);
+});
+
+test('the grade is computed with the formula the report shows', () => {
+  const config = loadConfig({});
+
+  expect(config.scoring.penalty).toBe(GRADE_FORMULA.penalty);
+  expect(config.scoring.gradeBands).toBe(GRADE_FORMULA.gradeBands);
 });
