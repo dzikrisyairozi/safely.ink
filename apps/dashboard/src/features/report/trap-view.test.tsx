@@ -210,7 +210,7 @@ const finding: StoredFinding = {
       instrument: 'Undang-Undang Nomor 8 Tahun 1999',
       section: 'Pasal 18 ayat (1)',
       quote: 'a. menyatakan pengalihan tanggung jawab pelaku usaha;',
-      url: 'https://pasal.id/peraturan/uu/uu-no-8-tahun-1999/pasal-18',
+      url: 'https://peraturan.bpk.go.id/Details/45288/uu-no-8-tahun-1999',
     },
   ],
   error: null,

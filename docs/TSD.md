@@ -380,11 +380,11 @@ allowlist (`meta.lawChecked = false`, F-READ-6).
 
 Allowlist (`config.ts`), confirmed by the fetch spike in [ADR 4](./adr/0004-legal-source-fetch.md):
 
-| Jurisdiction | Official sources                                                                  |
-| ------------ | --------------------------------------------------------------------------------- |
-| ID           | `peraturan.go.id`, `peraturan.bpk.go.id`, `jdih.*.go.id`, `ojk.go.id`, `pasal.id` |
-| SG           | `sso.agc.gov.sg`, `mas.gov.sg`, `mom.gov.sg`                                      |
-| AU           | `legislation.gov.au`, `asic.gov.au`, `fairwork.gov.au`                            |
+| Jurisdiction | Official sources                                                      |
+| ------------ | --------------------------------------------------------------------- |
+| ID           | `peraturan.go.id`, `peraturan.bpk.go.id`, `jdih.*.go.id`, `ojk.go.id` |
+| SG           | `sso.agc.gov.sg`, `mas.gov.sg`, `mom.gov.sg`                          |
+| AU           | `legislation.gov.au`, `asic.gov.au`, `fairwork.gov.au`                |
 
 Steps:
 

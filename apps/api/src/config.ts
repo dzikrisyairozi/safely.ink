@@ -87,7 +87,6 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
         'peraturan.bpk.go.id',
         'jdih.*.go.id',
         'ojk.go.id',
-        'pasal.id',
       ],
       SG: ['sso.agc.gov.sg', 'mas.gov.sg', 'mom.gov.sg'],
       AU: ['legislation.gov.au', 'asic.gov.au', 'fairwork.gov.au'],

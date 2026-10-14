@@ -60,13 +60,15 @@ test.each([
   ['https://www.mom.gov.sg/a.pdf', 'SG', true],
   ['https://www.legislation.gov.au/C2009A00028/latest', 'AU', true],
   ['https://jdih.kemnaker.go.id/peraturan/1', 'ID', true],
-  ['http://pasal.id/peraturan/uu', 'ID', true],
-  ['HTTPS://PASAL.ID/x', 'ID', true],
+  ['http://peraturan.bpk.go.id/Details/1', 'ID', true],
+  ['HTTPS://PERATURAN.GO.ID/x', 'ID', true],
   // On the list of another country.
   ['https://sso.agc.gov.sg/Act/IA1966', 'AU', false],
+  // Not an official source: a private copy of the official PDFs.
+  ['https://pasal.id/peraturan/uu', 'ID', false],
   // Look-alikes.
-  ['https://pasal.id.evil.com/x', 'ID', false],
-  ['https://evilpasal.id/x', 'ID', false],
+  ['https://peraturan.go.id.evil.com/x', 'ID', false],
+  ['https://evilperaturan.go.id/x', 'ID', false],
   ['https://jdih.a.b.go.id/x', 'ID', false],
   ['https://jdih.go.id/x', 'ID', false],
   [
@@ -75,7 +77,7 @@ test.each([
     false,
   ],
   // Not a web page.
-  ['ftp://pasal.id/x', 'ID', false],
+  ['ftp://peraturan.go.id/x', 'ID', false],
   ['not a url', 'ID', false],
 ] as const)('%s on the %s allowlist: %s', (url, jurisdiction, allowed) => {
   expect(isAllowlisted(url, jurisdiction)).toBe(allowed);

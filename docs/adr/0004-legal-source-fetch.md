@@ -75,11 +75,14 @@ RECITATION`, no text), and when it answered, it gave a partial copy with a pream
   answers 200.
 - Our own fetch got the official PDFs from `peraturan.bpk.go.id` directly. PDFs are
   now read in code with `unpdf` (MIT, no dependencies), so Indonesian citations are
-  checked against the official file, like Singapore and Australia. `pasal.id` article
-  pages are HTML and need nothing more.
+  checked against the official file, like Singapore and Australia.
 - The URL context tool stays only for pages our fetch cannot use (a short or blocked
   page). Its text is kept only when the retrieval status is a success, and is stored
-  with `via: 'url_context'`.
+  with `via: 'url_context'`. That text is the model's copy, so it informs the assessment
+  but never verifies a quote: a citation stands only on a page we fetched ourselves.
+- `pasal.id` is removed from the allowlist. It is a private service run by one
+  developer that copies the official PDFs on a best-effort basis, not an official source,
+  and the report calls every citation's link the official source.
 - There is no Blaze plan yet, so there is no Cloud Run deploy. The check from Cloud Run
   above is moved to M12 (#16); the legal stage was built and run from a developer
   machine.
