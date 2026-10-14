@@ -55,16 +55,14 @@ const sameUrl = (url: string) => (URL.canParse(url) ? new URL(url).href : url);
 /**
  * Keeps the citations whose quote code found in the text stored for their
  * page; a finding left with none found nothing. `pages` are the pages the
- * model was given, by URL.
+ * model was given that we fetched ourselves.
  */
 export function verify(
   assessment: LegalAssessment,
-  pages: Record<string, string>,
+  pages: { url: string; text: string }[],
   jurisdiction: LawJurisdiction,
 ): LegalFinding {
-  const texts = new Map(
-    Object.entries(pages).map(([url, text]) => [sameUrl(url), text]),
-  );
+  const texts = new Map(pages.map(({ url, text }) => [sameUrl(url), text]));
   const citations = assessment.citations.filter((citation) => {
     const text = texts.get(sameUrl(citation.url));
     return (

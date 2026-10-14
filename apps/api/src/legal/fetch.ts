@@ -129,23 +129,29 @@ const fresh = (page: z.infer<typeof LawPage>) =>
   Date.now() - page.fetchedAt.toMillis() <
   config.limits.law.pageDays * 86_400_000;
 
+type Read = Pick<z.infer<typeof LawPage>, 'text' | 'via'>;
+
 /**
  * The text of an official page, from `lawPages` when stored in the last 30
  * days, else fetched and stored. When our fetch gets nothing usable, the
- * model reads the page instead (ADR 4). Null when neither can.
+ * model reads the page instead (ADR 4), and `via` says so. Null when neither
+ * can.
  */
 export async function readPage(
   url: string,
   jurisdiction: LawJurisdiction,
   { readWithModel }: { readWithModel: (url: string) => Promise<string | null> },
-): Promise<string | null> {
+): Promise<Read | null> {
   if (!isAllowlisted(url, jurisdiction)) return null;
 
   const doc = db.doc(
     `lawPages/${createHash('sha256').update(url).digest('hex')}`,
   );
   const cached = LawPage.safeParse((await doc.get()).data());
-  if (cached.success && fresh(cached.data)) return cached.data.text;
+  const stored: Read | null = cached.success
+    ? { text: cached.data.text, via: cached.data.via }
+    : null;
+  if (cached.success && fresh(cached.data)) return stored;
 
   const fetched = await download(url, jurisdiction).catch((err) => {
     console.warn(`Fetching ${url} failed:`, String(err));
@@ -160,15 +166,16 @@ export async function readPage(
       : null;
   const text = fetched ?? (read && read.length >= MIN_TEXT ? read : null);
   // A page that cannot be fetched again is still the text we once read.
-  if (text === null) return cached.success ? cached.data.text : null;
+  if (text === null) return stored;
 
+  const via = fetched === null ? 'url_context' : 'fetch';
   await doc.set({
     url,
     host: new URL(url).hostname,
     jurisdiction,
     text,
-    via: fetched === null ? 'url_context' : 'fetch',
+    via,
     fetchedAt: Timestamp.now(),
   } satisfies z.infer<typeof LawPage>);
-  return text;
+  return { text, via };
 }

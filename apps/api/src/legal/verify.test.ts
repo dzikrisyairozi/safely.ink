@@ -95,7 +95,7 @@ const assessment: LegalAssessment = {
 };
 
 test('a finding keeps the citations whose quote is on their page', () => {
-  expect(verify(assessment, { [url]: page }, 'SG')).toEqual({
+  expect(verify(assessment, [{ url, text: page }], 'SG')).toEqual({
     ...assessment,
     error: null,
   });
@@ -108,7 +108,7 @@ test('a citation is dropped when its quote is not on its page', () => {
   };
   const finding = verify(
     { ...assessment, citations: [citation, invented] },
-    { [url]: page },
+    [{ url, text: page }],
     'SG',
   );
 
@@ -120,8 +120,11 @@ test('a citation is dropped when it points at a page the model was not given', (
   const elsewhere = { ...citation, url: 'https://sso.agc.gov.sg/Act/MIA1906' };
 
   expect(
-    verify({ ...assessment, citations: [elsewhere] }, { [url]: page }, 'SG')
-      .citations,
+    verify(
+      { ...assessment, citations: [elsewhere] },
+      [{ url, text: page }],
+      'SG',
+    ).citations,
   ).toEqual([]);
 });
 
@@ -131,7 +134,7 @@ test('a citation is dropped when its host is not on the allowlist', () => {
   expect(
     verify(
       { ...assessment, citations: [{ ...citation, url: offList }] },
-      { [offList]: page },
+      [{ url: offList, text: page }],
       'SG',
     ).citations,
   ).toEqual([]);
@@ -143,7 +146,7 @@ test('a finding left with no citation says nothing was found', () => {
       ...assessment,
       citations: [{ ...citation, quote: 'Made up words here.' }],
     },
-    { [url]: page },
+    [{ url, text: page }],
     'SG',
   );
 
@@ -162,7 +165,7 @@ test('a citation URL written another way still names the same page', () => {
   };
 
   expect(
-    verify({ ...assessment, citations: [written] }, { [url]: page }, 'SG')
+    verify({ ...assessment, citations: [written] }, [{ url, text: page }], 'SG')
       .citations,
   ).toHaveLength(1);
 });

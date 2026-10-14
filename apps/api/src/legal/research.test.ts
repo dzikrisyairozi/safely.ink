@@ -65,7 +65,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   for (const key of Object.keys(saved)) delete saved[key];
   sources.mockResolvedValue([page]);
-  read.mockResolvedValue(text);
+  read.mockResolvedValue({ text, via: 'fetch' });
   assess.mockResolvedValue({
     status: 'conflicts',
     reasoning: 'The Act limits it.',
@@ -151,6 +151,28 @@ test('a citation whose quote is not on its page does not survive', async () => {
 
   expect(findings['r-002']).toMatchObject({
     status: 'no_finding',
+    error: null,
+  });
+});
+
+test('a quote on a page only the model read is not taken as checked', async () => {
+  // The text is the model's copy, so finding the quote in it proves nothing.
+  read.mockResolvedValue({ text, via: 'url_context' });
+
+  const findings = await lookUpLaw({
+    rules,
+    outcomes: [outcome('s-1', 'bad', 'r-002')],
+    stored: {},
+    meta,
+    deadline: later(),
+    save,
+  });
+
+  expect(assess).toHaveBeenCalledWith(rules[1], meta, [{ url: page, text }]);
+  expect(findings['r-002']).toEqual({
+    status: 'no_finding',
+    reasoning: 'The Act limits it.',
+    citations: [],
     error: null,
   });
 });

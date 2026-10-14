@@ -49,8 +49,10 @@ test('a host off the allowlist is never contacted', async () => {
 test('a page not stored yet is fetched like a browser and stored', async () => {
   network.mockResolvedValue(htmlResponse(lawText));
 
-  const text = await readPage(url, 'SG', { readWithModel });
+  const page = await readPage(url, 'SG', { readWithModel });
+  const text = page?.text;
 
+  expect(page?.via).toBe('fetch');
   expect(text).toContain(article.trim());
   expect(text).not.toContain('not law');
   expect(text).not.toContain('color:red');
@@ -70,7 +72,7 @@ test('a stored page is read without a request', async () => {
   const first = await readPage(url, 'SG', { readWithModel });
   network.mockClear();
 
-  expect(await readPage(url, 'SG', { readWithModel })).toBe(first);
+  expect(await readPage(url, 'SG', { readWithModel })).toEqual(first);
   expect(network).not.toHaveBeenCalled();
 });
 
@@ -84,7 +86,7 @@ test('a page stored more than 30 days ago is fetched again', async () => {
     });
   network.mockResolvedValue(htmlResponse(lawText));
 
-  expect(await readPage(url, 'SG', { readWithModel })).toContain(
+  expect((await readPage(url, 'SG', { readWithModel }))?.text).toContain(
     article.trim(),
   );
   expect((await stored())?.text).toContain(article.trim());
@@ -98,7 +100,7 @@ test('an old stored page is still used when it cannot be fetched again', async (
     .update({ fetchedAt: Timestamp.fromMillis(0) });
   network.mockRejectedValue(new TypeError('fetch failed'));
 
-  expect(await readPage(url, 'SG', { readWithModel })).toBe(first);
+  expect(await readPage(url, 'SG', { readWithModel })).toEqual(first);
 });
 
 test('a redirect is followed while it stays on the allowlist', async () => {
@@ -109,11 +111,11 @@ test('a redirect is followed while it stays on the allowlist', async () => {
     )
     .mockResolvedValueOnce(htmlResponse(lawText));
 
-  const text = await readPage('https://legislation.gov.au/x', 'AU', {
+  const page = await readPage('https://legislation.gov.au/x', 'AU', {
     readWithModel,
   });
 
-  expect(text).toContain(article.trim());
+  expect(page?.text).toContain(article.trim());
   expect(network.mock.calls[1]![0]).toBe(target);
 });
 
@@ -144,9 +146,24 @@ test('a page that turns the request away is read by the model instead', async ()
   );
   readWithModel.mockResolvedValue(lawText);
 
-  expect(await readPage(url, 'SG', { readWithModel })).toBe(lawText);
+  expect(await readPage(url, 'SG', { readWithModel })).toEqual({
+    text: lawText,
+    via: 'url_context',
+  });
   expect(readWithModel).toHaveBeenCalledWith(url);
   expect(await stored()).toMatchObject({ text: lawText, via: 'url_context' });
+});
+
+test('a page the model read is still marked so when read from the store', async () => {
+  network.mockResolvedValue(htmlResponse('Request Rejected.'));
+  readWithModel.mockResolvedValue(lawText);
+  await readPage(url, 'SG', { readWithModel });
+  network.mockClear();
+
+  expect((await readPage(url, 'SG', { readWithModel }))?.via).toBe(
+    'url_context',
+  );
+  expect(network).not.toHaveBeenCalled();
 });
 
 test('a page neither we nor the model can read gives nothing', async () => {
@@ -179,9 +196,10 @@ test('the text of a PDF is read by code', async () => {
     }),
   );
 
-  const text = await readPage(pdfUrl, 'ID', { readWithModel });
+  const read = await readPage(pdfUrl, 'ID', { readWithModel });
 
-  expect(text).toContain(
+  expect(read?.via).toBe('fetch');
+  expect(read?.text).toContain(
     'Pasal 18 Pelaku usaha dilarang membuat klausula baku.',
   );
   expect(readWithModel).not.toHaveBeenCalled();

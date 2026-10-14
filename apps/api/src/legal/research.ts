@@ -32,21 +32,27 @@ async function research(
   const urls = await findSources(rule, meta);
   if (urls.length === 0) return nothingFound;
 
-  const texts = await Promise.all(
+  const read = await Promise.all(
     urls.map((url) =>
       readPage(url, meta.jurisdiction, { readWithModel: readLawPage }),
     ),
   );
   const pages = urls.flatMap((url, n) => {
-    const text = texts[n];
-    return text ? [{ url, text }] : [];
+    const page = read[n];
+    return page ? [{ url, ...page }] : [];
   });
   if (pages.length === 0) throw new Error('No official page could be read.');
 
-  const assessment = await assessLaw(rule, meta, pages);
+  const assessment = await assessLaw(
+    rule,
+    meta,
+    pages.map(({ url, text }) => ({ url, text })),
+  );
+  // A page the model read for us is its own copy: it helps the assessment,
+  // but a quote found in it proves nothing (F-CMP-4).
   return verify(
     assessment,
-    Object.fromEntries(pages.map(({ url, text }) => [url, text])),
+    pages.filter(({ via }) => via === 'fetch'),
     meta.jurisdiction,
   );
 }

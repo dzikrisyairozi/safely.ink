@@ -411,8 +411,10 @@ Steps:
    Fair Work Act starts at character 393,000 of one page, and the whole page took 38 s.
 4. **Verify** (`legal/verify.ts`, F-CMP-4). Quote and page text are normalised (NFKC,
    case, punctuation and symbols removed, whitespace collapsed). A citation is kept only
-   when its URL is one of the pages given to the assessment, its host is allowlisted, and
-   the quote, at least 30 normalised characters, is a substring of the stored text. A
+   when its URL is one of the pages given to the assessment that we fetched ourselves
+   (`via: 'fetch'`), its host is allowlisted, and the quote, at least 30 normalised
+   characters, is a substring of the stored text. A page read with the URL context tool
+   is the model's own copy: it informs the assessment but never verifies a quote. A
    finding left with no citation becomes `no_finding`.
 
 If the search, every page or the assessment fails, or the deadline passes, the finding is
@@ -610,7 +612,7 @@ the analysis document for the eval report.
 | Flat condition language           | Discretion, vagueness and multi-step procedures are `unmodeled`    | Richer rule language; LLM adjudicator for unmodeled rules    |
 | Search grounding for law          | May miss the relevant article; depends on site availability        | Finding reuse (section 6), then managed retrieval            |
 | Whole pages to the assessment     | Cost and time grow with page length (338,000 tokens for one Act)   | Send the passages around the section the search named        |
-| URL context for blocked hosts     | The text is the model's copy, often partial (`via: 'url_context'`) | Fetch through an allowed route, or drop such hosts           |
+| URL context for blocked hosts     | The model's copy is context only: a blocked host gives no citation | Fetch through an allowed route, or drop such hosts           |
 | Hand-tuned grade weights          | Not validated                                                      | Calibrate against labelled documents                         |
 | English-only UI                   | Excludes many JAPAC users                                          | Fill the `id` locale, add others                             |
 
