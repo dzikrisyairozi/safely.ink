@@ -106,6 +106,65 @@ test('a global document runs without a legal comparison', () => {
   expect(screen.getByText(/No single country's law applies/)).toBeTruthy();
 });
 
+test('when the reader agrees with the pick, nothing is flagged', () => {
+  show(analysis());
+
+  expect(screen.queryByText(/may say something else/)).toBeNull();
+});
+
+test('a document with no country found is not a mismatch', () => {
+  show(
+    analysis({
+      meta: { ...meta, detected: { docType: 'insurance', jurisdiction: '' } },
+    }),
+  );
+
+  expect(screen.queryByText(/may say something else/)).toBeNull();
+});
+
+test('what the reader found instead of the pick is shown and can be taken', () => {
+  show(
+    analysis({
+      meta: {
+        ...meta,
+        docType: 'nda',
+        jurisdiction: 'JP',
+        detected: { docType: 'insurance', jurisdiction: 'ID' },
+      },
+    }),
+  );
+
+  expect(screen.getByText(/Insurance policy/, { selector: 'li' })).toBeTruthy();
+  expect(screen.getByText(/law of Indonesia/)).toBeTruthy();
+
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Use what the document says' }),
+  );
+
+  expect(screen.getByLabelText('Document type')).toHaveProperty(
+    'value',
+    'insurance',
+  );
+  expect(screen.getByLabelText('Country')).toHaveProperty('value', 'ID');
+  expect(screen.queryByText(/may say something else/)).toBeNull();
+});
+
+test('a country outside the list is named and switches to Global', () => {
+  show(
+    analysis({
+      meta: { ...meta, detected: { docType: 'insurance', jurisdiction: 'US' } },
+    }),
+  );
+
+  expect(screen.getByText(/United States/).textContent).toMatch(
+    /not in the list/,
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Use what the document says' }),
+  );
+  expect(screen.getByLabelText('Country')).toHaveProperty('value', 'GLOBAL');
+});
+
 test('a type outside the tuned five is announced as a general analysis', () => {
   show(analysis({ meta: { ...meta, docType: 'other' } }));
 

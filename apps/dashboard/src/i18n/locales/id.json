@@ -124,7 +124,14 @@
       "yourRole": "Anda pihak yang mana?",
       "rolePlaceholder": "Misalnya: penyewa",
       "submit": "Rincian ini sudah benar",
-      "failed": "Rincian tidak dapat disimpan. Silakan coba lagi."
+      "failed": "Rincian tidak dapat disimpan. Silakan coba lagi.",
+      "mismatch": {
+        "title": "Dokumen mungkin menyatakan hal lain",
+        "type": "Dokumen ini tampak seperti: {{type}}.",
+        "country": "Dokumen ini merujuk pada hukum {{country}}.",
+        "countryOutside": "Dokumen ini merujuk pada hukum {{country}}, yang tidak ada dalam daftar, jadi Global paling sesuai.",
+        "use": "Gunakan yang tertulis di dokumen"
+      }
     },
     "docTypes": {
       "insurance": "Polis asuransi",

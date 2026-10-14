@@ -124,7 +124,14 @@
       "yourRole": "Which party are you?",
       "rolePlaceholder": "For example: tenant",
       "submit": "These details are right",
-      "failed": "Could not save the details. Please try again."
+      "failed": "Could not save the details. Please try again.",
+      "mismatch": {
+        "title": "The document may say something else",
+        "type": "It reads like: {{type}}.",
+        "country": "It points to the law of {{country}}.",
+        "countryOutside": "It points to the law of {{country}}, which is not in the list, so Global fits it best.",
+        "use": "Use what the document says"
+      }
     },
     "docTypes": {
       "insurance": "Insurance policy",

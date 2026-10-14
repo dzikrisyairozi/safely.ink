@@ -17,6 +17,7 @@ import {
 import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
 import { DocumentFields } from '../../components/document-fields';
+import { useCountryName } from '../../lib/country-name';
 
 function Message({
   title,
@@ -56,6 +57,17 @@ function ConfirmDetails({
   const [userRole, setUserRole] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  const countryName = useCountryName();
+
+  // What the Reader found, as a choice on this screen: a country outside the
+  // list is best described as Global; no country found is no choice at all.
+  const { detected } = meta;
+  const detectedCountry: Jurisdiction | null = detected.jurisdiction
+    ? (Jurisdiction.safeParse(detected.jurisdiction).data ?? GLOBAL)
+    : null;
+  const typeDiffers = detected.docType !== docType;
+  const countryDiffers =
+    detectedCountry !== null && detectedCountry !== jurisdiction;
 
   const submit = async () => {
     setFailed(false);
@@ -99,6 +111,44 @@ function ConfirmDetails({
             <Link to="/" className="underline">
               {t('analysis.uploadAgain')}
             </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {(typeDiffers || countryDiffers) && (
+        <Alert>
+          <AlertTitle>{t('analysis.confirm.mismatch.title')}</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <ul className="list-disc pl-5">
+              {typeDiffers && (
+                <li>
+                  {t('analysis.confirm.mismatch.type', {
+                    type: t(`analysis.docTypes.${detected.docType}`),
+                  })}
+                </li>
+              )}
+              {countryDiffers && (
+                <li>
+                  {t(
+                    detectedCountry === GLOBAL
+                      ? 'analysis.confirm.mismatch.countryOutside'
+                      : 'analysis.confirm.mismatch.country',
+                    { country: countryName(detected.jurisdiction) },
+                  )}
+                </li>
+              )}
+            </ul>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDocType(detected.docType);
+                if (detectedCountry) setJurisdiction(detectedCountry);
+              }}
+            >
+              {t('analysis.confirm.mismatch.use')}
+            </Button>
           </AlertDescription>
         </Alert>
       )}
