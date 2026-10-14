@@ -397,7 +397,7 @@ Steps:
    `limits.law.pagesPerRule` (3) pages are kept.
 2. **Fetch** (`legal/fetch.ts`). For each URL: read `lawPages` first (used while under 30
    days old); on a miss, HTTP GET with browser-like headers, redirects followed only while
-   they stay on the allowlist, 10 s timeout, 5 MB cap. HTML is stripped to text in code;
+   they stay on the allowlist, 20 s timeout, 5 MB cap. HTML is stripped to text in code;
    a PDF is read in code with `unpdf`, which covers the Indonesian statutes on
    `peraturan.bpk.go.id`. A page with under 1,000 characters (an error, a metadata page,
    or a firewall that answers 200, as `ojk.go.id` does) is read with the URL context tool
@@ -558,7 +558,7 @@ tokens on every route but `/health`. CORS allows the dashboard origin only.
 - Cloud Run `max-instances 5`; budget alert on the project.
 - Per-call model timeout (`limits.modelCallSeconds`); a stage fails when a call times out.
   There is no retry: a second wait does not fit in one request next to the first.
-- The law lookup: `limits.law` (rules at once, pages per rule, 5 MB and 10 s per page,
+- The law lookup: `limits.law` (rules at once, pages per rule, 5 MB and 20 s per page,
   30 days in `lawPages`) and 1.5 million characters of pages per assessment. The fuzz
   stage leaves the comparing the longer of the judge and one lookup, plus the wording.
 

@@ -73,7 +73,9 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
         pagesPerRule: 3, // also bounds the size of an assessment
         // A consolidated Australian Act is about 1.4 MB of HTML (ADR 4).
         pageBytes: 5 * 1024 * 1024,
-        pageSeconds: 10,
+        // sso.agc.gov.sg pages of 650 KB did not arrive in 10 s while three
+        // analyses ran (2026-10-14).
+        pageSeconds: 20,
         pageDays: 30, // a stored page older than this is fetched again
       },
     },
