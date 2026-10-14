@@ -104,6 +104,38 @@ export function initI18n(options: InitI18nOptions = {}) {
 }
 
 /**
+ * A new, ready-to-use instance in one fixed language. For server rendering,
+ * where one process renders several languages and the shared instance from
+ * `initI18n` would keep whichever language came first.
+ */
+export function createI18n({
+  lng,
+  resources,
+  defaultNS = 'common',
+}: {
+  lng: string;
+  resources?: Resource;
+  defaultNS?: string;
+}) {
+  const mergedResources = mergeResources(resources);
+  const instance = i18n.createInstance();
+
+  instance.use(initReactI18next).init({
+    lng,
+    resources: mergedResources,
+    fallbackLng: DEFAULT_LANGUAGE,
+    defaultNS,
+    ns: Object.keys(mergedResources.en || {}),
+    interpolation: { escapeValue: false },
+    react: { useSuspense: false },
+    // Resources are bundled, so `t` works as soon as init returns.
+    initAsync: false,
+  });
+
+  return instance;
+}
+
+/**
  * Reset the initialized state (useful for testing or HMR).
  */
 export function resetI18n() {
