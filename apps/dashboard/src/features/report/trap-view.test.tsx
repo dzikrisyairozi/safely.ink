@@ -10,6 +10,7 @@ import type {
   StoredScenario,
   Trap,
 } from '@repo/api-types';
+import { i18n } from '@repo/i18n';
 import { TrapView } from './trap-view';
 
 vi.mock('@tanstack/react-router', () => ({
@@ -286,6 +287,19 @@ test('a high trap on a law-checked report says where to get help', () => {
     'https://kontak157.ojk.go.id',
     'https://lapssjk.id',
   ]);
+  expect(links[1]!.textContent).toBe('LAPS SJK (financial services disputes)');
+});
+
+test('the name of a body stays as it is, and what it does is translated', async () => {
+  await i18n.changeLanguage('id');
+  try {
+    showLaw(finding);
+    expect(screen.getByRole('link', { name: /^LAPS SJK/ }).textContent).toBe(
+      'LAPS SJK (sengketa jasa keuangan)',
+    );
+  } finally {
+    await i18n.changeLanguage('en');
+  }
 });
 
 test('a medium trap, or a report without a law check, has no help list', () => {

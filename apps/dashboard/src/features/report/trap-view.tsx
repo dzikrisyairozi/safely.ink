@@ -94,7 +94,7 @@ export function TrapView({
         <section className="space-y-2">
           <h2 className="text-xl tracking-tight">{t('trap.help')}</h2>
           <ul className="list-disc space-y-1 pl-5">
-            {help.map(({ name, url }) => (
+            {help.map(({ name, url, about }) => (
               <li key={url}>
                 <a
                   href={url}
@@ -102,7 +102,7 @@ export function TrapView({
                   rel="noreferrer"
                   className="underline"
                 >
-                  {name}
+                  {about ? `${name} (${t(`trap.helpAbout.${about}`)})` : name}
                 </a>
               </li>
             ))}

@@ -340,6 +340,10 @@
     "back": "Kembali ke laporan",
     "action": "Yang dapat Anda lakukan",
     "help": "Tempat mendapatkan bantuan",
+    "helpAbout": {
+      "financialDisputes": "sengketa jasa keuangan",
+      "legalAid": "bantuan hukum"
+    },
     "examples": "Contoh situasi",
     "outcome": "Yang diberikan dokumen",
     "stake": "Yang dipertaruhkan",

@@ -1,6 +1,12 @@
 import type { DocType, LawJurisdiction } from '@repo/api-types';
 
-export type Help = { name: string; url: string };
+// `about` names what a body does when its name does not say it in English;
+// the words are in the locale files (trap.helpAbout).
+export type Help = {
+  name: string;
+  url: string;
+  about?: 'financialDisputes' | 'legalAid';
+};
 
 // Official bodies and recognised services, checked by hand on 2026-10-14.
 // Some sites turn away scripts (a firewall or a Cloudflare check) but open in
@@ -9,9 +15,10 @@ const OJK = {
   name: 'Otoritas Jasa Keuangan (Kontak OJK 157)',
   url: 'https://kontak157.ojk.go.id',
 };
-const LAPS = {
-  name: 'LAPS SJK (financial services disputes)',
+const LAPS: Help = {
+  name: 'LAPS SJK',
   url: 'https://lapssjk.id',
+  about: 'financialDisputes',
 };
 const KEMNAKER = {
   name: 'Kementerian Ketenagakerjaan',
@@ -25,9 +32,10 @@ const YLKI = {
   name: 'Yayasan Lembaga Konsumen Indonesia',
   url: 'https://ylki.or.id',
 };
-const BPHN = {
-  name: 'Badan Pembinaan Hukum Nasional (legal aid)',
+const BPHN: Help = {
+  name: 'Badan Pembinaan Hukum Nasional',
   url: 'https://bphn.go.id',
+  about: 'legalAid',
 };
 
 const FIDREC = {

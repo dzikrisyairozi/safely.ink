@@ -340,6 +340,10 @@
     "back": "Back to the report",
     "action": "What you can do",
     "help": "Where to get help",
+    "helpAbout": {
+      "financialDisputes": "financial services disputes",
+      "legalAid": "legal aid"
+    },
     "examples": "Example situations",
     "outcome": "What the document gives",
     "stake": "At stake",
