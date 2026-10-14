@@ -9,22 +9,18 @@ import {
 import '@repo/tailwind-config/tokens.css';
 import { RemotionRoot } from './Root';
 
-// The page gets its fonts from next/font; the renderer loads the same families.
+// The page gets its fonts from next/font; the renderer loads the same families
+// in the one weight the scenes use, so the MP4 and posters match the player.
 const fonts = [
-  ['Newsreader', 'Newsreader-SemiBold.ttf', '600', 'normal'],
-  ['Newsreader', 'Newsreader-MediumItalic.ttf', '500', 'italic'],
-  ['Geist', 'Geist-Regular.ttf', '400', 'normal'],
-  ['Geist', 'Geist-SemiBold.ttf', '600', 'normal'],
-  ['Geist Mono', 'GeistMono-Medium.ttf', '500', 'normal'],
+  ['Newsreader', 'Newsreader-Regular.ttf'],
+  ['Geist', 'Geist-Regular.ttf'],
+  ['Geist Mono', 'GeistMono-Regular.ttf'],
 ] as const;
 
 const handle = delayRender('fonts');
 Promise.all(
-  fonts.map(async ([family, file, weight, style]) => {
-    const face = new FontFace(family, `url(${staticFile(`fonts/${file}`)})`, {
-      weight,
-      style,
-    });
+  fonts.map(async ([family, file]) => {
+    const face = new FontFace(family, `url(${staticFile(`fonts/${file}`)})`);
     document.fonts.add(await face.load());
   }),
 ).then(() => continueRender(handle));
