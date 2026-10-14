@@ -1,44 +1,48 @@
 # Runbook: setup and deploy
 
 How to stand the project up from nothing and how to deploy it. Project ID used below:
-`policy-police-96af6`. Region: `asia-southeast2` (Jakarta).
+`safely-ink` (number 774697783852), on the Blaze plan. Region: `asia-southeast2`
+(Jakarta), except the Storage bucket, which the console created in `US-EAST1`. A
+bucket's region cannot be changed; the API reads each upload once and uploads are
+deleted after 7 days, so the distance costs little.
 
-The project ID still carries the product's first name. Google Cloud project IDs cannot be
-changed, so it stays; users reach the product through the safely.ink domains instead.
+Until 2026-10-14 the app ran on an earlier project on the free Spark plan, which had no
+Storage or Cloud Run. That project is no longer used.
 
-Commands marked **(not yet run)** were written from the documentation and have not been
-executed against this project. Check them against `gcloud help` the first time.
+Sections 1, 3 and 4 were run against `safely-ink` on 2026-10-14. Commands marked
+**(not yet run)** were written from the documentation and have not been executed against
+this project. Check them against `gcloud help` the first time.
 
 ## 1. One-time project setup
 
-| Step | Where                                                                                    | State on 2026-10-13    |
-| ---- | ---------------------------------------------------------------------------------------- | ---------------------- |
-| 1    | Firebase console: create project                                                         | Done                   |
-| 2    | Security → Authentication → Sign-in method → enable Google                               | Done                   |
-| 3    | Firestore Database → create `(default)`                                                  | Done                   |
-| 4    | Project settings → Your apps → register web app `dashboard`                              | Done                   |
-| 5    | AI Studio: create a Gemini API key in this project                                       | Done                   |
-| 6    | Upgrade to the Blaze plan (bottom-left of the console)                                   | **Open**               |
-| 7    | Storage → Get started, same region                                                       | **Open**, needs step 6 |
-| 8    | Install the [gcloud CLI](https://cloud.google.com/sdk/docs/install), `gcloud auth login` | Installed, login open  |
+| Step | Where                                                                                                 | State on 2026-10-14 |
+| ---- | ----------------------------------------------------------------------------------------------------- | ------------------- |
+| 1    | Firebase console: create project, Blaze plan                                                          | Done                |
+| 2    | Security → Authentication → Sign-in method → enable Google                                            | Done                |
+| 3    | Storage → Get started                                                                                 | Done (`US-EAST1`)   |
+| 4    | Install the [gcloud CLI](https://cloud.google.com/sdk/docs/install), `gcloud auth login --update-adc` | Done                |
 
-Cloud Run, Cloud Build, Secret Manager and Cloud Storage all need Blaze. Hosting,
-Authentication and Firestore work on the free plan.
-
-After steps 6 to 8 **(not yet run)**:
+Then, from the CLI:
 
 ```bash
-gcloud config set project policy-police-96af6
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
-  secretmanager.googleapis.com
+gcloud config set project safely-ink
+gcloud services enable firestore.googleapis.com firebasestorage.googleapis.com \
+  run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
+  secretmanager.googleapis.com generativelanguage.googleapis.com
+gcloud firestore databases create --location=asia-southeast2
 
-# Gemini key into Secret Manager. Paste the key when prompted, then Ctrl+Z, Enter
+# The dashboard's web app; sdkconfig prints the VITE_FIREBASE_* values.
+pnpm exec firebase apps:create web dashboard
+pnpm exec firebase apps:sdkconfig web <app ID>
+
+# The team's shared Gemini key (the one in apps/api/.env, section 2) into Secret
+# Manager. Paste the key when prompted, then Ctrl+Z, Enter
 # (Windows) or Ctrl+D (macOS, Linux). Do not put the key on the command line.
 gcloud secrets create gemini-api-key --data-file=-
 # Cloud Run reads the secret as its runtime service account (the default compute
 # account unless the service is given another one).
 gcloud secrets add-iam-policy-binding gemini-api-key \
-  --member=serviceAccount:438667935208-compute@developer.gserviceaccount.com \
+  --member=serviceAccount:774697783852-compute@developer.gserviceaccount.com \
   --role=roles/secretmanager.secretAccessor
 
 # Image registry for the API.
@@ -48,10 +52,10 @@ gcloud auth configure-docker asia-southeast2-docker.pkg.dev
 
 # Uploaded documents are deleted after 7 days (F-HIST-3). The Firebase CLI does
 # not deploy lifecycle rules, so the committed file is applied with gcloud.
-gcloud storage buckets update gs://policy-police-96af6.firebasestorage.app \
+gcloud storage buckets update gs://safely-ink.firebasestorage.app \
   --lifecycle-file=storage-lifecycle.json
 # Check: the rule is listed.
-gcloud storage buckets describe gs://policy-police-96af6.firebasestorage.app \
+gcloud storage buckets describe gs://safely-ink.firebasestorage.app \
   --format="default(lifecycle_config)"
 ```
 
@@ -112,6 +116,15 @@ The API verifies ID tokens with the project ID alone, so no service-account key 
 needed on a developer machine. `pnpm test` needs Java 21 (see CONTRIBUTING for the
 Windows `PATH` note).
 
+The eval script (TSD 9) writes to the real project as `--owner`, so it needs
+Application Default Credentials: `gcloud auth login --update-adc` once. Use your own uid
+as the owner to open each eval report from `/history`; eval runs count against that
+user's daily limit.
+
+```bash
+pnpm --filter api eval <file> --type loan --country SG --role Borrower --owner <uid>
+```
+
 To try a whole run by hand, upload `apps/api/test/fixtures/demo-policy.pdf`, a made-up
 health policy. No test reads it. Its source is `demo-policy.md` next to it: when the
 wording changes, make the PDF again from that file, with text that can be selected.
@@ -120,7 +133,7 @@ wording changes, make the PDF again from that file, with text that can be select
 
 Sign in once: `pnpm exec firebase login`.
 
-### Rules and dashboard (work on the free plan)
+### Rules and dashboard
 
 `apps/dashboard/.env.production.local` holds the production values and is read by the
 build. It has the same `VITE_FIREBASE_*` values as `.env`, and `VITE_API_URL` set to the
@@ -128,11 +141,10 @@ Cloud Run URL from the next section.
 
 ```bash
 pnpm --filter dashboard build
-pnpm exec firebase deploy --only hosting,firestore:rules
-pnpm exec firebase deploy --only storage        # after Storage is set up
+pnpm exec firebase deploy --only hosting,firestore,storage   # rules and the history index
 ```
 
-The dashboard is served at `https://policy-police-96af6.web.app`. That domain and
+The dashboard is served at `https://safely-ink.web.app`. That domain and
 `localhost` are authorised for sign-in by default; a custom domain must be added under
 Authentication → Settings → Authorised domains.
 
@@ -148,19 +160,21 @@ The landing page is served from `safely.ink` and the dashboard from `app.safely.
 4. Set `NEXT_PUBLIC_SITE_URL=https://safely.ink` and
    `NEXT_PUBLIC_APP_URL=https://app.safely.ink` for the landing build.
 
-### API on Cloud Run (needs Blaze) **(not yet run)**
+### API on Cloud Run
 
-The build context is the repository root.
+The build context is the repository root. `docker push` signs in through
+`docker-credential-gcloud`, which lives in the gcloud `bin` folder; that folder must be
+on `PATH`. The service URL is `https://api-774697783852.asia-southeast2.run.app`.
 
 ```bash
-IMAGE=asia-southeast2-docker.pkg.dev/policy-police-96af6/api/api:$(git rev-parse --short HEAD)
+IMAGE=asia-southeast2-docker.pkg.dev/safely-ink/api/api:$(git rev-parse --short HEAD)
 docker build -f apps/api/Dockerfile -t $IMAGE .
 docker push $IMAGE
 
 gcloud run deploy api --image $IMAGE --region asia-southeast2 \
   --timeout 900 --memory 1Gi --concurrency 4 --min-instances 0 --max-instances 5 \
   --allow-unauthenticated \
-  --set-env-vars GOOGLE_CLOUD_PROJECT=policy-police-96af6,STORAGE_BUCKET=policy-police-96af6.firebasestorage.app,ALLOWED_ORIGIN=https://policy-police-96af6.web.app \
+  --set-env-vars GOOGLE_CLOUD_PROJECT=safely-ink,STORAGE_BUCKET=safely-ink.firebasestorage.app,ALLOWED_ORIGIN=https://safely-ink.web.app \
   --set-secrets GEMINI_API_KEY=gemini-api-key:latest
 ```
 
@@ -181,7 +195,7 @@ curl -i -H "Authorization: Bearer nope" $API/v1/x # 401
 curl -i -H "Origin: https://evil.example" $API/health | grep -i access-control  # prints nothing
 ```
 
-In a private browser window, open `https://policy-police-96af6.web.app/`. Expected:
+In a private browser window, open `https://safely-ink.web.app/`. Expected:
 redirect to `/sign-in?redirect=%2F`, and after Google sign-in, the dashboard. Reload: no
 visit to `/sign-in`. Sign out from the profile menu: back at `/sign-in`.
 

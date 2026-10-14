@@ -438,11 +438,11 @@ test('the fuzzer is told the rules as stored, the facts, the seeds and the role'
 });
 
 // The clock is moved while the rule writer works; Firestore runs as usual.
-// The comparing keeps the longer of the judge and the law lookup, and the
+// The comparing keeps the judge, then the law lookup, then the
 // wording.
 test.each([
   [0, true, 240],
-  [400, true, 140],
+  [300, true, 150],
   [650, true, 90],
   [550, false, 150],
 ])(
@@ -586,6 +586,22 @@ test('a batch of the judge that fails is judged once more', async () => {
     confidence: 'high',
     counts: { judged: 21 },
   });
+});
+
+test('the judge is done, its second try included, before the law is looked up', async () => {
+  judged.mockRejectedValueOnce(
+    new Error('The expectation_judge did not answer in 90 s.'),
+  );
+  let judgedBeforeLaw = 0;
+  law.mockImplementation(async () => {
+    judgedBeforeLaw = judged.mock.calls.length;
+    return {};
+  });
+  await readyToRun(many);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(judgedBeforeLaw).toBe(4);
 });
 
 test('a lost batch is not judged again when the wording would not be reached', async () => {
@@ -750,7 +766,7 @@ const unavailable: LegalFinding = {
 const findings = async () =>
   (await analysis.collection('findings').get()).docs.map((doc) => doc.data());
 
-test('the law is looked up beside the judge, and its findings are stored and graded', async () => {
+test('the law is looked up, and its findings are stored and graded', async () => {
   // The user expects what happens, so only the law makes s-002 a trap.
   judged.mockImplementation(async ({ scenarios }) =>
     scenarios.map(({ id }) => ({ id, result: 'bad', reason: 'Too early.' })),

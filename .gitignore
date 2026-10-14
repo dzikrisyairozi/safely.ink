@@ -48,3 +48,9 @@ yarn-error.log*
 
 # Firebase emulator logs
 *-debug.log
+
+# Eval reports quote the clauses of real documents (TSD 9); never committed.
+eval-out/
+
+# Firebase CLI deploy cache
+.firebase/

@@ -153,9 +153,12 @@ language is derived from the document, not hard-coded per document type:
 Packs (`apps/api/src/packs/*.ts`) add prompt content only. A pack holds the facts worth
 looking for, per strategy the situations worth trying (the scenario seeds), and what
 people in that role take for granted (the expectation hints, read only by the judge).
-`insurance` and `terms` have their own pack. Every other type uses the general
-pack (termination, auto-renewal, fees, unilateral change, liability, dispute venue) until
-its own is written.
+Every document type has its own pack (`insurance`, `loan`, `employment`, `nda`, `lease`,
+`terms`), and the type of the pack map makes a missing one a compile error. Only `other`
+uses the general pack (termination, auto-renewal, fees, unilateral change, liability,
+dispute venue), so a report is labelled "general analysis" exactly when its type is
+`other` (F-READ-5). Where the side matters (NDA, loan, employment, lease), a hint names
+the role it applies to; the judge is told the user's role.
 
 ### 3.3 Firestore
 
@@ -235,7 +238,7 @@ Built so far: `extracting_rules`, `fuzzing`, `running`, `comparing`. Each stage 
 status that follows it, and the run starts at the stage that matches the status of the
 analysis. A stage reads its input from Firestore, not from the stage before it, so what is
 evaluated is what is stored. After `comparing` the analysis is `done`. `comparing` runs
-the ExpectationJudge (5.5) and the legal lookup (5.6) side by side, then `score()` (5.7)
+the ExpectationJudge (5.5), then the legal lookup (5.6), then `score()` (5.7)
 with both. It keeps what an earlier attempt stored: it judges only scenarios without an
 expectation and looks up only rules without a usable finding, so a retry finishes what is
 missing.
@@ -381,7 +384,8 @@ comparison on a non-number, throws instead of quietly evaluating to false.
 
 `lookUpLaw()` in `legal/research.ts` runs once per **deciding rule** of a `bad` or
 `partly_bad` scenario (deduplicated), the rules deciding the most such scenarios first,
-`limits.law.atOnce` at a time, beside the ExpectationJudge. A rule not done by the request
+`limits.law.atOnce` at a time, after the ExpectationJudge: side by side, every call slowed
+and judge batches did not answer in 90 s (eval of 2026-10-14). A rule not done by the request
 deadline minus the wording call is `lookup_unavailable`. Each finding is written to
 `findings/{ruleId}` as soon as it exists. Skipped entirely when the jurisdiction has no
 allowlist (`meta.lawChecked = false`, F-READ-6).

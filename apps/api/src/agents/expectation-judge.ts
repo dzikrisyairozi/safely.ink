@@ -1,3 +1,4 @@
+import { ThinkingLevel } from '@google/genai';
 import { z } from 'zod';
 import {
   Expectation,
@@ -77,7 +78,11 @@ export type JudgeInput = ReturnType<typeof judgeInput>;
 // One answer of the judge: the expectation, for the scenario with that ID.
 export const Judged = Expectation.extend({ id: z.string() });
 
-/** What a reasonable person expects for each scenario. Unchecked. */
+/**
+ * What a reasonable person expects for each scenario. Unchecked. Low
+ * thinking: at the default, boundary stories took 111 to 220 s and the
+ * model reasoned out limits it is told not to guess (eval of 2026-10-14).
+ */
 export const judge = (input: JudgeInput, seconds: number): Promise<unknown[]> =>
   askForList(
     config.models.flash,
@@ -87,4 +92,5 @@ export const judge = (input: JudgeInput, seconds: number): Promise<unknown[]> =>
     Judged,
     input,
     seconds,
+    ThinkingLevel.LOW,
   );

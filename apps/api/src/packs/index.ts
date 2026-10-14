@@ -1,6 +1,10 @@
 import type { DocType, WrittenStrategy } from '@repo/api-types';
+import { employment } from './employment';
 import { general } from './general';
 import { insurance } from './insurance';
+import { lease } from './lease';
+import { loan } from './loan';
+import { nda } from './nda';
 import { terms } from './terms';
 
 // Prompt content for one document type. A pack never changes what the code
@@ -16,6 +20,16 @@ export type Pack = {
   hints: string[];
 };
 
-const packs: Partial<Record<DocType, Pack>> = { insurance, terms };
+// Every type but `other` has a pack of its own, so a report is labelled
+// "general analysis" exactly when its type is `other` (F-READ-5).
+const packs: Record<DocType, Pack> = {
+  employment,
+  insurance,
+  lease,
+  loan,
+  nda,
+  terms,
+  other: general,
+};
 
-export const packFor = (docType: DocType): Pack => packs[docType] ?? general;
+export const packFor = (docType: DocType): Pack => packs[docType];
