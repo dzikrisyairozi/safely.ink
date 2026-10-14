@@ -14,7 +14,9 @@ import {
   JsonLd,
   faqPageLd,
   pageMetadata,
+  reelFiles,
   softwareApplicationLd,
+  videoObjectLd,
 } from '@/lib/seo';
 import { DEFAULT_LOCALE, isLocale } from '@/lib/site';
 
@@ -28,24 +30,44 @@ async function localeOf(params: Props['params']) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = await localeOf(params);
   const t = getT(locale);
-  return pageMetadata({
+  const meta = pageMetadata({
     locale,
     path: '/',
     title: t('meta.title'),
     description: t('meta.description'),
     absoluteTitle: true,
   });
+  const reel = reelFiles(locale);
+  return {
+    ...meta,
+    openGraph: {
+      ...meta.openGraph,
+      videos: [
+        {
+          url: reel.video,
+          type: 'video/mp4',
+          width: reel.width,
+          height: reel.height,
+        },
+      ],
+    },
+  };
 }
 
 export default async function Home({ params }: Props) {
   const locale = await localeOf(params);
-
   const t = getT(locale);
 
   return (
     <main id="main">
       <JsonLd data={softwareApplicationLd(locale, t('meta.description'))} />
       <JsonLd data={faqPageLd(faqItems(locale))} />
+      <JsonLd
+        data={videoObjectLd(locale, {
+          name: t('reel.label'),
+          description: t('meta.description'),
+        })}
+      />
       <Intro />
       <Hero locale={locale} />
       <Steps locale={locale} />

@@ -145,6 +145,35 @@ export function faqPageLd(items: { question: string; answer: string }[]) {
   };
 }
 
+/** The showreel MP4 and its poster for a language. */
+export function reelFiles(locale: Locale) {
+  return {
+    video: absoluteUrl(`/reel/showreel-${locale}.mp4`),
+    poster: absoluteUrl(`/reel/poster-${locale}-wide.jpg`),
+    width: 1920,
+    height: 1080,
+  };
+}
+
+export function videoObjectLd(
+  locale: Locale,
+  { name, description }: { name: string; description: string },
+) {
+  const reel = reelFiles(locale);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name,
+    description,
+    thumbnailUrl: reel.poster,
+    contentUrl: reel.video,
+    duration: 'PT42S',
+    uploadDate: '2026-10-14',
+    inLanguage: locale,
+    publisher: { '@id': ORGANIZATION_ID },
+  };
+}
+
 /** Structured data as a script tag; `<` is escaped so text cannot close it. */
 export function JsonLd({ data }: { data: object }) {
   return (

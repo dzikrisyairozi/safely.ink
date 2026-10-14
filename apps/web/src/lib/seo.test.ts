@@ -9,6 +9,7 @@ import {
   faqPageLd,
   pageMetadata,
   softwareApplicationLd,
+  videoObjectLd,
 } from './seo';
 
 const site = 'https://safely.test';
@@ -133,5 +134,20 @@ describe('home structured data', () => {
       inLanguage: 'id',
       offers: { price: '0' },
     });
+  });
+});
+
+describe('showreel structured data', () => {
+  it('points at the MP4 and poster of the page language', () => {
+    expect(videoObjectLd('id', { name: 'n', description: 'd' })).toMatchObject({
+      contentUrl: `${site}/reel/showreel-id.mp4`,
+      thumbnailUrl: `${site}/reel/poster-id-wide.jpg`,
+      duration: 'PT42S',
+    });
+  });
+
+  it('declares the duration the composition actually has', async () => {
+    const { REEL_FRAMES, REEL_FPS } = await import('@/remotion/Showreel');
+    expect(`PT${REEL_FRAMES / REEL_FPS}S`).toBe('PT42S');
   });
 });
