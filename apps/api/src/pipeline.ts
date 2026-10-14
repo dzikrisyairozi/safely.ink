@@ -357,7 +357,7 @@ const STAGES: Stage[] = [
 ];
 
 /** True for a status that is a stage a failed run can resume from. */
-export const isStage = (status: unknown) =>
+export const isStage = (status: unknown): status is AnalysisStatus =>
   STAGES.some((stage) => stage.status === status);
 
 /**

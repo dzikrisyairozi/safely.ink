@@ -213,8 +213,8 @@ analyses.post('/:id/retry', async (c) => {
       409,
     );
   // A failed reading has nothing stored to resume from; it is uploaded again.
-  if (data.status !== 'failed' || !isStage(data.stage)) return conflict();
-  const stage: AnalysisStatus = data.stage;
+  const { stage } = data;
+  if (data.status !== 'failed' || !isStage(stage)) return conflict();
 
   // The failure gave its slot back, so the run takes one again.
   const now = new Date();
