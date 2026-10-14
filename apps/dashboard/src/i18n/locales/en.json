@@ -183,18 +183,6 @@
       "description_one": "We ran {{count}} real-life situation through the rules. Now we compare the result with what a reasonable person in your place would expect.",
       "description_other": "We ran {{count}} real-life situations through the rules. Now we compare each result with what a reasonable person in your place would expect."
     },
-    "done": {
-      "title": "Grade {{grade}}",
-      "noTraps": "No situation ended worse than a reasonable person would expect.",
-      "traps_one": "{{count}} trap found: a place where the document gives you less than a reasonable person would expect.",
-      "traps_other": "{{count}} traps found: places where the document gives you less than a reasonable person would expect.",
-      "confidence": {
-        "high": "Confidence in this grade: high.",
-        "medium": "Confidence in this grade: medium.",
-        "low": "Confidence in this grade: low."
-      },
-      "next": "The law is not compared yet, and the full report is the next step."
-    },
     "rulesLink": "How we read your document"
   },
   "rules": {
@@ -281,5 +269,60 @@
     "high": "High",
     "medium": "Medium",
     "low": "Low"
+  },
+  "report": {
+    "eyebrow": "Report",
+    "grade": "Grade",
+    "confidence": {
+      "high": "Confidence: high",
+      "medium": "Confidence: medium",
+      "low": "Confidence: low"
+    },
+    "facts": {
+      "otherParty": "Other party",
+      "type": "Document type",
+      "role": "You are",
+      "country": "Country",
+      "date": "Checked on"
+    },
+    "counts": {
+      "scenarios": "Tested",
+      "fine": "Fine",
+      "partlyBad": "Partly bad",
+      "bad": "Bad",
+      "undetermined": "Unclear",
+      "traps": "Traps"
+    },
+    "generalAnalysis": "General analysis: this kind of document is checked with the general rules.",
+    "lawNotYet": "The law of {{country}} is not checked in this report yet. The situations ran on the document's own rules.",
+    "lawGlobal": "Global: no single country's law applies, so the law is not checked. The situations ran on the document's own rules.",
+    "incomplete": {
+      "title": "Incomplete document",
+      "description": "Page {{pages}} could not be read, so what is written there is not in this report."
+    },
+    "traps": {
+      "title": "Traps",
+      "none": "No situation ended worse than a reasonable person would expect.",
+      "expect": "You'd expect",
+      "says": "The document says"
+    },
+    "favour": {
+      "title": "What works in your favour",
+      "description": "Ordinary situations that came out the way you would expect.",
+      "none": "None of the ordinary situations came out fine."
+    },
+    "unclear": {
+      "title": "Unclear, read these clauses yourself",
+      "description": "The outcome depends on a clause we could not turn into a rule.",
+      "dependsOn": "Depends on: {{rule}}"
+    },
+    "formula": {
+      "title": "How the grade is worked out",
+      "intro": "Start at 100 and take off points for each trap:",
+      "penalty_one": "{{severity}}: {{count}} point",
+      "penalty_other": "{{severity}}: {{count}} points",
+      "bands": "Then the grade: {{bands}}.",
+      "this": "This report: {{score}} points, grade {{grade}}."
+    }
   }
 }

@@ -183,18 +183,6 @@
       "description_one": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Sekarang kami membandingkan hasilnya dengan apa yang wajar diharapkan orang di posisi Anda.",
       "description_other": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Sekarang kami membandingkan setiap hasil dengan apa yang wajar diharapkan orang di posisi Anda."
     },
-    "done": {
-      "title": "Nilai {{grade}}",
-      "noTraps": "Tidak ada situasi yang berakhir lebih buruk daripada yang wajar diharapkan.",
-      "traps_one": "{{count}} jebakan ditemukan: bagian di mana dokumen memberi Anda kurang dari yang wajar diharapkan.",
-      "traps_other": "{{count}} jebakan ditemukan: bagian di mana dokumen memberi Anda kurang dari yang wajar diharapkan.",
-      "confidence": {
-        "high": "Keyakinan atas nilai ini: tinggi.",
-        "medium": "Keyakinan atas nilai ini: sedang.",
-        "low": "Keyakinan atas nilai ini: rendah."
-      },
-      "next": "Hukum belum dibandingkan, dan laporan lengkap adalah langkah berikutnya."
-    },
     "rulesLink": "Cara kami membaca dokumen Anda"
   },
   "rules": {
@@ -281,5 +269,60 @@
     "high": "Tinggi",
     "medium": "Sedang",
     "low": "Rendah"
+  },
+  "report": {
+    "eyebrow": "Laporan",
+    "grade": "Nilai",
+    "confidence": {
+      "high": "Keyakinan: tinggi",
+      "medium": "Keyakinan: sedang",
+      "low": "Keyakinan: rendah"
+    },
+    "facts": {
+      "otherParty": "Pihak lain",
+      "type": "Jenis dokumen",
+      "role": "Anda adalah",
+      "country": "Negara",
+      "date": "Diperiksa pada"
+    },
+    "counts": {
+      "scenarios": "Diuji",
+      "fine": "Baik",
+      "partlyBad": "Sebagian buruk",
+      "bad": "Buruk",
+      "undetermined": "Tidak jelas",
+      "traps": "Jebakan"
+    },
+    "generalAnalysis": "Analisis umum: jenis dokumen ini diperiksa dengan aturan umum.",
+    "lawNotYet": "Hukum {{country}} belum diperiksa dalam laporan ini. Situasi dijalankan dengan aturan dokumen itu sendiri.",
+    "lawGlobal": "Global: tidak ada hukum satu negara yang berlaku, jadi hukum tidak diperiksa. Situasi dijalankan dengan aturan dokumen itu sendiri.",
+    "incomplete": {
+      "title": "Dokumen tidak lengkap",
+      "description": "Halaman {{pages}} tidak dapat dibaca, jadi isinya tidak ada dalam laporan ini."
+    },
+    "traps": {
+      "title": "Jebakan",
+      "none": "Tidak ada situasi yang berakhir lebih buruk dari yang wajar diharapkan.",
+      "expect": "Anda akan mengira",
+      "says": "Dokumen menyatakan"
+    },
+    "favour": {
+      "title": "Yang menguntungkan Anda",
+      "description": "Situasi biasa yang hasilnya sesuai harapan Anda.",
+      "none": "Tidak ada situasi biasa yang hasilnya baik."
+    },
+    "unclear": {
+      "title": "Tidak jelas, baca sendiri klausul ini",
+      "description": "Hasilnya bergantung pada klausul yang tidak dapat kami ubah menjadi aturan.",
+      "dependsOn": "Bergantung pada: {{rule}}"
+    },
+    "formula": {
+      "title": "Cara nilai dihitung",
+      "intro": "Mulai dari 100 dan kurangi poin untuk setiap jebakan:",
+      "penalty_one": "{{severity}}: {{count}} poin",
+      "penalty_other": "{{severity}}: {{count}} poin",
+      "bands": "Lalu nilainya: {{bands}}.",
+      "this": "Laporan ini: {{score}} poin, nilai {{grade}}."
+    }
   }
 }

@@ -8,7 +8,9 @@ import {
   type AnalysisMeta,
   type AnalysisStatus,
   type ConfirmAnalysisRequest,
+  type Clause,
   type Rule,
+  type StoredScenario,
   type Trap,
 } from '@repo/api-types';
 import {
@@ -20,6 +22,7 @@ import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
 import { DocumentFields } from '../../components/document-fields';
 import { useCountryName } from '../../lib/country-name';
+import { ReportView } from '../report/report-view';
 import { RunTracker } from './run-tracker';
 
 function Message({
@@ -231,6 +234,8 @@ export function AnalysisView({
   analysis,
   traps,
   rules,
+  scenarios,
+  clauses,
   onConfirm,
 }: {
   id: string;
@@ -238,6 +243,8 @@ export function AnalysisView({
   // Live from their sub-collections; empty until the listeners answer.
   traps: Trap[];
   rules: Rule[];
+  scenarios: StoredScenario[];
+  clauses: Clause[];
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
 }): JSX.Element {
   const { t } = useTranslation('dashboard');
@@ -245,12 +252,6 @@ export function AnalysisView({
   if (analysis.status === 'awaiting_confirmation' && analysis.meta) {
     return <ConfirmDetails meta={analysis.meta} onConfirm={onConfirm} />;
   }
-
-  const rulesLink = (
-    <Link to="/analyses/$id/rules" params={{ id }}>
-      {t('analysis.rulesLink')}
-    </Link>
-  );
 
   switch (analysis.status) {
     case 'uploaded':
@@ -295,26 +296,22 @@ export function AnalysisView({
           rules={rules}
         />
       );
-    case 'done': {
-      // The report comes with the run screen; until then the result in words.
-      const traps = analysis.counts?.traps ?? 0;
-      return (
-        <Message
-          title={t('analysis.done.title', { grade: analysis.grade })}
-          action={rulesLink}
-        >
-          {[
-            traps
-              ? t('analysis.done.traps', { count: traps })
-              : t('analysis.done.noTraps'),
-            analysis.confidence &&
-              t(`analysis.done.confidence.${analysis.confidence}`),
-            t('analysis.done.next'),
-          ]
-            .filter(Boolean)
-            .join(' ')}
+    case 'done':
+      // Done always has its details; without them there is nothing to show.
+      return analysis.meta ? (
+        <ReportView
+          id={id}
+          analysis={analysis}
+          meta={analysis.meta}
+          traps={traps}
+          rules={rules}
+          scenarios={scenarios}
+          clauses={clauses}
+        />
+      ) : (
+        <Message title={t('analysis.reading.title')}>
+          {t('analysis.reading.description')}
         </Message>
       );
-    }
   }
 }

@@ -47,7 +47,7 @@ function Condition({ line }: { line: ConditionLine }) {
   );
 }
 
-function ClauseLabel({ clause }: { clause: Clause }) {
+export function ClauseLabel({ clause }: { clause: Clause }) {
   const { t } = useTranslation('dashboard');
   return (
     <>

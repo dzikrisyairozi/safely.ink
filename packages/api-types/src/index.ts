@@ -347,6 +347,9 @@ export const Analysis = z.object({
   // From code, once the scenarios are compared (TSD 5.7).
   grade: Grade.optional(),
   confidence: Confidence.optional(),
+  // A Firestore timestamp; only its seconds are read, so the Admin and the
+  // web SDK's both fit.
+  createdAt: z.object({ seconds: z.number() }).optional(),
 });
 export type Analysis = z.infer<typeof Analysis>;
 

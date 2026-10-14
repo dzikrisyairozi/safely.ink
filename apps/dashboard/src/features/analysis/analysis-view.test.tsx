@@ -40,6 +40,8 @@ const show = (shown: Analysis, onConfirm = vi.fn(async () => {})) => {
       analysis={shown}
       traps={[]}
       rules={[]}
+      scenarios={[]}
+      clauses={[]}
       onConfirm={onConfirm}
     />,
   );
@@ -292,25 +294,13 @@ test('while the results are compared the number of situations is shown', () => {
   expect(screen.getByText(/31 real-life situations/)).toBeTruthy();
 });
 
-test('a finished analysis shows its grade, its traps and the confidence', () => {
-  const counts = { clauses: 40, rules: 17, scenarios: 31, traps: 4 };
+test('a finished analysis is shown as its report', () => {
+  show(analysis({ status: 'done', grade: 'C', confidence: 'medium' }));
 
-  show(analysis({ status: 'done', grade: 'C', confidence: 'medium', counts }));
-
-  expect(screen.getByRole('heading').textContent).toBe('Grade C');
-  expect(screen.getByText(/4 traps found/)).toBeTruthy();
-  expect(screen.getByText(/Confidence in this grade: medium/)).toBeTruthy();
-  expect(
-    screen.getByRole('link', { name: 'How we read your document' }),
-  ).toBeTruthy();
-});
-
-test('a finished analysis without a trap says so', () => {
-  const counts = { clauses: 40, rules: 17, scenarios: 31, traps: 0 };
-
-  show(analysis({ status: 'done', grade: 'A', confidence: 'high', counts }));
-
-  expect(screen.getByText(/No situation ended worse/)).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+    meta.title,
+  );
+  expect(screen.getByText('Confidence: medium')).toBeTruthy();
 });
 
 test.each([

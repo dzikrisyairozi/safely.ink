@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Rule, Trap } from '@repo/api-types';
+import { Clause, Rule, StoredScenario, Trap } from '@repo/api-types';
 import { AppHeader } from '../../../../components/layout/app-header';
 import { Main } from '../../../../components/layout/main';
 import { AnalysisView } from '../../../../features/analysis/analysis-view';
@@ -18,6 +18,8 @@ function AnalysisPage() {
   const { analysis, failed } = useAnalysis(id);
   const traps = useSubcollection(id, 'traps', Trap);
   const rules = useSubcollection(id, 'rules', Rule);
+  const scenarios = useSubcollection(id, 'scenarios', StoredScenario);
+  const clauses = useSubcollection(id, 'clauses', Clause);
 
   if (failed) return <GeneralError />;
   // Missing, or someone else's.
@@ -33,6 +35,8 @@ function AnalysisPage() {
             analysis={analysis}
             traps={traps ?? []}
             rules={rules ?? []}
+            scenarios={scenarios ?? []}
+            clauses={clauses ?? []}
             onConfirm={async (details) => {
               await api(`/v1/analyses/${id}/confirm`, {
                 method: 'POST',

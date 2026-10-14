@@ -420,3 +420,19 @@ test('a finished analysis carries its grade, its confidence and its traps', () =
   });
   expect(Analysis.safeParse({ ...done, grade: 'E' }).success).toBe(false);
 });
+
+test('an analysis keeps the second it was created, from either SDK', () => {
+  // Both Timestamp classes carry seconds and nanoseconds as fields.
+  class Timestamp {
+    constructor(
+      readonly seconds: number,
+      readonly nanoseconds: number,
+    ) {}
+  }
+  const fresh = { ownerUid: 'alice', status: 'reading', meta: null };
+
+  expect(
+    Analysis.parse({ ...fresh, createdAt: new Timestamp(1_760_400_000, 5) })
+      .createdAt,
+  ).toEqual({ seconds: 1_760_400_000 });
+});
