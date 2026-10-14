@@ -185,5 +185,54 @@
       "d": "safely.ink reads every line, and circles the one that costs you."
     },
     "note": "Invented policy text, for illustration."
+  },
+  "reel": {
+    "label": "safely.ink showreel",
+    "play": "Play",
+    "pause": "Pause",
+    "fullscreen": "Full screen",
+    "cold": {
+      "line1": "Forty pages.",
+      "line2": "Nobody reads them.",
+      "line3": "Until the day it matters."
+    },
+    "mark": {
+      "tagline": "Stress-test the fine print"
+    },
+    "read": {
+      "title": "Read",
+      "caption": "Every clause found and numbered."
+    },
+    "rules": {
+      "title": "Rules",
+      "caption": "The wording becomes rules a machine can check."
+    },
+    "fuzz": {
+      "title": "Fuzz",
+      "caption": "Dozens of tricky scenarios. Code decides every outcome."
+    },
+    "compare": {
+      "title": "Compare",
+      "caption": "Expectation against outcome. The law, quoted only when verified.",
+      "expect": "You expect",
+      "expectValue": "Paid",
+      "outcome": "The wording",
+      "outcomeValue": "Refused",
+      "citation": "Quote found in the official source",
+      "illustrative": "Illustration"
+    },
+    "report": {
+      "title": "Report",
+      "caption": "A grade, and every trap ranked with its clause.",
+      "grade": "Grade",
+      "traps": {
+        "t1": "Late notice voids the whole claim",
+        "t2": "Waiting period also applies to accidents",
+        "t3": "Pre-existing condition read very widely"
+      }
+    },
+    "end": {
+      "line": "Know where it breaks before you sign."
+    }
   }
 }

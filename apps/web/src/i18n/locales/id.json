@@ -185,5 +185,54 @@
       "d": "safely.ink membaca setiap baris, dan melingkari baris yang merugikan Anda."
     },
     "note": "Teks polis rekaan, sebagai ilustrasi."
+  },
+  "reel": {
+    "label": "Showreel safely.ink",
+    "play": "Putar",
+    "pause": "Jeda",
+    "fullscreen": "Layar penuh",
+    "cold": {
+      "line1": "Empat puluh halaman.",
+      "line2": "Tak ada yang membacanya.",
+      "line3": "Sampai hari itu tiba."
+    },
+    "mark": {
+      "tagline": "Uji ketentuan kecil"
+    },
+    "read": {
+      "title": "Baca",
+      "caption": "Setiap klausul ditemukan dan diberi nomor."
+    },
+    "rules": {
+      "title": "Aturan",
+      "caption": "Isi dokumen menjadi aturan yang bisa diperiksa mesin."
+    },
+    "fuzz": {
+      "title": "Uji",
+      "caption": "Puluhan skenario sulit. Kode memutuskan setiap hasil."
+    },
+    "compare": {
+      "title": "Bandingkan",
+      "caption": "Harapan dibandingkan hasil. Hukum dikutip hanya jika terverifikasi.",
+      "expect": "Anda mengira",
+      "expectValue": "Dibayar",
+      "outcome": "Isi polis",
+      "outcomeValue": "Ditolak",
+      "citation": "Kutipan ditemukan di sumber resmi",
+      "illustrative": "Ilustrasi"
+    },
+    "report": {
+      "title": "Laporan",
+      "caption": "Sebuah nilai, dan setiap jebakan diurutkan beserta klausulnya.",
+      "grade": "Nilai",
+      "traps": {
+        "t1": "Pemberitahuan terlambat membatalkan seluruh klaim",
+        "t2": "Masa tunggu juga berlaku untuk kecelakaan",
+        "t3": "Kondisi yang sudah ada ditafsirkan sangat luas"
+      }
+    },
+    "end": {
+      "line": "Ketahui di mana kontrak bermasalah sebelum Anda tanda tangan."
+    }
   }
 }
