@@ -11,47 +11,15 @@ import i18n, { type InitOptions, type Resource } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-import commonEn from './locales/en/common.json';
-import commonId from './locales/id/common.json';
+import { DEFAULT_LANGUAGE, mergeResources } from './core';
 
-export const SUPPORTED_LANGUAGES = ['en', 'id'] as const;
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-
-export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
-
-export const LANGUAGE_LABELS: Record<
-  SupportedLanguage,
-  { label: string; flag: string }
-> = {
-  en: { label: 'English', flag: 'EN' },
-  id: { label: 'Bahasa Indonesia', flag: 'ID' },
-};
-
-/**
- * Deep-merge app resources with common translations.
- */
-function mergeResources(appResources?: Resource): Resource {
-  const base: Resource = {
-    en: { common: commonEn },
-    id: { common: commonId },
-  };
-
-  if (!appResources) return base;
-
-  for (const lang of Object.keys(appResources)) {
-    if (!base[lang]) {
-      base[lang] = {};
-    }
-    for (const ns of Object.keys(appResources[lang]!)) {
-      const resourceKey = appResources[lang]![ns];
-      if (resourceKey) {
-        base[lang]![ns] = resourceKey;
-      }
-    }
-  }
-
-  return base;
-}
+export {
+  SUPPORTED_LANGUAGES,
+  DEFAULT_LANGUAGE,
+  LANGUAGE_LABELS,
+  createI18n,
+  type SupportedLanguage,
+} from './core';
 
 export interface InitI18nOptions {
   /** Initial language (e.g., from server cookie). Overrides auto-detection. */
@@ -101,38 +69,6 @@ export function initI18n(options: InitI18nOptions = {}) {
 
   initialized = true;
   return i18n;
-}
-
-/**
- * A new, ready-to-use instance in one fixed language. For server rendering,
- * where one process renders several languages and the shared instance from
- * `initI18n` would keep whichever language came first.
- */
-export function createI18n({
-  lng,
-  resources,
-  defaultNS = 'common',
-}: {
-  lng: string;
-  resources?: Resource;
-  defaultNS?: string;
-}) {
-  const mergedResources = mergeResources(resources);
-  const instance = i18n.createInstance();
-
-  instance.use(initReactI18next).init({
-    lng,
-    resources: mergedResources,
-    fallbackLng: DEFAULT_LANGUAGE,
-    defaultNS,
-    ns: Object.keys(mergedResources.en || {}),
-    interpolation: { escapeValue: false },
-    react: { useSuspense: false },
-    // Resources are bundled, so `t` works as soon as init returns.
-    initAsync: false,
-  });
-
-  return instance;
 }
 
 /**
