@@ -16,7 +16,7 @@ import type {
   StoredFinding,
   Trap,
 } from '@repo/api-types';
-import { ApiError } from '../../lib/api';
+import { api, ApiError } from '../../lib/api';
 import { ReportView } from './report-view';
 
 // A plain anchor stands in for the router; the hash is what makes a clause
@@ -31,6 +31,12 @@ vi.mock('@tanstack/react-router', () => ({
     hash?: string;
     children: ReactNode;
   }) => <a href={hash ? `${to}#${hash}` : to}>{children}</a>,
+  useNavigate: () => navigate,
+}));
+const navigate = vi.fn();
+vi.mock('../../lib/api', async (original) => ({
+  ...(await original<typeof import('../../lib/api')>()),
+  api: vi.fn(async () => ({ analysisId: 'analysis-1' })),
 }));
 
 const meta: AnalysisMeta = {
@@ -207,6 +213,20 @@ test('the header names the other party, the country, the grade and the counts', 
   expect(
     screen.getByText(/Compared with official sources of the law of Indonesia/),
   ).toBeTruthy();
+});
+
+test('the report can be deleted, which leads back to the history', async () => {
+  show();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }));
+
+  await waitFor(() =>
+    expect(navigate).toHaveBeenCalledWith({ to: '/history' }),
+  );
+  expect(api).toHaveBeenCalledWith('/v1/analyses/analysis-1', {
+    method: 'DELETE',
+  });
 });
 
 test('traps come worst first, each with the expectation, the rule and its clause', () => {

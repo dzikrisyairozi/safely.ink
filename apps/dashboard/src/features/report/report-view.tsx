@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from '@repo/i18n';
 import {
   GLOBAL,
@@ -20,6 +20,7 @@ import {
 import { Button } from '@repo/ui/components/ui/button';
 import { useCountryName } from '../../lib/country-name';
 import { useRetry } from '../analysis/use-retry';
+import { DeleteAnalysis } from '../history/delete-analysis';
 import { ClauseLinks } from './clause-links';
 
 // The counts of F-REP-1, in the order they are shown.
@@ -58,6 +59,7 @@ export function ReportView({
   const { t, i18n } = useTranslation('dashboard');
   const { retry, isStarting, error: retryError } = useRetry(onRetry);
   const countryName = useCountryName();
+  const navigate = useNavigate();
   const ruleById = new Map(rules.map((rule) => [rule.id, rule]));
   const clauseIdsOf = (ruleIds: (string | null)[]) => [
     ...new Set(
@@ -108,16 +110,25 @@ export function ReportView({
             </p>
             <h1 className="text-3xl tracking-tight">{meta.title}</h1>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">{t('report.grade')}</p>
-            <p className="font-mono text-5xl" data-grade>
-              {analysis.grade}
-            </p>
-            {analysis.confidence && (
+          <div className="flex items-start gap-2">
+            <div className="text-right">
               <p className="text-xs text-muted-foreground">
-                {t(`report.confidence.${analysis.confidence}`)}
+                {t('report.grade')}
               </p>
-            )}
+              <p className="font-mono text-5xl" data-grade>
+                {analysis.grade}
+              </p>
+              {analysis.confidence && (
+                <p className="text-xs text-muted-foreground">
+                  {t(`report.confidence.${analysis.confidence}`)}
+                </p>
+              )}
+            </div>
+            <DeleteAnalysis
+              id={id}
+              analysis={analysis}
+              onDeleted={() => navigate({ to: '/history' })}
+            />
           </div>
         </div>
 
