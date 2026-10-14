@@ -32,5 +32,8 @@
   },
   "cta": {
     "check": "Periksa dokumen"
+  },
+  "og": {
+    "kicker": "Policy fuzzer"
   }
 }

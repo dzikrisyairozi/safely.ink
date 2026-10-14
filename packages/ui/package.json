@@ -8,6 +8,10 @@
       "types": "./src/lib/utils.ts",
       "import": "./src/lib/utils.ts"
     },
+    "./components/brand/shapes": {
+      "types": "./src/components/brand/shapes.ts",
+      "import": "./src/components/brand/shapes.ts"
+    },
     "./components/*": {
       "types": "./src/components/*.tsx",
       "import": "./src/components/*.tsx"

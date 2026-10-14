@@ -32,5 +32,8 @@
   },
   "cta": {
     "check": "Check a document"
+  },
+  "og": {
+    "kicker": "Policy fuzzer"
   }
 }

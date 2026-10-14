@@ -1,76 +1,21 @@
-import { ImageResponse } from 'next/og';
+import { getT } from '@/i18n/translate';
+import { OG_SIZE, ogImage } from '@/lib/og';
+import { LOCALES, isLocale, DEFAULT_LOCALE } from '@/lib/site';
 
 export const alt = 'safely.ink';
-export const size = {
-  width: 1200,
-  height: 630,
-};
+export const size = OG_SIZE;
 export const contentType = 'image/png';
 
-export default async function Image() {
-  return new ImageResponse(
-    <div
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#0e1120',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0 80px',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 32,
-            fontWeight: 600,
-            color: '#a3a6b4',
-            letterSpacing: '0.1em',
-            marginBottom: 24,
-            textTransform: 'uppercase',
-          }}
-        >
-          Policy fuzzer
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 86,
-            fontWeight: 800,
-            color: '#ede8dc',
-            letterSpacing: '-0.02em',
-            marginBottom: 32,
-            lineHeight: 1.1,
-          }}
-        >
-          safely.ink
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 42,
-            color: '#a3a6b4',
-            letterSpacing: '-0.01em',
-            lineHeight: 1.4,
-          }}
-        >
-          Stress-test any policy or contract before you sign.
-        </div>
-      </div>
-    </div>,
-    {
-      ...size,
-    },
-  );
+export function generateStaticParams() {
+  return LOCALES.map((locale) => ({ locale }));
+}
+
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = getT(isLocale(locale) ? locale : DEFAULT_LOCALE);
+  return ogImage({ kicker: t('og.kicker'), title: t('hero.title') });
 }
