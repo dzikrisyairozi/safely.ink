@@ -566,18 +566,56 @@ test('an outcome that is what the user expected is no trap', async () => {
   expect(await stored()).toMatchObject({ grade: 'A', counts: { traps: 0 } });
 });
 
-test('one batch of the judge that fails does not cost the other', async () => {
-  // 21 scenarios are three batches; the first is lost.
-  const many = Array.from({ length: 21 }, (_, n) => ({
-    ...waiting[1]!,
-    id: `s-${String(n + 1).padStart(3, '0')}`,
-  }));
-  judged.mockRejectedValueOnce(new Error('model unavailable'));
+// 21 scenarios are three batches of the judge.
+const many = Array.from({ length: 21 }, (_, n) => ({
+  ...waiting[1]!,
+  id: `s-${String(n + 1).padStart(3, '0')}`,
+}));
+
+test('a batch of the judge that fails is judged once more', async () => {
+  judged.mockRejectedValueOnce(new Error('429 Too Many Requests'));
   await readyToRun(many);
 
   expect(await runPipeline('analysis-1')).toBe('done');
 
+  expect(judged).toHaveBeenCalledTimes(4);
+  expect(
+    (await storedScenarios()).filter(({ expectation }) => expectation),
+  ).toHaveLength(21);
+  expect(await stored()).toMatchObject({
+    confidence: 'high',
+    counts: { judged: 21 },
+  });
+});
+
+test('a lost batch is not judged again when the wording would not be reached', async () => {
+  const { judge: seconds } = config.limits.modelCallSeconds;
+  config.limits.modelCallSeconds.judge = config.limits.confirmSeconds;
+  judged.mockRejectedValueOnce(new Error('429 Too Many Requests'));
+  await readyToRun(many);
+
+  try {
+    expect(await runPipeline('analysis-1')).toBe('done');
+  } finally {
+    config.limits.modelCallSeconds.judge = seconds;
+  }
+
   expect(judged).toHaveBeenCalledTimes(3);
+  expect(await stored()).toMatchObject({ counts: { judged: 11 } });
+});
+
+test('one batch of the judge that fails twice does not cost the other', async () => {
+  // The first batch is lost, and lost again when judged once more.
+  judged
+    .mockRejectedValueOnce(new Error('model unavailable'))
+    .mockImplementationOnce(expectsFine)
+    .mockImplementationOnce(expectsFine)
+    .mockRejectedValueOnce(new Error('model unavailable'));
+  await readyToRun(many);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(judged).toHaveBeenCalledTimes(4);
   expect(
     (await storedScenarios()).filter(({ expectation }) => expectation),
   ).toHaveLength(11);

@@ -275,24 +275,47 @@ async function compare(
   for (let from = 0; from < unjudged.length; from += JUDGED_AT_ONCE) {
     batches.push(unjudged.slice(from, from + JUDGED_AT_ONCE));
   }
+  const { judge: judgeSeconds, wording } = config.limits.modelCallSeconds;
+  const wordingAt = deadline - wording * 1000;
+  const judgeAll = (all: StoredScenario[][]) =>
+    Promise.allSettled(
+      all.map((batch) =>
+        judge(judgeInput(meta, pack, rules, batch), judgeSeconds),
+      ),
+    );
+  // Keeps what the judge said about a batch; false when the batch was lost.
+  const take = (
+    batch: StoredScenario[],
+    answer: PromiseSettledResult<unknown[]>,
+  ) => {
+    if (answer.status === 'rejected') {
+      console.error(
+        `The judge lost a batch of ${batch.length} scenarios:`,
+        answer.reason,
+      );
+      return false;
+    }
+    const asked = new Set(batch.map((scenario) => scenario.id));
+    for (const entry of answer.value) {
+      const told = Judged.safeParse(entry);
+      if (!told.success || !asked.has(told.data.id)) continue;
+      const { id, ...expectation } = told.data;
+      expectations[id] = expectation;
+    }
+    return true;
+  };
+
   // Side by side, and one batch that fails does not cost the others. The
   // law is looked up at the same time, and must be done in time for the
   // wording.
   const [answers, findings] = await Promise.all([
-    Promise.allSettled(
-      batches.map((batch) =>
-        judge(
-          judgeInput(meta, pack, rules, batch),
-          config.limits.modelCallSeconds.judge,
-        ),
-      ),
-    ),
+    judgeAll(batches),
     lookUpLaw({
       rules,
       outcomes,
       stored,
       meta,
-      deadline: deadline - config.limits.modelCallSeconds.wording * 1000,
+      deadline: wordingAt,
       save: async (ruleId, finding) => {
         await analysis
           .collection('findings')
@@ -302,18 +325,12 @@ async function compare(
     }),
   ]);
 
-  for (const [n, answer] of answers.entries()) {
-    if (answer.status === 'rejected') {
-      console.error(answer.reason);
-      continue;
-    }
-    const asked = new Set(batches[n]!.map((scenario) => scenario.id));
-    for (const entry of answer.value) {
-      const told = Judged.safeParse(entry);
-      if (!told.success || !asked.has(told.data.id)) continue;
-      const { id, ...expectation } = told.data;
-      expectations[id] = expectation;
-    }
+  // Batches were lost while the lookup ran beside the judge (live runs of
+  // 2026-10-14), so a lost batch is judged once more when there is time.
+  const lost = batches.filter((batch, n) => !take(batch, answers[n]!));
+  if (lost.length > 0 && wordingAt - Date.now() >= judgeSeconds * 1000) {
+    const again = await judgeAll(lost);
+    lost.forEach((batch, n) => take(batch, again[n]!));
   }
   const judged = Object.entries(expectations);
   // Without an expectation nothing can be a trap, and a report that found
