@@ -62,7 +62,8 @@
       "general": "General"
     },
     "signOut": "Sign out",
-    "newAnalysis": "New analysis"
+    "newAnalysis": "New analysis",
+    "history": "History"
   },
   "newAnalysis": {
     "title": "Check a document",
@@ -373,6 +374,32 @@
       "partly_bad": "Partly bad",
       "bad": "Bad",
       "undetermined": "Unclear"
+    }
+  },
+  "history": {
+    "title": "History",
+    "untitled": "Untitled document",
+    "empty": "You have not checked a document yet.",
+    "start": "Check a document",
+    "status": {
+      "uploaded": "Uploaded",
+      "reading": "Reading",
+      "awaiting_confirmation": "Waiting for you",
+      "rejected": "Not a policy or contract",
+      "extracting_rules": "Reading the rules",
+      "fuzzing": "Writing scenarios",
+      "running": "Running",
+      "comparing": "Comparing",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "delete": {
+      "action": "Delete",
+      "title": "Delete this analysis?",
+      "description": "The report, its rules and scenarios, and the uploaded file are deleted for good. This cannot be undone.",
+      "confirm": "Delete for good",
+      "running": "You can delete this when the run ends.",
+      "failed": "The analysis could not be deleted. Try again."
     }
   }
 }

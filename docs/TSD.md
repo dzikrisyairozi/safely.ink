@@ -182,10 +182,15 @@ lawPages/{sha256(url)}                                   // F-CMP-6
 
 Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 
+The history screen lists `analyses` where `ownerUid` is the user's, by `createdAt`
+descending. That query needs the composite index in
+[`firestore.indexes.json`](../firestore.indexes.json), deployed with the rules.
+
 ### 3.4 Security rules
 
 - `analyses/**`: read if the analysis `ownerUid == request.auth.uid` (sub-collections check
-  the parent). **No client writes**; only the API (Admin SDK) writes.
+  the parent). **No client writes**; only the API (Admin SDK) writes, and deletes
+  (`DELETE /v1/analyses/:id`).
 - `lawPages/**`, `users/**`: no client access.
 - Storage `uploads/{uid}/**`: create if `request.auth.uid == uid`, content type is PDF,
   JPEG, PNG, WebP or HEIC (F-UP-1), size ≤ 30 MB. Read by owner. No update. The content
@@ -194,7 +199,10 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
   uploads do not pass through the API's daily quota. For the hackathon this is bounded
   only by the 7-day lifecycle rule and a billing budget alert. The fix, if needed, is
   signed upload URLs issued by the API after its quota check, with client writes closed.
-- Storage lifecycle: delete objects under `uploads/` after 7 days (F-HIST-3).
+- Storage lifecycle: delete objects under `uploads/` after 7 days (F-HIST-3), from
+  [`storage-lifecycle.json`](../storage-lifecycle.json). The Firebase CLI does not deploy
+  lifecycle rules; the runbook applies the file with `gcloud`. Only `POST /v1/analyses`
+  reads the upload, so the report and its clause quotes do not need it afterwards.
 
 ## 4. API
 
@@ -206,7 +214,7 @@ All routes require `Authorization: Bearer <Firebase ID token>`, verified with th
 | `POST`   | `/v1/analyses`             | `{ analysisId, files: string[], docType, jurisdiction }` | Type and country are what the user picked (400 without them). Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read** (which does not see the pick; its finding goes to `meta.detected`), sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                                                                     |
 | `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }`                    | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error.                                                                                                                                                                                                                   |
 | `POST`   | `/v1/analyses/:id/retry`   | —                                                        | Owner only (else 404). From `failed` in a pipeline stage, or from `done` when a finding has `error: 'lookup_unavailable'` (then the stage is `comparing`); else 409 (a failed reading is uploaded again). Reserves a daily slot again (429 `daily_limit`), deletes the sub-collection the stage writes (`rules`, `scenarios` or `traps`) and its result fields, sets the status to that stage and runs from there with what earlier stages stored, holding the request open like confirm. `comparing` keeps stored expectations and usable findings. A retry that fails again gives its slot back. |
-| `DELETE` | `/v1/analyses/:id`         | —                                                        | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `DELETE` | `/v1/analyses/:id`         | —                                                        | Owner only (else 404). 409 while the analysis is in a running stage whose `updatedAt` is newer than `RUN_STALE_SECONDS` (900 s, above every stage limit); an older one is a run that died and may go. The analysis document is deleted in the transaction that checks this, so a racing confirm or retry gets 404; then every sub-collection and `uploads/{uid}/{id}/` are deleted. Returns `{ analysisId }`. The daily slot stays used.                                                                                                                                                           |
 
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
@@ -535,7 +543,7 @@ Region: `asia-southeast2` (Jakarta) for Cloud Run and Firestore.
 gcloud run deploy api --image <IMAGE> --region asia-southeast2 \
   --timeout 900 --memory 1Gi --concurrency 4 --min-instances 0 --max-instances 5 \
   --set-secrets GEMINI_API_KEY=gemini-api-key:latest --allow-unauthenticated
-# Dashboard + rules
+# Dashboard, rules and the Firestore index
 pnpm build:dashboard && firebase deploy --only hosting,firestore,storage
 # Landing
 firebase apphosting:backends:create   # once, points at apps/web

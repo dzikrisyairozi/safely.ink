@@ -4,13 +4,14 @@ import {
   AnalysisId,
   ConfirmAnalysisRequest,
   CreateAnalysisRequest,
+  isDeletable,
   isLawChecked,
   type AnalysisStatus,
   type UploadError,
 } from '@repo/api-types';
 import { config } from '../config';
 import { failure } from '../failure';
-import { db } from '../firebase';
+import { bucket, db } from '../firebase';
 import { readDocument } from '../agents/reader';
 import { clearStage, isStage, runPipeline, saveAll } from '../pipeline';
 import { checkReading } from '../pipeline/reader-check';
@@ -274,4 +275,46 @@ analyses.post('/:id/retry', async (c) => {
     return c.json({ analysisId: id.data, status: 'failed' });
   }
   return c.json({ analysisId: id.data, status: await runPipeline(id.data) });
+});
+
+// Deletes the analysis, everything under it and its uploaded files
+// (F-HIST-2). The day's slot stays used, or deleting would reset the limit.
+analyses.delete('/:id', async (c) => {
+  const id = AnalysisId.safeParse(c.req.param('id'));
+  if (!id.success)
+    return c.json(failure('not_found', 'No such analysis.'), 404);
+  const uid = c.get('uid');
+  const analysis = db.doc(`analyses/${id.data}`);
+
+  const outcome = await db.runTransaction(async (tx) => {
+    const data = (await tx.get(analysis)).data();
+    // Someone else's analysis looks the same as one that does not exist.
+    if (data?.ownerUid !== uid) return 'not_found';
+    const { status, updatedAt } = data;
+    if (!isDeletable({ status, updatedAt }, Date.now())) return 'conflict';
+    // Gone before anything else, so a confirm or retry racing this one
+    // finds nothing and no run starts on a half-deleted analysis.
+    tx.delete(analysis);
+    return 'deleted';
+  });
+
+  switch (outcome) {
+    case 'not_found':
+      return c.json(failure('not_found', 'No such analysis.'), 404);
+    case 'conflict':
+      return c.json(
+        failure(
+          'conflict',
+          'This analysis is still running. You can delete it when the run ends.',
+        ),
+        409,
+      );
+    case 'deleted':
+      // ponytail: if this fails, the leftovers are unreachable by clients and
+      // a second delete finds nothing; a cleanup by path would catch them.
+      await db.recursiveDelete(analysis);
+      // The prefix is built from the caller's uid, like loadUploads().
+      await bucket().deleteFiles({ prefix: `uploads/${uid}/${id.data}/` });
+      return c.json({ analysisId: id.data });
+  }
 });

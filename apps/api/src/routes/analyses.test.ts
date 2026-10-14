@@ -1,8 +1,9 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import { DocumentReference } from 'firebase-admin/firestore';
+import { DocumentReference, Timestamp } from 'firebase-admin/firestore';
 import {
   ErrorEnvelope,
   ReaderOutput,
+  RUN_STALE_SECONDS,
   type Fact,
   type LegalFinding,
 } from '@repo/api-types';
@@ -632,5 +633,122 @@ test('a finished analysis whose law was looked up cannot be retried', async () =
     .set({ ruleId: 'r-002', ...permitted });
 
   expect((await retry('alice', 'analysis-1')).status).toBe(409);
+  expect(await startedToday('alice')).toBe(1);
+});
+
+const remove = (uid: string, analysisId: string) =>
+  app.request(`/v1/analyses/${analysisId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${uid}` },
+  });
+const SUBCOLLECTIONS = ['clauses', 'rules', 'scenarios', 'findings', 'traps'];
+const files = async (uid: string, analysisId: string) =>
+  (await bucket().getFiles({ prefix: `uploads/${uid}/${analysisId}/` }))[0].map(
+    (file) => file.name,
+  );
+
+// A stored analysis with a record in every sub-collection and two files, as
+// a run leaves it. Written directly: delete does not care how it got there.
+const seed = async (
+  analysisId: string,
+  state: Record<string, unknown> = { status: 'done' },
+) => {
+  await db.doc(`analyses/${analysisId}`).set({
+    ownerUid: 'alice',
+    meta: null,
+    updatedAt: Timestamp.now(),
+    ...state,
+  });
+  for (const name of SUBCOLLECTIONS) {
+    await db.doc(`analyses/${analysisId}/${name}/x-1`).set({ id: 'x-1' });
+  }
+  await upload('alice', analysisId, '0-page.jpg');
+  await upload('alice', analysisId, '1-page.jpg');
+};
+const left = async (analysisId: string) => ({
+  analysis: (await db.doc(`analyses/${analysisId}`).get()).exists,
+  records: (
+    await Promise.all(SUBCOLLECTIONS.map((name) => ids(analysisId, name)))
+  ).flat().length,
+  files: (await files('alice', analysisId)).length,
+});
+
+test('the owner deletes an analysis with all its records and files', async () => {
+  await seed('analysis-1');
+  await seed('analysis-2');
+
+  const res = await remove('alice', 'analysis-1');
+
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ analysisId: 'analysis-1' });
+  expect(await left('analysis-1')).toEqual({
+    analysis: false,
+    records: 0,
+    files: 0,
+  });
+  // The user's other analysis is untouched.
+  expect(await left('analysis-2')).toEqual({
+    analysis: true,
+    records: 5,
+    files: 2,
+  });
+});
+
+test("another user's analysis looks like one that does not exist to delete", async () => {
+  await seed('analysis-1');
+
+  const theirs = await remove('bob', 'analysis-1');
+  const missing = await remove('bob', 'analysis-404');
+  const invalid = await remove('alice', 'a/b');
+
+  expect(theirs.status).toBe(404);
+  expect(await theirs.json()).toEqual(await missing.json());
+  expect(missing.status).toBe(404);
+  expect(invalid.status).toBe(404);
+  expect(await left('analysis-1')).toEqual({
+    analysis: true,
+    records: 5,
+    files: 2,
+  });
+});
+
+test('a run that is going on is not deleted', async () => {
+  await seed('analysis-1', { status: 'fuzzing' });
+
+  const res = await remove('alice', 'analysis-1');
+
+  expect(res.status).toBe(409);
+  expect(ErrorEnvelope.parse(await res.json()).error.code).toBe('conflict');
+  expect(await left('analysis-1')).toMatchObject({ analysis: true, files: 2 });
+});
+
+test('a run not heard from for longer than any stage takes is deleted', async () => {
+  const stale = Timestamp.fromMillis(
+    Date.now() - (RUN_STALE_SECONDS + 60) * 1000,
+  );
+  await seed('analysis-1', { status: 'running', updatedAt: stale });
+
+  expect((await remove('alice', 'analysis-1')).status).toBe(200);
+  expect((await left('analysis-1')).analysis).toBe(false);
+});
+
+test('a rejected analysis, which has no details, is deleted', async () => {
+  await seed('analysis-1', { status: 'rejected' });
+
+  expect((await remove('alice', 'analysis-1')).status).toBe(200);
+  expect(await left('analysis-1')).toEqual({
+    analysis: false,
+    records: 0,
+    files: 0,
+  });
+});
+
+test('a deleted analysis cannot be confirmed or retried, and its slot stays used', async () => {
+  await create('alice', 'analysis-1');
+  await remove('alice', 'analysis-1');
+
+  expect((await confirm('alice', 'analysis-1')).status).toBe(404);
+  expect((await retry('alice', 'analysis-1')).status).toBe(404);
+  // Otherwise deleting would reset the daily limit (F-UP-5).
   expect(await startedToday('alice')).toBe(1);
 });

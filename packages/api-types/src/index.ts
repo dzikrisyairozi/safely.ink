@@ -334,19 +334,21 @@ export const AnalysisStatus = z.enum([
   'failed',
 ]);
 export type AnalysisStatus = z.infer<typeof AnalysisStatus>;
+// The reading and the stages after it, while a run is going on.
+const RunningStatus = AnalysisStatus.extract([
+  'reading',
+  'extracting_rules',
+  'fuzzing',
+  'running',
+  'comparing',
+]);
 
 // The Firestore document analyses/{id}, as far as the dashboard reads it.
 export const Analysis = z.object({
   ownerUid: z.string(),
   status: AnalysisStatus,
   // Where a failed run stopped: the reading, or a stage it can resume from.
-  stage: AnalysisStatus.extract([
-    'reading',
-    'extracting_rules',
-    'fuzzing',
-    'running',
-    'comparing',
-  ]).optional(),
+  stage: RunningStatus.optional(),
   error: z.string().optional(),
   meta: AnalysisMeta.nullable(), // null until the document is read
   factSchema: FactSchema.optional(), // from the rules stage on
@@ -374,8 +376,23 @@ export const Analysis = z.object({
   // A Firestore timestamp; only its seconds are read, so the Admin and the
   // web SDK's both fit.
   createdAt: z.object({ seconds: z.number() }).optional(),
+  updatedAt: z.object({ seconds: z.number() }).optional(),
 });
 export type Analysis = z.infer<typeof Analysis>;
+
+// No stage runs longer than this (the API's config test holds its limits
+// below it), so a run not heard from for longer has died with its server.
+export const RUN_STALE_SECONDS = 900;
+
+// A running analysis is kept until its run is over, or it would write its
+// records again after the delete (F-HIST-2).
+export const isDeletable = (
+  analysis: Partial<Pick<Analysis, 'status' | 'updatedAt'>>,
+  now: number,
+) =>
+  !RunningStatus.safeParse(analysis.status).success ||
+  !analysis.updatedAt ||
+  now / 1000 - analysis.updatedAt.seconds > RUN_STALE_SECONDS;
 
 // Both end up in a Storage path, so neither may carry a separator.
 export const AnalysisId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);

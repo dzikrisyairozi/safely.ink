@@ -62,7 +62,8 @@
       "general": "Umum"
     },
     "signOut": "Keluar",
-    "newAnalysis": "Analisis baru"
+    "newAnalysis": "Analisis baru",
+    "history": "Riwayat"
   },
   "newAnalysis": {
     "title": "Periksa dokumen",
@@ -373,6 +374,32 @@
       "partly_bad": "Sebagian buruk",
       "bad": "Buruk",
       "undetermined": "Tidak jelas"
+    }
+  },
+  "history": {
+    "title": "Riwayat",
+    "untitled": "Dokumen tanpa judul",
+    "empty": "Anda belum memeriksa dokumen.",
+    "start": "Periksa dokumen",
+    "status": {
+      "uploaded": "Diunggah",
+      "reading": "Membaca",
+      "awaiting_confirmation": "Menunggu Anda",
+      "rejected": "Bukan polis atau kontrak",
+      "extracting_rules": "Membaca aturan",
+      "fuzzing": "Menyusun skenario",
+      "running": "Menjalankan",
+      "comparing": "Membandingkan",
+      "done": "Selesai",
+      "failed": "Gagal"
+    },
+    "delete": {
+      "action": "Hapus",
+      "title": "Hapus analisis ini?",
+      "description": "Laporan, aturan dan skenarionya, serta berkas yang diunggah dihapus permanen. Ini tidak dapat dibatalkan.",
+      "confirm": "Hapus permanen",
+      "running": "Anda dapat menghapusnya setelah pemeriksaan selesai.",
+      "failed": "Analisis tidak dapat dihapus. Coba lagi."
     }
   }
 }

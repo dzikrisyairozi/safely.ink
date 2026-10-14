@@ -1,11 +1,14 @@
-import { FileSearch } from 'lucide-react';
+import { FileSearch, History } from 'lucide-react';
 import { type SidebarData } from '../types';
 
 export const sidebarData: SidebarData = {
   navGroups: [
     {
       title: 'nav.groups.general',
-      items: [{ title: 'nav.newAnalysis', url: '/', icon: FileSearch }],
+      items: [
+        { title: 'nav.newAnalysis', url: '/', icon: FileSearch },
+        { title: 'nav.history', url: '/history', icon: History },
+      ],
     },
   ],
 };
