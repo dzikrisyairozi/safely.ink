@@ -621,6 +621,8 @@ the analysis document for the eval report.
 1. Resolved in [ADR 3](./adr/0003-agent-framework.md): agents run on `@google/adk`;
    search and structured output are separate calls; fan-out is plain concurrent calls.
 2. Resolved in [ADR 4](./adr/0004-legal-source-fetch.md): direct fetch works for SG and
-   AU with browser-like headers; Indonesian statutes go through the URL context tool.
+   AU with browser-like headers; Indonesian statutes are fetched as the official PDFs and
+   read with `unpdf`. The URL context tool is only the fallback for a blocked or short
+   page, and its text never verifies a quote.
 3. Firebase App Hosting behaviour with a pnpm monorepo and Next.js 16; fallback is a
    Cloud Run container for `apps/web`.
