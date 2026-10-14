@@ -127,4 +127,20 @@ export const POSTS: Post[] = [
         'Kapan pemilik boleh menahan deposit sewa: keausan wajar versus kerusakan, keluar lebih awal, perbaikan, kenaikan sewa, dan pemberitahuan.',
     },
   },
+  {
+    slug: 'consumer-protection-contracts-indonesia-singapore-australia',
+    date: '2026-10-14',
+    updated: '2026-10-14',
+    tags: ['law'],
+    en: {
+      title: 'Unfair contract terms: Indonesia, Singapore, Australia',
+      description:
+        'A plain-language map of the laws against unfair standard-form contract terms in Indonesia, Singapore and Australia, and where to complain.',
+    },
+    id: {
+      title: 'Klausula tidak adil: Indonesia, Singapura, Australia',
+      description:
+        'Peta sederhana hukum yang melindungi konsumen dari klausula baku tidak adil di Indonesia, Singapura, dan Australia, serta ke mana mengadu.',
+    },
+  },
 ];
