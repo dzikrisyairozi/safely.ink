@@ -1,9 +1,9 @@
 @import '@repo/tailwind-config/global.css';
 
-/* Note: The following @source directives are new in Tailwind v4.
-   IDE warnings about "Unknown at rule @source" are safe to ignore. */
-@source "../../../../packages/i18n/src";
-@source "../../../../packages/ui/src";
+/* Only the shared pieces this site uses; scanning all of @repo/ui would ship
+   the class names of every dashboard component. */
+@source "../../../../packages/ui/src/components/brand";
+@source "../../../../packages/ui/src/components/ui/button.tsx";
 
 html {
   scroll-behavior: smooth;

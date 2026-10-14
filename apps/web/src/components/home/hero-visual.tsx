@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useReducedMotion } from 'framer-motion';
+import { usePrefersReducedMotion } from '@repo/ui/hooks/use-prefers-reduced-motion';
 import { Pangolin } from '@repo/ui/components/brand/pangolin';
 import { cn } from '@repo/ui/lib/utils';
 
-// three.js stays out of the first load: it arrives once the page is idle.
 const HeroScene = dynamic(() => import('./hero-scene'), { ssr: false });
 
 function hasWebGL() {
@@ -19,15 +18,28 @@ function hasWebGL() {
 
 /** The SVG ball first; the 3D ball replaces it when the browser can afford it. */
 export function HeroVisual() {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const [load, setLoad] = useState(false);
   const [ready, setReady] = useState(false);
 
+  // three.js is large: it waits for the first sign of a person (pointer,
+  // scroll, key) or a few quiet seconds, so it never competes with first paint.
   useEffect(() => {
     if (reduce || !hasWebGL()) return;
-    const idle = window.requestIdleCallback ?? ((cb) => setTimeout(cb, 1200));
-    const id = idle(() => setLoad(true));
-    return () => (window.cancelIdleCallback ?? clearTimeout)(id);
+    const events = ['pointermove', 'pointerdown', 'scroll', 'keydown'];
+    const start = () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, start));
+      setLoad(true);
+    };
+    const timer = setTimeout(start, 6000);
+    events.forEach((e) =>
+      window.addEventListener(e, start, { once: true, passive: true }),
+    );
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, start));
+    };
   }, [reduce]);
 
   return (

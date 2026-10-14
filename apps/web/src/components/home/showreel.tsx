@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Maximize, Pause, Play } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useReducedMotion } from 'framer-motion';
+import { usePrefersReducedMotion } from '@repo/ui/hooks/use-prefers-reduced-motion';
 import type { PlayerRef } from '@remotion/player';
 import { useTranslation } from '@repo/i18n';
 import type { Locale } from '@/lib/site';
@@ -19,7 +19,7 @@ const ReelPlayer = dynamic(() => import('./reel-player'), { ssr: false });
 export function Showreel({ locale }: { locale: Locale }) {
   const { t } = useTranslation('web');
   const { resolvedTheme } = useTheme();
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const box = useRef<HTMLDivElement>(null);
   const player = useRef<PlayerRef>(null);
   const [near, setNear] = useState(false);

@@ -20,14 +20,15 @@ import {
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
 
+// Small labels only; not worth delaying first paint for.
 const geistMono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-geist-mono',
+  preload: false,
 });
 
 const newsreader = Newsreader({
   subsets: ['latin'],
-  style: ['normal', 'italic'],
   variable: '--font-newsreader',
 });
 
