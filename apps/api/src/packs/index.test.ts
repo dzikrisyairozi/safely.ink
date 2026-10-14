@@ -4,10 +4,12 @@ import { employment } from './employment';
 import { general } from './general';
 import { packFor } from './index';
 import { insurance } from './insurance';
+import { lease } from './lease';
 import { loan } from './loan';
+import { nda } from './nda';
 import { terms } from './terms';
 
-const own = { employment, insurance, loan, terms };
+const own = { employment, insurance, lease, loan, nda, terms };
 const packs = [...Object.values(own), general];
 
 test('a type with a pack of its own gets that pack', () => {
