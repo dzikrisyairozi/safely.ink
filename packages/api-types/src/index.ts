@@ -374,8 +374,30 @@ export const Analysis = z.object({
   // A Firestore timestamp; only its seconds are read, so the Admin and the
   // web SDK's both fit.
   createdAt: z.object({ seconds: z.number() }).optional(),
+  updatedAt: z.object({ seconds: z.number() }).optional(),
 });
 export type Analysis = z.infer<typeof Analysis>;
+
+// No stage runs longer than this (the API's config test holds its limits
+// below it), so a run not heard from for longer has died with its server.
+export const RUN_STALE_SECONDS = 900;
+const RUNNING: readonly AnalysisStatus[] = [
+  'reading',
+  'extracting_rules',
+  'fuzzing',
+  'running',
+  'comparing',
+];
+
+// A running analysis is kept until its run is over, or it would write its
+// records again after the delete (F-HIST-2).
+export const isDeletable = (
+  analysis: Pick<Analysis, 'status' | 'updatedAt'>,
+  now: number,
+) =>
+  !RUNNING.includes(analysis.status) ||
+  !analysis.updatedAt ||
+  now / 1000 - analysis.updatedAt.seconds > RUN_STALE_SECONDS;
 
 // Both end up in a Storage path, so neither may carry a separator.
 export const AnalysisId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);

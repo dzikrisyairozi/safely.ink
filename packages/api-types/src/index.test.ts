@@ -5,9 +5,11 @@ import {
   COUNTRIES,
   ConfirmAnalysisRequest,
   GLOBAL,
+  isDeletable,
   Jurisdiction,
   CreateAnalysisRequest,
   ReaderOutput,
+  RUN_STALE_SECONDS,
   Condition,
   ErrorEnvelope,
   Expectation,
@@ -348,6 +350,37 @@ test('an analysis has no details until the document is read', () => {
   expect(Analysis.safeParse({ ...fresh, status: 'thinking' }).success).toBe(
     false,
   );
+});
+
+test('a running analysis can be deleted only once its run is surely over', () => {
+  const now = Date.UTC(2026, 9, 14, 12);
+  const ago = (seconds: number) => ({
+    seconds: Math.floor(now / 1000) - seconds,
+  });
+
+  for (const status of [
+    'reading',
+    'extracting_rules',
+    'fuzzing',
+    'running',
+    'comparing',
+  ] as const) {
+    expect(isDeletable({ status, updatedAt: ago(60) }, now)).toBe(false);
+    expect(
+      isDeletable({ status, updatedAt: ago(RUN_STALE_SECONDS + 1) }, now),
+    ).toBe(true);
+  }
+  for (const status of [
+    'uploaded',
+    'awaiting_confirmation',
+    'rejected',
+    'done',
+    'failed',
+  ] as const) {
+    expect(isDeletable({ status, updatedAt: ago(0) }, now)).toBe(true);
+  }
+  // Every write sets updatedAt; a record without it predates the field.
+  expect(isDeletable({ status: 'running' }, now)).toBe(true);
 });
 
 test('an analysis carries its facts and counts once the rules are read', () => {

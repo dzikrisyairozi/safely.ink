@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { GRADE_FORMULA } from '@repo/api-types';
+import { GRADE_FORMULA, RUN_STALE_SECONDS } from '@repo/api-types';
 import { loadConfig } from './config';
 import { score } from './engine/score';
 
@@ -96,6 +96,14 @@ test('the calls of the confirm request end before Cloud Run ends the request', (
   ).toBeLessThanOrEqual(confirmSeconds);
   expect(call.fuzzMost).toBeGreaterThanOrEqual(call.fuzz);
   expect(confirmSeconds).toBeLessThan(900);
+});
+
+test('no stage outlasts the age at which a run counts as dead', () => {
+  const { modelCallSeconds: call, confirmSeconds } = loadConfig({}).limits;
+
+  // Otherwise a live run could be deleted and write its records again.
+  expect(confirmSeconds).toBeLessThan(RUN_STALE_SECONDS);
+  expect(call.read).toBeLessThan(RUN_STALE_SECONDS);
 });
 
 test('the grade is computed with the formula the report shows', () => {
