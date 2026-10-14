@@ -15,6 +15,9 @@
     "reel:stills": "remotion still src/remotion/index.ts reel-wide public/reel/poster-en-wide.jpg --frame=925 --image-format=jpeg --jpeg-quality=82 --props=src/remotion/props/en.json && remotion still src/remotion/index.ts reel-tall public/reel/poster-en-tall.jpg --frame=925 --image-format=jpeg --jpeg-quality=82 --props=src/remotion/props/en.json && remotion still src/remotion/index.ts reel-wide public/reel/poster-id-wide.jpg --frame=925 --image-format=jpeg --jpeg-quality=82 --props=src/remotion/props/id.json && remotion still src/remotion/index.ts reel-tall public/reel/poster-id-tall.jpg --frame=925 --image-format=jpeg --jpeg-quality=82 --props=src/remotion/props/id.json"
   },
   "dependencies": {
+    "@mdx-js/loader": "3.1.1",
+    "@mdx-js/react": "3.1.1",
+    "@next/mdx": "16.4.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.1",
     "@remotion/player": "4.0.535",
@@ -27,12 +30,14 @@
     "next-themes": "^0.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "remark-gfm": "^4.0.1",
     "remotion": "4.0.535",
     "three": "^0.186.1"
   },
   "devDependencies": {
     "@remotion/cli": "4.0.535",
     "@tailwindcss/postcss": "^4",
+    "@types/mdx": "^2.0.14",
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",

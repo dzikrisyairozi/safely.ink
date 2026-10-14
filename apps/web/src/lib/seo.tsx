@@ -145,6 +145,34 @@ export function faqPageLd(items: { question: string; answer: string }[]) {
   };
 }
 
+export function blogPostingLd(
+  locale: Locale,
+  post: {
+    slug: string;
+    title: string;
+    description: string;
+    date: string;
+    updated: string;
+    tags: string[];
+  },
+) {
+  const url = absoluteUrl(localePath(locale, `/blog/${post.slug}`));
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.description,
+    image: `${url.replace(/\/$/, '')}/opengraph-image`,
+    datePublished: post.date,
+    dateModified: post.updated,
+    inLanguage: locale,
+    keywords: post.tags.join(', '),
+    mainEntityOfPage: url,
+    author: { '@id': ORGANIZATION_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+  };
+}
+
 /** The showreel MP4 and its poster for a language. */
 export function reelFiles(locale: Locale) {
   return {

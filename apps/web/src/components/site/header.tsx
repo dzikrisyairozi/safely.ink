@@ -25,6 +25,12 @@ export function Header({ locale }: { locale: Locale }) {
         >
           <Logo />
         </a>
+        <a
+          href={localePath(locale, '/blog')}
+          className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
+        >
+          {t('nav.blog')}
+        </a>
         <LanguageLinks locale={locale} label={t('nav.language')} />
         <ThemeToggle label={t('nav.theme')} />
         <Button asChild size="sm" className="hidden sm:inline-flex">

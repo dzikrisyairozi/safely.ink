@@ -10,7 +10,8 @@
     "skip": "Langsung ke konten",
     "home": "Beranda safely.ink",
     "language": "Bahasa",
-    "theme": "Ganti mode terang dan gelap"
+    "theme": "Ganti mode terang dan gelap",
+    "blog": "Blog"
   },
   "cta": {
     "check": "Periksa dokumen",
@@ -234,5 +235,31 @@
     "end": {
       "line": "Ketahui di mana kontrak bermasalah sebelum Anda tanda tangan."
     }
+  },
+  "blog": {
+    "title": "Ketentuan kecil, dijelaskan",
+    "description": "Panduan dengan bahasa sederhana tentang klausul yang menentukan nasib Anda saat ada masalah: asuransi, pinjaman, kontrak kerja, NDA, sewa, dan syarat layanan.",
+    "kicker": "Blog",
+    "minutes": "{{count}} menit baca",
+    "published": "Terbit",
+    "updated": "Diperbarui",
+    "byline": "Oleh tim safely.ink",
+    "related": "Baca juga",
+    "all": "Semua artikel",
+    "home": "Beranda",
+    "checkBody": "Unggah polis atau kontrak yang ada di depan Anda dan lihat di mana posisi Anda dirugikan, dalam sekitar dua menit.",
+    "feed": "Umpan RSS",
+    "tags": {
+      "guides": "Panduan",
+      "how-it-works": "Cara kerja",
+      "insurance": "Asuransi",
+      "loans": "Pinjaman",
+      "employment": "Kerja",
+      "nda": "NDA",
+      "lease": "Sewa",
+      "terms": "Syarat layanan",
+      "law": "Hukum"
+    },
+    "latest": "Dari blog"
   }
 }

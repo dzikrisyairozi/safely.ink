@@ -6,6 +6,7 @@ import { Descent } from '@/components/home/descent';
 import { Faq, faqItems } from '@/components/home/faq';
 import { Hero } from '@/components/home/hero';
 import { Intro } from '@/components/home/intro';
+import { LatestPosts } from '@/components/home/latest-posts';
 import { SampleTrap } from '@/components/home/sample-trap';
 import { Showreel } from '@/components/home/showreel';
 import { Steps } from '@/components/home/steps';
@@ -77,6 +78,7 @@ export default async function Home({ params }: Props) {
       <Coverage locale={locale} />
       <Comparison locale={locale} />
       <Faq locale={locale} />
+      <LatestPosts locale={locale} />
       <Closing locale={locale} />
     </main>
   );

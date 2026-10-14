@@ -10,7 +10,8 @@
     "skip": "Skip to content",
     "home": "safely.ink home",
     "language": "Language",
-    "theme": "Switch between light and dark"
+    "theme": "Switch between light and dark",
+    "blog": "Blog"
   },
   "cta": {
     "check": "Check a document",
@@ -234,5 +235,31 @@
     "end": {
       "line": "Know where it breaks before you sign."
     }
+  },
+  "blog": {
+    "title": "Fine print, explained",
+    "description": "Plain-language guides to the clauses that decide what happens when something goes wrong: insurance, loans, employment, NDAs, leases and terms.",
+    "kicker": "Blog",
+    "minutes": "{{count}} min read",
+    "published": "Published",
+    "updated": "Updated",
+    "byline": "By the safely.ink team",
+    "related": "Keep reading",
+    "all": "All articles",
+    "home": "Home",
+    "checkBody": "Upload the policy or contract in front of you and see where it leaves you worse off, in about two minutes.",
+    "feed": "RSS feed",
+    "tags": {
+      "guides": "Guides",
+      "how-it-works": "How it works",
+      "insurance": "Insurance",
+      "loans": "Loans",
+      "employment": "Employment",
+      "nda": "NDA",
+      "lease": "Leases",
+      "terms": "Terms",
+      "law": "Law"
+    },
+    "latest": "From the blog"
   }
 }
