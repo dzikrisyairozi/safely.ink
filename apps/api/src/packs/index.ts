@@ -1,4 +1,5 @@
 import type { DocType, WrittenStrategy } from '@repo/api-types';
+import { employment } from './employment';
 import { general } from './general';
 import { insurance } from './insurance';
 import { loan } from './loan';
@@ -17,6 +18,11 @@ export type Pack = {
   hints: string[];
 };
 
-const packs: Partial<Record<DocType, Pack>> = { insurance, loan, terms };
+const packs: Partial<Record<DocType, Pack>> = {
+  employment,
+  insurance,
+  loan,
+  terms,
+};
 
 export const packFor = (docType: DocType): Pack => packs[docType] ?? general;

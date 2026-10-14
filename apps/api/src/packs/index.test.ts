@@ -1,12 +1,13 @@
 import { expect, test } from 'vitest';
 import { DocType, WrittenStrategy } from '@repo/api-types';
+import { employment } from './employment';
 import { general } from './general';
 import { packFor } from './index';
 import { insurance } from './insurance';
 import { loan } from './loan';
 import { terms } from './terms';
 
-const own = { insurance, loan, terms };
+const own = { employment, insurance, loan, terms };
 const packs = [...Object.values(own), general];
 
 test('a type with a pack of its own gets that pack', () => {
