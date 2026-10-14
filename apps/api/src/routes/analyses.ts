@@ -243,7 +243,14 @@ analyses.post('/:id/retry', async (c) => {
     await clearStage(analysis, stage);
   } catch (err) {
     console.error(err);
-    await analysis.update({ status: 'failed', stage });
+    await analysis
+      .update({
+        status: 'failed',
+        stage,
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+      .catch(console.error);
+    // Given back also when the status itself could not be stored.
     await releaseDailySlot(uid, now);
     return c.json({ analysisId: id.data, status: 'failed' });
   }

@@ -514,3 +514,25 @@ test('a retry that fails again gives its slot back', async () => {
   expect(await res.json()).toMatchObject({ status: 'failed' });
   expect(await startedToday('alice')).toBe(0);
 });
+
+test('a retry that cannot clear its stage still gives its slot back', async () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  await create('alice', 'analysis-1');
+  ruleWriter.mockRejectedValueOnce(new Error('model unavailable'));
+  await confirm('alice', 'analysis-1');
+  const cleared = vi
+    .spyOn(db, 'recursiveDelete')
+    .mockRejectedValueOnce(new Error('delete refused'));
+  const update = vi
+    .spyOn(DocumentReference.prototype, 'update')
+    .mockRejectedValueOnce(new Error('write refused'));
+
+  const res = await retry('alice', 'analysis-1');
+
+  expect(res.status).toBe(200);
+  expect(await res.json()).toMatchObject({ status: 'failed' });
+  expect(await startedToday('alice')).toBe(0);
+  cleared.mockRestore();
+  update.mockRestore();
+  logged.mockRestore();
+});
