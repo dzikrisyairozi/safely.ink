@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from '@repo/i18n';
 import { usePrefersReducedMotion } from '@repo/ui/hooks/use-prefers-reduced-motion';
+import { Island } from './island';
 
 // The moving stage (and framer-motion with it) loads only when the section is
 // about a screen away, so it costs nothing on first load.
@@ -31,6 +32,8 @@ export function Descent() {
   const reduce = usePrefersReducedMotion();
   const track = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
+  // If the stage fails to load, show the words as reduced motion does.
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (reduce || !track.current) return;
@@ -58,7 +61,7 @@ export function Descent() {
           {t('descent.heading')}
         </h2>
       </div>
-      {reduce ? (
+      {reduce || failed ? (
         <div className="mx-auto max-w-3xl space-y-8 px-4 pb-24 pt-56 md:px-6">
           {CAPTIONS.map((c) => (
             <p key={c} className="font-serif text-3xl md:text-4xl">
@@ -76,7 +79,11 @@ export function Descent() {
             ))}
             <p>{t('descent.footnote')}</p>
           </div>
-          {near && <DescentStage target={track} />}
+          {near && (
+            <Island onError={() => setFailed(true)}>
+              <DescentStage target={track} />
+            </Island>
+          )}
         </div>
       )}
     </section>

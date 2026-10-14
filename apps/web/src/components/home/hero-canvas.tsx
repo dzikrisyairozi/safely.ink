@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { usePrefersReducedMotion } from '@repo/ui/hooks/use-prefers-reduced-motion';
 import { cn } from '@repo/ui/lib/utils';
+import { Island } from './island';
 
 const HeroScene = dynamic(() => import('./hero-scene'), { ssr: false });
 
@@ -60,7 +61,11 @@ export function HeroCanvas() {
         ready ? 'opacity-100' : 'opacity-0',
       )}
     >
-      {load && <HeroScene onReady={() => setReady(true)} />}
+      {load && (
+        <Island>
+          <HeroScene onReady={() => setReady(true)} />
+        </Island>
+      )}
     </div>
   );
 }

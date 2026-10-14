@@ -8,6 +8,7 @@ import { usePrefersReducedMotion } from '@repo/ui/hooks/use-prefers-reduced-moti
 import type { PlayerRef } from '@remotion/player';
 import { useTranslation } from '@repo/i18n';
 import type { Locale } from '@/lib/site';
+import { Island } from './island';
 
 const ReelPlayer = dynamic(() => import('./reel-player'), { ssr: false });
 
@@ -120,15 +121,17 @@ export function Showreel({ locale }: { locale: Locale }) {
           />
         </picture>
         {near && (
-          <div className="absolute inset-0">
-            <ReelPlayer
-              playerRef={player}
-              onReady={() => setReady(true)}
-              format={format}
-              locale={locale}
-              theme={theme}
-            />
-          </div>
+          <Island>
+            <div className="absolute inset-0">
+              <ReelPlayer
+                playerRef={player}
+                onReady={() => setReady(true)}
+                format={format}
+                locale={locale}
+                theme={theme}
+              />
+            </div>
+          </Island>
         )}
         <div className="absolute bottom-3 right-3 flex gap-2">
           <button
