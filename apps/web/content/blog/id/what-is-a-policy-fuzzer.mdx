@@ -1,0 +1,94 @@
+## Singkatnya
+
+- Policy fuzzer menguji kontrak dengan cara yang sama seperti penguji perangkat lunak menguji kode: ia mencoba banyak situasi yang rumit tetapi realistis terhadap isi dokumen, lalu mencari situasi yang membuat Anda lebih dirugikan daripada yang Anda bayangkan.
+- Ringkasan memberi tahu apa isi sebuah dokumen. Ringkasan tidak memberi tahu apa yang terjadi pada Anda di hari yang buruk, saat dua pasal bertemu atau tenggat terlewat beberapa hari.
+- Di safely.ink, model bahasa membaca dokumen serta mengusulkan aturan dan skenario, tetapi kode biasa yang memutuskan setiap hasil, dan kutipan hukum hanya ditampilkan jika kata-katanya benar-benar ditemukan di halaman resmi.
+
+## Asal istilahnya
+
+Dalam pengujian perangkat lunak, fuzzing berarti memberi sebuah program banyak sekali masukan yang tidak terduga (panjang yang aneh, kolom kosong, nilai yang sedikit melewati batas) lalu memperhatikan masukan mana yang membuatnya macet atau berperilaku salah. Fuzzer tidak membaca kode lalu menjelaskannya. Ia menggempur kode dengan kasus-kasus pinggiran sampai ada yang rusak, lalu menunjukkan dengan tepat masukan mana penyebabnya.
+
+Cara ini berhasil karena kebanyakan kegagalan tidak terjadi di jalur yang normal. Kegagalan bersembunyi di masukan yang tidak pernah terpikirkan siapa pun, dan cara tercepat menemukannya adalah dengan sengaja mencarinya.
+
+Kontrak pun begitu. Polis asuransi membayar klaim biasa tanpa masalah. Perjanjian sewa mengembalikan deposit kalau tidak ada yang rusak. Masalahnya ada di pinggir: klaim yang diajukan seminggu terlalu cepat, pemberitahuan yang terlambat beberapa hari, kerusakan yang separuhnya karena aus dan separuhnya karena kecelakaan. Policy fuzzer menerapkan kebiasaan penguji perangkat lunak itu pada dokumen yang akan, atau sudah, Anda tanda tangani.
+
+## Mengapa ringkasan saja tidak cukup
+
+Ringkasan itu berguna: ia memberi tahu janji utama dokumen dan siapa wajib melakukan apa. Namun ringkasan adalah deskripsi, dan deskripsi dibentuk oleh skenario yang serba lancar. Ringkasan akan menulis "menanggung rawat inap" karena memang itulah inti polisnya. Jarang sekali ringkasan menulis "kecuali di bulan pertama, kecuali karena kecelakaan, dan hanya jika perusahaan asuransi diberi tahu dalam sekian hari".
+
+Titik lemah sebuah kontrak hampir tidak pernah ada dalam satu kalimat. Titik itu muncul ketika dua atau tiga pasal bertemu dengan satu kejadian nyata pada saat yang sama. Masa tunggu, batas waktu pemberitahuan, dan sublimit masing-masing terdengar wajar kalau berdiri sendiri. Tetapi kalau ketiganya berlaku pada klaim yang sama, hasilnya bisa mengejutkan pembaca yang paling teliti sekalipun.
+
+|                        | Ringkasan                         | Policy fuzzer                                        |
+| ---------------------- | --------------------------------- | ---------------------------------------------------- |
+| Yang Anda dapat        | Deskripsi dokumen                 | Situasi ketika isi dokumen merugikan Anda            |
+| Siapa yang memutuskan  | Model membaca lalu menulis teks   | Aturan dijalankan oleh kode                          |
+| Masukan sama, dua kali | Jawabannya bisa berbeda           | Hasilnya selalu sama                                 |
+| Cara memeriksanya      | Anda harus percaya pada ringkasan | Setiap hasil menunjuk ke aturan, fakta, dan pasalnya |
+
+Ringkasan menjawab "apa isi dokumen ini?". Fuzzer menjawab "di bagian mana dokumen ini membuat saya lebih dirugikan daripada yang wajar saya harapkan?".
+
+## Empat langkahnya
+
+safely.ink menjalankan empat langkah yang sama untuk setiap dokumen.
+
+**1. Membaca.** Anda mengunggah polis atau kontrak dalam bentuk PDF, hasil pindaian, atau foto halaman. Dokumen dibaca untuk mengenali jenisnya, para pihak, negara, dan bahasanya, lalu dipecah menjadi pasal-pasal bernomor. Anda kemudian memastikan Anda pihak yang mana, karena pasal yang melindungi pemilik rumah akan terbaca sangat berbeda dari sisi penyewa.
+
+**2. Mengubah kata-kata menjadi aturan.** Pasal-pasal diubah menjadi aturan bertipe yang bisa diperiksa mesin, misalnya "jika kejadian terjadi dalam sekian hari sejak tanggal mulai, klaim ditolak". Setiap aturan wajib menunjuk ke pasal yang memang ada di dokumen Anda. Aturan tanpa pasal di belakangnya dibuang.
+
+**3. Fuzzing.** Alat ini membuat 20 sampai 40 skenario yang rumit tetapi realistis untuk dokumen Anda, lalu menjalankan masing-masing melalui mesin aturan yang deterministik. Sebagian besar berada di pinggir: definisi yang hampir berlaku, tenggat yang terlewat sedikit, dua pasal yang saling tarik.
+
+**4. Membandingkan.** Setiap hasil dibandingkan dengan apa yang wajar diharapkan orang pada umumnya. Untuk dokumen dari Indonesia, Singapura, dan Australia, hasilnya juga dibandingkan dengan hukum melalui pencarian di sumber resmi. Hasil akhirnya berupa nilai keseluruhan dan daftar jebakan yang diurutkan, masing-masing bisa dibuka langsung ke pasal asalnya.
+
+Semua ini memakan waktu sekitar dua menit per dokumen. Enam jenis dokumen sudah disetel dengan fakta dan skenario khasnya masing-masing: polis asuransi, perjanjian pinjaman dan kredit, kontrak kerja, NDA, perjanjian sewa, serta syarat dan ketentuan. Dokumen lain tetap dianalisis, dan laporannya dengan jelas diberi label analisis umum.
+
+## Contoh kasus
+
+Ambil contoh kontrak kerja rekaan dengan pasal seperti ini: "Apabila karyawan keluar dalam waktu 24 bulan setelah menyelesaikan pelatihan yang dibiayai perusahaan, karyawan wajib mengembalikan seluruh biaya pelatihan tersebut."
+
+Ringkasan akan menulis: "Ada ikatan dinas pelatihan. Jika keluar lebih awal, Anda mungkin harus mengganti biaya pelatihan." Itu benar, tetapi justru menyembunyikan bagian pinggirnya.
+
+Fuzzer mengajukan pertanyaan yang lebih tajam. Bagaimana jika Anda mengundurkan diri 23 bulan setelah pelatihan, sebulan sebelum ikatan dinas berakhir? Aturan yang diambil dari pasal itu menyebut "seluruh biaya", sehingga mesin menghasilkan jumlah penuh, tanpa potongan untuk 23 bulan Anda bekerja. Bagaimana jika justru perusahaan yang mengakhiri kontrak Anda? Kalau pasalnya hanya menyebut "keluar", mesin menerapkannya pada kedua keadaan, dan jejaknya menunjukkan kata mana yang menjadi penyebabnya.
+
+Orang pada umumnya akan berharap jumlah yang dikembalikan lebih kecil setelah hampir dua tahun bekerja, dan tidak akan menyangka harus membayar apa pun ketika perusahaan sendiri yang memutuskan hubungan kerja. Kedua hasil itu ditandai sebagai jebakan. Masing-masing menunjukkan aturan yang berlaku, fakta yang memicunya (berapa bulan sejak pelatihan, siapa yang mengakhiri kontrak), dan pasalnya, sehingga Anda bisa membaca sendiri kata-kata aslinya.
+
+## Mengapa kode yang memutuskan hasilnya
+
+Model bahasa sangat pandai membaca bahasa hukum yang berbelit, mengarang situasi yang canggung, dan mencari aturan hukum yang relevan. Namun model bahasa kurang bisa diandalkan sebagai kalkulator. Tanyakan hal yang sama dua kali, jawabannya bisa bergeser. Minta ia menerapkan tenggat waktu, ia bisa membulatkan, berasumsi, atau memaklumi.
+
+Karena itu safely.ink menjauhkan model dari putusan akhir. Model mengusulkan aturan dan skenario. Mesin deterministik, yaitu kode biasa tanpa model di dalamnya, yang memutuskan setiap hasil. Aturan dan skenario yang sama selalu memberi hasil yang sama. Setiap hasil juga disertai jejak: aturan mana yang berlaku, atas fakta apa, dari pasal mana.
+
+Berkat jejak itu, Anda tidak pernah harus menerima hasil begitu saja. Kalau Anda tidak setuju dengan cara sebuah pasal diubah menjadi aturan, buka pasalnya dan nilailah sendiri.
+
+## Ada bukti, atau diam
+
+Prinsip yang sama berlaku untuk hukum. Jika dokumen berasal dari Indonesia, Singapura, atau Australia, alat ini mencari di sumber resmi aturan yang berkaitan dengan setiap jebakan. Kutipan hukum hanya ditampilkan jika kata-kata yang dikutip benar-benar ditemukan di halaman resmi yang diambil. Jika kutipannya tidak ditemukan, kutipan itu dibuang dan hasilnya menyatakan "tidak ada temuan". Tebakan tidak pernah ditampilkan.
+
+Ini juga berarti diam bukan jaminan aman. "Tidak ada temuan" artinya tidak ada yang bisa diverifikasi, bukan bahwa pasalnya pasti baik-baik saja. Untuk dokumen dari negara lain, perbandingan hukum tidak dijalankan sama sekali, sedangkan perbandingan dengan harapan yang wajar tetap dijalankan.
+
+## Periksa milik Anda
+
+Kalau Anda punya polis atau kontrak yang belum dibaca sampai tuntas, Anda bisa mengunggahnya ke safely.ink. Dalam sekitar dua menit, safely.ink menunjukkan di bagian mana isi dokumen itu membuat Anda lebih dirugikan daripada yang wajar Anda harapkan, dan setiap jebakan terhubung ke pasal asalnya.
+
+*safely.ink adalah alat informasi, bukan nasihat hukum.*
+
+## Pertanyaan
+
+### Apakah policy fuzzer sama dengan ringkasan kontrak?
+
+Tidak. Ringkasan menjelaskan isi dokumen. Policy fuzzer menjalankan kasus-kasus pinggiran yang realistis melalui aturan yang dibangun dari isi dokumen, lalu menunjukkan kasus ketika Anda lebih dirugikan daripada yang diharapkan.
+
+### Apakah AI yang memutuskan sebuah pasal tidak adil?
+
+Tidak. Model bahasa membaca dokumen serta mengusulkan aturan dan skenario, tetapi mesin deterministik berupa kode biasa yang memutuskan setiap hasil.
+
+### Apa arti "tidak ada temuan" pada perbandingan hukum?
+
+Artinya tidak ada sumber resmi yang bisa diverifikasi untuk poin itu. Ini bukan pernyataan bahwa pasalnya sah; alat ini memilih diam daripada menampilkan kutipan yang tidak bisa dipastikan.
+
+### Dokumen apa saja yang bisa saya periksa?
+
+Enam jenis sudah disetel: polis asuransi, perjanjian pinjaman dan kredit, kontrak kerja, NDA, perjanjian sewa, serta syarat dan ketentuan. Polis dan kontrak lain tetap dianalisis, dan laporannya diberi label analisis umum.
+
+### Apakah dokumen saya dipakai untuk melatih model?
+
+Tidak. Laporan hanya bisa dilihat oleh Anda, berkas yang diunggah dihapus otomatis setelah 7 hari, dan Anda bisa menghapus laporan sendiri kapan saja.

@@ -16,6 +16,38 @@ export type Post = {
 
 export const POSTS: Post[] = [
   {
+    slug: 'what-is-a-policy-fuzzer',
+    date: '2026-10-14',
+    updated: '2026-10-14',
+    tags: ['guides', 'how-it-works'],
+    en: {
+      title: 'What is a policy fuzzer, and why a summary is not enough',
+      description:
+        'Fuzzing comes from software testing. Here is how safely.ink uses it to find where a contract breaks, and why a summary cannot.',
+    },
+    id: {
+      title: 'Apa itu policy fuzzer, dan mengapa ringkasan tidak cukup',
+      description:
+        'Fuzzing berasal dari pengujian perangkat lunak. Begini safely.ink memakainya untuk menemukan titik lemah kontrak yang luput dari ringkasan.',
+    },
+  },
+  {
+    slug: 'insurance-waiting-periods-and-late-notice',
+    date: '2026-10-14',
+    updated: '2026-10-14',
+    tags: ['insurance'],
+    en: {
+      title: 'Insurance waiting periods and late notice: where claims fail',
+      description:
+        'Waiting periods, late notice, missing papers, lapsed premiums and sub-limits: the clauses that refuse or cut claims the policy covers.',
+    },
+    id: {
+      title: 'Masa tunggu dan lapor terlambat: di mana klaim gagal',
+      description:
+        'Masa tunggu, lapor terlambat, berkas kurang, premi telat, dan sublimit: pasal-pasal yang bisa menolak atau memotong klaim yang ditanggung.',
+    },
+  },
+  {
     slug: 'loan-agreement-late-fees-early-repayment',
     date: '2026-10-14',
     updated: '2026-10-14',
