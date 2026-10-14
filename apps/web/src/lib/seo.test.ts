@@ -10,6 +10,7 @@ import {
   pageMetadata,
   softwareApplicationLd,
   videoObjectLd,
+  websiteLd,
 } from './seo';
 
 const site = 'https://safely.test';
@@ -128,6 +129,16 @@ describe('home structured data', () => {
     }
   });
 
+  it('gives the one WebSite node the same URL in every language', () => {
+    for (const locale of ['en', 'id'] as const) {
+      expect(websiteLd(locale, 'd')).toMatchObject({
+        '@id': `${site}/#website`,
+        url: site,
+        inLanguage: locale,
+      });
+    }
+  });
+
   it('describes the app in the page language', () => {
     expect(softwareApplicationLd('id', 'd')).toMatchObject({
       url: `${site}/id`,
@@ -144,6 +155,13 @@ describe('showreel structured data', () => {
       thumbnailUrl: `${site}/reel/poster-id-wide.jpg`,
       duration: 'PT42S',
     });
+  });
+
+  it('dates the upload with a time zone, as Google asks', () => {
+    const { uploadDate } = videoObjectLd('en', { name: 'n', description: 'd' });
+    expect(uploadDate).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/,
+    );
   });
 
   it('declares the duration the composition actually has', async () => {

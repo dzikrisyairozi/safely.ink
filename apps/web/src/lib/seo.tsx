@@ -96,8 +96,9 @@ export function websiteLd(locale: Locale, description: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    // One node for the whole site, so one URL; inLanguage says which page.
     '@id': `${SITE_URL}/#website`,
-    url: absoluteUrl(localePath(locale)),
+    url: SITE_URL,
     name: SITE_NAME,
     description,
     inLanguage: locale,
@@ -196,7 +197,8 @@ export function videoObjectLd(
     thumbnailUrl: reel.poster,
     contentUrl: reel.video,
     duration: 'PT42S',
-    uploadDate: '2026-10-14',
+    // When the MP4s were last rendered (pnpm reel:render).
+    uploadDate: '2026-10-14T00:00:00+07:00',
     inLanguage: locale,
     publisher: { '@id': ORGANIZATION_ID },
   };
