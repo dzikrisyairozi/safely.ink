@@ -108,6 +108,9 @@ try {
     }
   }
 
+  // The listener may not have seen the last status yet.
+  if (times.at(-1)?.status !== status) times.push({ status, at: Date.now() });
+
   const sub = async (name: string) =>
     (await analysis.collection(name).orderBy('__name__').get()).docs.map(
       (doc) => ({ id: doc.id, ...doc.data() }),
