@@ -64,10 +64,10 @@ async function post(path: string, body: unknown) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const json = await res.json();
-  if (!res.ok)
-    throw new Error(`${path} answered ${res.status}: ${JSON.stringify(json)}`);
-  return json as { status: AnalysisStatus };
+  // Text first: an error the route does not catch comes back as plain text.
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${path} answered ${res.status}: ${text}`);
+  return JSON.parse(text) as { status: AnalysisStatus };
 }
 
 const times: { status: AnalysisStatus; at: number }[] = [];
