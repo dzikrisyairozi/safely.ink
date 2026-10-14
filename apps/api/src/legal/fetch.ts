@@ -66,7 +66,7 @@ export const htmlToText = (html: string) =>
         name[1] === 'x' || name[1] === 'X'
           ? parseInt(name.slice(2), 16)
           : parseInt(name.slice(1), 10);
-      return String.fromCodePoint(code);
+      return code <= 0x10ffff ? String.fromCodePoint(code) : ' ';
     })
     .split('\n')
     .map((line) => line.replace(/\s+/g, ' ').trim())

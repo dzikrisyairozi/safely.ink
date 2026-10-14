@@ -215,3 +215,7 @@ test('HTML becomes text: tags out, entities decoded, blocks on their own lines',
     ),
   ).toBe("Part 1\nDon’t & won't — § 5\nNext\nline");
 });
+
+test('an entity that names no character becomes a space', () => {
+  expect(htmlToText('<p>a&#x110000;b</p>')).toBe('a b');
+});
