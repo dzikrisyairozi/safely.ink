@@ -5,6 +5,7 @@ import {
   FactSchema,
   Rule,
   Scenario,
+  StoredFinding,
   StoredScenario,
   WrittenStrategy,
   type AnalysisStatus,
@@ -24,6 +25,7 @@ import { evaluate } from './engine/evaluate';
 import { score } from './engine/score';
 import { validateScenarios } from './engine/validate';
 import { db } from './firebase';
+import { lookUpLaw } from './legal/research';
 import { packFor } from './packs';
 import { boundaryDrafts } from './pipeline/boundary';
 import {
@@ -134,14 +136,19 @@ async function fuzz(
   );
   const pack = packFor(meta.docType);
   // What the earlier calls left of the request once the comparing has its
-  // time, within the limits of a call.
+  // time, within the limits of a call. The law lookup runs beside the judge.
   const {
     fuzz: least,
     fuzzMost: most,
     judge,
     wording,
+    lawSearch,
+    lawPage,
+    lawAssess,
   } = config.limits.modelCallSeconds;
-  const left = Math.floor((deadline - Date.now()) / 1000) - judge - wording;
+  const law = meta.lawChecked ? lawSearch + lawPage + lawAssess : 0;
+  const left =
+    Math.floor((deadline - Date.now()) / 1000) - Math.max(judge, law) - wording;
   const seconds = Math.min(most, Math.max(least, left));
 
   // Side by side, and one call that fails does not cost the others.
@@ -233,31 +240,68 @@ async function runScenarios(analysis: DocumentReference) {
 // side by side, up to the rate limit of the model.
 const JUDGED_AT_ONCE = 10;
 
-// The model says what a person would expect; which gap is a trap, how bad it
-// is and the grade are worked out by score() (F-TRAP-1 to F-TRAP-5). The
-// law is not looked up yet, so no finding reaches it.
-async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
+// The model says what a person would expect, and the law is looked up beside
+// it; which gap is a trap, how bad it is and the grade are worked out by
+// score() (F-TRAP-1 to F-TRAP-5). What an earlier attempt stored is kept: a
+// retry judges only the scenarios without an expectation and looks up only
+// the rules whose lookup was unavailable.
+async function compare(
+  analysis: DocumentReference,
+  meta: AnalysisMeta,
+  deadline: number,
+) {
   const rules = await storedRules(analysis);
   const scenarios = (await analysis.collection('scenarios').get()).docs.map(
     (doc) => StoredScenario.parse(doc.data()),
   );
+  const outcomes = scenarios.flatMap(({ outcome }) => outcome ?? []);
+  const stored = Object.fromEntries(
+    (await analysis.collection('findings').get()).docs.flatMap((doc) => {
+      const parsed = StoredFinding.safeParse(doc.data());
+      if (!parsed.success) return [];
+      const { ruleId, ...finding } = parsed.data;
+      return [[ruleId, finding]];
+    }),
+  );
   const pack = packFor(meta.docType);
 
-  const batches: StoredScenario[][] = [];
-  for (let from = 0; from < scenarios.length; from += JUDGED_AT_ONCE) {
-    batches.push(scenarios.slice(from, from + JUDGED_AT_ONCE));
-  }
-  // Side by side, and one batch that fails does not cost the others.
-  const answers = await Promise.allSettled(
-    batches.map((batch) =>
-      judge(
-        judgeInput(meta, pack, rules, batch),
-        config.limits.modelCallSeconds.judge,
-      ),
+  const expectations: Record<string, Expectation> = Object.fromEntries(
+    scenarios.flatMap(({ id, expectation }) =>
+      expectation ? [[id, expectation]] : [],
     ),
   );
+  const unjudged = scenarios.filter(({ id }) => !expectations[id]);
+  const batches: StoredScenario[][] = [];
+  for (let from = 0; from < unjudged.length; from += JUDGED_AT_ONCE) {
+    batches.push(unjudged.slice(from, from + JUDGED_AT_ONCE));
+  }
+  // Side by side, and one batch that fails does not cost the others. The
+  // law is looked up at the same time, and must be done in time for the
+  // wording.
+  const [answers, findings] = await Promise.all([
+    Promise.allSettled(
+      batches.map((batch) =>
+        judge(
+          judgeInput(meta, pack, rules, batch),
+          config.limits.modelCallSeconds.judge,
+        ),
+      ),
+    ),
+    lookUpLaw({
+      rules,
+      outcomes,
+      stored,
+      meta,
+      deadline: deadline - config.limits.modelCallSeconds.wording * 1000,
+      save: async (ruleId, finding) => {
+        await analysis
+          .collection('findings')
+          .doc(ruleId)
+          .set({ ruleId, ...finding } satisfies StoredFinding);
+      },
+    }),
+  ]);
 
-  const expectations: Record<string, Expectation> = {};
   for (const [n, answer] of answers.entries()) {
     if (answer.status === 'rejected') {
       console.error(answer.reason);
@@ -287,9 +331,9 @@ async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
   const { traps, points, grade, confidence } = score(
     {
       scenarios,
-      outcomes: scenarios.flatMap(({ outcome }) => outcome ?? []),
+      outcomes,
       expectations,
-      findings: {},
+      findings,
       meta,
     },
     config.scoring,
