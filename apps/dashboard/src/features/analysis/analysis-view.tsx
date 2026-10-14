@@ -2,11 +2,8 @@ import { useState, type JSX, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from '@repo/i18n';
 import {
-  COUNTRIES,
-  DocType,
   GLOBAL,
   Jurisdiction,
-  isLawChecked,
   type Analysis,
   type AnalysisMeta,
   type AnalysisStatus,
@@ -19,9 +16,7 @@ import {
 } from '@repo/ui/components/ui/alert';
 import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
-
-const FIELD =
-  'h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
+import { DocumentFields } from '../../components/document-fields';
 
 function Message({
   title,
@@ -52,25 +47,15 @@ function ConfirmDetails({
   meta: AnalysisMeta;
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
 }) {
-  const { t, i18n } = useTranslation('dashboard');
+  const { t } = useTranslation('dashboard');
   const [docType, setDocType] = useState(meta.docType);
+  // An analysis from before the pick may hold a country outside the list.
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction>(
     Jurisdiction.safeParse(meta.jurisdiction).data ?? GLOBAL,
   );
   const [userRole, setUserRole] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  const countries = new Intl.DisplayNames([i18n.language], { type: 'region' });
-  const countryName = (code: string) => {
-    if (code === GLOBAL) return t('analysis.confirm.global');
-    try {
-      return countries.of(code) ?? code;
-    } catch {
-      return code; // not a region code; show what the document said
-    }
-  };
-  const jurisdictions = [...COUNTRIES, GLOBAL];
 
   const submit = async () => {
     setFailed(false);
@@ -118,54 +103,12 @@ function ConfirmDetails({
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-1.5 text-sm font-medium">
-          {t('analysis.confirm.docType')}
-          <select
-            className={FIELD}
-            value={docType}
-            onChange={(event) => setDocType(DocType.parse(event.target.value))}
-          >
-            {DocType.options.map((type) => (
-              <option key={type} value={type}>
-                {t(`analysis.docTypes.${type}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="space-y-1.5 text-sm font-medium">
-          {t('analysis.confirm.jurisdiction')}
-          <select
-            className={FIELD}
-            value={jurisdiction}
-            onChange={(event) =>
-              setJurisdiction(Jurisdiction.parse(event.target.value))
-            }
-          >
-            {jurisdictions.map((code) => (
-              <option key={code} value={code}>
-                {countryName(code)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {docType === 'other' && (
-        <p className="text-sm text-muted-foreground">
-          {t('analysis.confirm.generalAnalysis')}
-        </p>
-      )}
-      {!isLawChecked(jurisdiction) && (
-        <p className="text-sm text-muted-foreground">
-          {jurisdiction === GLOBAL
-            ? t('analysis.confirm.lawSkippedGlobal')
-            : t('analysis.confirm.lawSkipped', {
-                country: countryName(jurisdiction),
-              })}
-        </p>
-      )}
+      <DocumentFields
+        docType={docType}
+        jurisdiction={jurisdiction}
+        onDocType={setDocType}
+        onJurisdiction={setJurisdiction}
+      />
 
       {meta.parties.length > 0 ? (
         <fieldset className="space-y-2">

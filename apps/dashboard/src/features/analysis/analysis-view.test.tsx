@@ -51,10 +51,7 @@ test('the detected details are shown for the user to check', () => {
     'value',
     'insurance',
   );
-  expect(screen.getByLabelText('Governing country')).toHaveProperty(
-    'value',
-    'ID',
-  );
+  expect(screen.getByLabelText('Country')).toHaveProperty('value', 'ID');
   expect(screen.getByText('PT Asuransi Sehat Prima')).toBeTruthy();
   expect(screen.getByText('Budi Santoso')).toBeTruthy();
 });
@@ -75,7 +72,7 @@ test('the corrected type and country are what gets confirmed', async () => {
   fireEvent.change(screen.getByLabelText('Document type'), {
     target: { value: 'loan' },
   });
-  fireEvent.change(screen.getByLabelText('Governing country'), {
+  fireEvent.change(screen.getByLabelText('Country'), {
     target: { value: 'SG' },
   });
   fireEvent.click(screen.getByLabelText(/Budi Santoso/));
@@ -105,10 +102,7 @@ test('a global document runs without a legal comparison', () => {
     analysis({ meta: { ...meta, jurisdiction: 'GLOBAL', lawChecked: false } }),
   );
 
-  expect(screen.getByLabelText('Governing country')).toHaveProperty(
-    'value',
-    'GLOBAL',
-  );
+  expect(screen.getByLabelText('Country')).toHaveProperty('value', 'GLOBAL');
   expect(screen.getByText(/No single country's law applies/)).toBeTruthy();
 });
 

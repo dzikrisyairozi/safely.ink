@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, FileText, Upload, X } from 'lucide-react';
-import { UploadError } from '@repo/api-types';
+import { UploadError, type DocType, type Jurisdiction } from '@repo/api-types';
 import { useTranslation } from '@repo/i18n';
 import { Alert, AlertDescription } from '@repo/ui/components/ui/alert';
 import { Button } from '@repo/ui/components/ui/button';
+import { DocumentFields } from '../../components/document-fields';
 import { ApiError } from '../../lib/api';
 import { startAnalysis } from './start-analysis';
 import { validateFiles } from './validate-files';
@@ -15,6 +16,8 @@ const megabytes = (bytes: number) =>
 
 export function UploadForm({ onRead }: { onRead: (id: string) => void }) {
   const { t } = useTranslation('dashboard');
+  const [docType, setDocType] = useState<DocType | ''>('');
+  const [jurisdiction, setJurisdiction] = useState<Jurisdiction | ''>('');
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isReading, setIsReading] = useState(false);
@@ -34,10 +37,13 @@ export function UploadForm({ onRead }: { onRead: (id: string) => void }) {
   };
 
   const start = async () => {
+    if (!docType || !jurisdiction) return;
     setError(null);
     setIsReading(true);
     try {
-      onRead((await startAnalysis(files)).analysisId);
+      onRead(
+        (await startAnalysis(files, { docType, jurisdiction })).analysisId,
+      );
     } catch (err) {
       setIsReading(false);
       if (err instanceof ApiError && err.code === 'daily_limit') {
@@ -63,6 +69,14 @@ export function UploadForm({ onRead }: { onRead: (id: string) => void }) {
         <h1 className="text-3xl tracking-tight">{t('newAnalysis.title')}</h1>
         <p className="text-muted-foreground">{t('newAnalysis.subtitle')}</p>
       </header>
+
+      <DocumentFields
+        docType={docType}
+        jurisdiction={jurisdiction}
+        onDocType={setDocType}
+        onJurisdiction={setJurisdiction}
+        disabled={isReading}
+      />
 
       <label
         className="flex cursor-pointer flex-col items-center gap-2 rounded-md border border-dashed border-foreground/30 bg-card px-6 py-10 text-center transition-colors focus-within:border-foreground hover:border-foreground aria-disabled:pointer-events-none aria-disabled:opacity-50"
@@ -164,7 +178,12 @@ export function UploadForm({ onRead }: { onRead: (id: string) => void }) {
       </ul>
 
       <div className="flex items-center gap-4">
-        <Button disabled={files.length === 0 || isReading} onClick={start}>
+        <Button
+          disabled={
+            !docType || !jurisdiction || files.length === 0 || isReading
+          }
+          onClick={start}
+        >
           {isReading ? t('upload.reading') : t('upload.start')}
         </Button>
         {isReading && (

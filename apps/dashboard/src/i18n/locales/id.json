@@ -68,6 +68,16 @@
     "title": "Periksa dokumen",
     "subtitle": "Unggah polis atau kontrak, lalu safely.ink akan mengujinya dengan berbagai skenario sulit."
   },
+  "document": {
+    "type": "Jenis dokumen",
+    "country": "Negara",
+    "choose": "Pilih…",
+    "global": "Global (tanpa satu negara)",
+    "lawChecked": "{{country}} · hukum diperiksa",
+    "generalAnalysis": "Jenis ini diperiksa dengan aturan umum, dan laporannya akan diberi label analisis umum.",
+    "lawSkipped": "Kami belum membandingkan dengan hukum {{country}}. Skenario tetap dijalankan; hanya perbandingan hukum yang dilewati.",
+    "lawSkippedGlobal": "Tidak ada hukum satu negara yang berlaku, jadi tidak ada perbandingan hukum. Skenario tetap dijalankan."
+  },
   "upload": {
     "choose": "Pilih PDF atau foto halaman, atau letakkan di sini",
     "limits": "Satu PDF, atau 1 sampai 30 gambar (JPEG, PNG, WebP, HEIC). Maksimal 30 MB dan 100 halaman.",
@@ -111,12 +121,6 @@
     "confirm": {
       "eyebrow": "Periksa temuan kami sebelum melanjutkan",
       "facts": "{{pages}} halaman · bahasa {{language}}",
-      "docType": "Jenis dokumen",
-      "jurisdiction": "Negara hukum yang berlaku",
-      "global": "Global (tanpa satu negara)",
-      "generalAnalysis": "Jenis ini diperiksa dengan aturan umum, dan laporannya akan diberi label analisis umum.",
-      "lawSkipped": "Kami belum membandingkan dengan hukum {{country}}. Skenario tetap dijalankan; hanya perbandingan hukum yang dilewati.",
-      "lawSkippedGlobal": "Tidak ada hukum satu negara yang berlaku, jadi tidak ada perbandingan hukum. Skenario tetap dijalankan.",
       "yourRole": "Anda pihak yang mana?",
       "rolePlaceholder": "Misalnya: penyewa",
       "submit": "Rincian ini sudah benar",

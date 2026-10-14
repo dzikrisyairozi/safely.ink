@@ -68,6 +68,16 @@
     "title": "Check a document",
     "subtitle": "Upload a policy or contract and safely.ink will stress-test it with tricky scenarios."
   },
+  "document": {
+    "type": "Document type",
+    "country": "Country",
+    "choose": "Choose…",
+    "global": "Global (no single country)",
+    "lawChecked": "{{country}} · law checked",
+    "generalAnalysis": "This type is checked with the general rules, and the report will be labelled as a general analysis.",
+    "lawSkipped": "We do not compare against the law of {{country}} yet. The scenarios still run; only the legal comparison is skipped.",
+    "lawSkippedGlobal": "No single country's law applies, so there is no legal comparison. The scenarios still run."
+  },
   "upload": {
     "choose": "Choose a PDF or page photos, or drop them here",
     "limits": "One PDF, or 1 to 30 images (JPEG, PNG, WebP, HEIC). Up to 30 MB and 100 pages.",
@@ -111,12 +121,6 @@
     "confirm": {
       "eyebrow": "Check what we found before we continue",
       "facts": "{{pages}} pages · language {{language}}",
-      "docType": "Document type",
-      "jurisdiction": "Governing country",
-      "global": "Global (no single country)",
-      "generalAnalysis": "This type is checked with the general rules, and the report will be labelled as a general analysis.",
-      "lawSkipped": "We do not compare against the law of {{country}} yet. The scenarios still run; only the legal comparison is skipped.",
-      "lawSkippedGlobal": "No single country's law applies, so there is no legal comparison. The scenarios still run.",
       "yourRole": "Which party are you?",
       "rolePlaceholder": "For example: tenant",
       "submit": "These details are right",
