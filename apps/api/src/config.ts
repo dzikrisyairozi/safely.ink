@@ -59,9 +59,23 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
         fuzzMost: 240,
         judge: 90,
         wording: 60,
+        // The law lookup runs beside the judge. Seen in the spike of
+        // 2026-10-14: a search 15 to 21 s with thinking low, an assessment
+        // of a 151,000-character Act 18 s, URL context 4 to 76 s.
+        lawSearch: 60,
+        lawPage: 60,
+        lawAssess: 90,
       },
       // In which the stages of the confirm request must end.
       confirmSeconds: 850,
+      law: {
+        atOnce: 4, // rules looked up side by side
+        pagesPerRule: 3, // also bounds the size of an assessment
+        // A consolidated Australian Act is about 1.4 MB of HTML (ADR 4).
+        pageBytes: 5 * 1024 * 1024,
+        pageSeconds: 10,
+        pageDays: 30, // a stored page older than this is fetched again
+      },
     },
 
     // Official legal sources per jurisdiction. `*` stands for one host label.
