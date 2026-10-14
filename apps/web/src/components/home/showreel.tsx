@@ -122,7 +122,8 @@ export function Showreel({ locale }: { locale: Locale }) {
         </picture>
         {near && (
           <Island>
-            <div className="absolute inset-0">
+            {/* Moving text and counters; the steps section says the same in words. */}
+            <div aria-hidden inert className="absolute inset-0">
               <ReelPlayer
                 playerRef={player}
                 onReady={() => setReady(true)}

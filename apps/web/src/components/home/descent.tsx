@@ -106,7 +106,7 @@ export function Footnote({ pen }: { pen: ReactNode }) {
       >
         {pen}
       </svg>
-      <p className="mt-2 px-6 font-mono text-[10px] uppercase tracking-widest opacity-50">
+      <p className="mt-2 px-6 font-mono text-[10px] uppercase tracking-widest opacity-75">
         {t('descent.note')}
       </p>
     </div>
