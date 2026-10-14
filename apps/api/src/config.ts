@@ -59,7 +59,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
         fuzzMost: 240,
         judge: 90,
         wording: 60,
-        // The law lookup runs beside the judge. Seen in the spike of
+        // The law is looked up after the judge. Seen in the spike of
         // 2026-10-14: a search 15 to 21 s with thinking low, an assessment
         // of a 151,000-character Act 18 s, URL context 4 to 76 s.
         lawSearch: 60,

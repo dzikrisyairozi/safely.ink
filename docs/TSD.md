@@ -238,7 +238,7 @@ Built so far: `extracting_rules`, `fuzzing`, `running`, `comparing`. Each stage 
 status that follows it, and the run starts at the stage that matches the status of the
 analysis. A stage reads its input from Firestore, not from the stage before it, so what is
 evaluated is what is stored. After `comparing` the analysis is `done`. `comparing` runs
-the ExpectationJudge (5.5) and the legal lookup (5.6) side by side, then `score()` (5.7)
+the ExpectationJudge (5.5), then the legal lookup (5.6), then `score()` (5.7)
 with both. It keeps what an earlier attempt stored: it judges only scenarios without an
 expectation and looks up only rules without a usable finding, so a retry finishes what is
 missing.
@@ -384,7 +384,8 @@ comparison on a non-number, throws instead of quietly evaluating to false.
 
 `lookUpLaw()` in `legal/research.ts` runs once per **deciding rule** of a `bad` or
 `partly_bad` scenario (deduplicated), the rules deciding the most such scenarios first,
-`limits.law.atOnce` at a time, beside the ExpectationJudge. A rule not done by the request
+`limits.law.atOnce` at a time, after the ExpectationJudge: side by side, every call slowed
+and judge batches did not answer in 90 s (eval of 2026-10-14). A rule not done by the request
 deadline minus the wording call is `lookup_unavailable`. Each finding is written to
 `findings/{ruleId}` as soon as it exists. Skipped entirely when the jurisdiction has no
 allowlist (`meta.lawChecked = false`, F-READ-6).

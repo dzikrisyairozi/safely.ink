@@ -136,7 +136,7 @@ async function fuzz(
   );
   const pack = packFor(meta.docType);
   // What the earlier calls left of the request once the comparing has its
-  // time, within the limits of a call. The law lookup runs beside the judge.
+  // time, within the limits of a call. The law is looked up after the judge.
   const {
     fuzz: least,
     fuzzMost: most,
@@ -153,7 +153,7 @@ async function fuzz(
     ? lawSearch + 2 * pageSeconds + lawPage + lawAssess
     : 0;
   const left =
-    Math.floor((deadline - Date.now()) / 1000) - Math.max(judge, law) - wording;
+    Math.floor((deadline - Date.now()) / 1000) - judge - law - wording;
   const seconds = Math.min(most, Math.max(least, left));
 
   // Side by side, and one call that fails does not cost the others.
@@ -310,33 +310,31 @@ async function compare(
     return true;
   };
 
-  // Side by side, and one batch that fails does not cost the others. The
-  // law is looked up at the same time, and must be done in time for the
-  // wording.
-  const [answers, findings] = await Promise.all([
-    judgeAll(batches),
-    lookUpLaw({
-      rules,
-      outcomes,
-      stored,
-      meta,
-      deadline: wordingAt,
-      save: async (ruleId, finding) => {
-        await analysis
-          .collection('findings')
-          .doc(ruleId)
-          .set({ ruleId, ...finding } satisfies StoredFinding);
-      },
-    }),
-  ]);
-
-  // Batches were lost while the lookup ran beside the judge (live runs of
-  // 2026-10-14), so a lost batch is judged once more when there is time.
+  // The batches side by side, and one that fails does not cost the others;
+  // a lost one is judged once more when there is time.
+  const answers = await judgeAll(batches);
   const lost = batches.filter((batch, n) => !take(batch, answers[n]!));
   if (lost.length > 0 && wordingAt - Date.now() >= judgeSeconds * 1000) {
     const again = await judgeAll(lost);
     lost.forEach((batch, n) => take(batch, again[n]!));
   }
+
+  // Only then the law, in time for the wording. Beside the lookup's searches
+  // and readings, judge batches of 10 to 17 s did not answer in 90 s (eval of
+  // 2026-10-14): every call slows down when many run at once.
+  const findings = await lookUpLaw({
+    rules,
+    outcomes,
+    stored,
+    meta,
+    deadline: wordingAt,
+    save: async (ruleId, finding) => {
+      await analysis
+        .collection('findings')
+        .doc(ruleId)
+        .set({ ruleId, ...finding } satisfies StoredFinding);
+    },
+  });
   const judged = Object.entries(expectations);
   // Without an expectation nothing can be a trap, and a report that found
   // none would say the document is fine.
