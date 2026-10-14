@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Closing } from '@/components/home/closing';
 import { Comparison } from '@/components/home/comparison';
 import { Coverage } from '@/components/home/coverage';
+import { Descent } from '@/components/home/descent';
 import { Faq, faqItems } from '@/components/home/faq';
 import { Hero } from '@/components/home/hero';
 import { Intro } from '@/components/home/intro';
@@ -48,6 +49,7 @@ export default async function Home({ params }: Props) {
       <Hero locale={locale} />
       <Steps locale={locale} />
       <SampleTrap locale={locale} />
+      <Descent />
       <Coverage locale={locale} />
       <Comparison locale={locale} />
       <Faq locale={locale} />

@@ -26,7 +26,7 @@ export function Faq({ locale }: { locale: Locale }) {
   const t = getT(locale);
 
   return (
-    <Section number={6} heading={t('faq.heading')}>
+    <Section number={7} heading={t('faq.heading')}>
       <div className="max-w-3xl divide-y divide-border border-y border-border">
         {faqItems(locale).map(({ question, answer }) => (
           <details key={question} className="group py-1">

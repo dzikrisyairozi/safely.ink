@@ -15,7 +15,7 @@ export function Comparison({ locale }: { locale: Locale }) {
 
   return (
     <Section
-      number={5}
+      number={6}
       heading={t('comparison.heading')}
       lead={t('comparison.lead')}
     >

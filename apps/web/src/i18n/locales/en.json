@@ -162,5 +162,28 @@
     "title": "This page is not in the contract",
     "body": "The address may be mistyped, or the page has moved.",
     "home": "Back to the home page"
+  },
+  "descent": {
+    "kicker": "Descent into the fine print",
+    "heading": "Every contract has a page nobody reads",
+    "title": "Policy Wording",
+    "subtitle": "Personal Health Cover · Schedule A",
+    "clauses": {
+      "c1": "1.1 Welcome. This policy protects you and your family when you need it most.",
+      "c2": "2.4 Hospital cover. We pay for eligible in-patient treatment, subject to the limits in the Schedule.",
+      "c3": "3.2 Waiting period. No benefit is payable for any illness first occurring within 30 days of the start date.",
+      "c4": "5.7 Exclusions. We do not pay for any loss arising directly or indirectly from a pre-existing condition.",
+      "c5": "6.1 Claims. You must submit all supporting documents within 30 days of discharge.",
+      "c6": "7.3 Premium. Cover is suspended if any premium remains unpaid at the end of the grace period."
+    },
+    "smallPrint": "Subject to the terms, conditions, limits and exclusions herein. The Company reserves the right to vary these terms on notice. Benefits are payable only where the Insured has complied with every condition precedent. Any delay in notification shall entitle the Company to decline liability. Words in bold have the meanings given in Section 12.",
+    "footnote": "8.2* Failure to give notice within seven (7) days of the event shall invalidate the claim.",
+    "captions": {
+      "a": "Page one is written for you.",
+      "b": "Page twelve is written for the other side.",
+      "c": "The small print is where cover quietly ends.",
+      "d": "safely.ink reads every line, and circles the one that costs you."
+    },
+    "note": "Invented policy text, for illustration."
   }
 }

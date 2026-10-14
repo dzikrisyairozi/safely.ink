@@ -16,7 +16,7 @@ export function Coverage({ locale }: { locale: Locale }) {
   const t = getT(locale);
 
   return (
-    <Section number={4} heading={t('coverage.heading')}>
+    <Section number={5} heading={t('coverage.heading')}>
       <div className="grid gap-12 md:grid-cols-2">
         <div>
           <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">

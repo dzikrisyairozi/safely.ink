@@ -162,5 +162,28 @@
     "title": "Halaman ini tidak ada dalam kontrak",
     "body": "Alamatnya mungkin salah ketik, atau halamannya sudah dipindahkan.",
     "home": "Kembali ke beranda"
+  },
+  "descent": {
+    "kicker": "Menyelam ke ketentuan kecil",
+    "heading": "Setiap kontrak punya halaman yang tak pernah dibaca",
+    "title": "Ketentuan Polis",
+    "subtitle": "Asuransi Kesehatan Perorangan · Lampiran A",
+    "clauses": {
+      "c1": "1.1 Selamat datang. Polis ini melindungi Anda dan keluarga saat paling dibutuhkan.",
+      "c2": "2.4 Rawat inap. Kami membayar perawatan rawat inap yang memenuhi syarat, sesuai batas dalam Lampiran.",
+      "c3": "3.2 Masa tunggu. Tidak ada manfaat untuk penyakit yang pertama kali timbul dalam 30 hari sejak tanggal mulai.",
+      "c4": "5.7 Pengecualian. Kami tidak membayar kerugian yang timbul langsung maupun tidak langsung dari kondisi yang sudah ada sebelumnya.",
+      "c5": "6.1 Klaim. Anda wajib menyerahkan semua dokumen pendukung dalam 30 hari sejak keluar dari rumah sakit.",
+      "c6": "7.3 Premi. Pertanggungan dihentikan sementara jika premi belum dibayar hingga akhir masa tenggang."
+    },
+    "smallPrint": "Tunduk pada syarat, ketentuan, batasan, dan pengecualian dalam polis ini. Perusahaan berhak mengubah ketentuan ini dengan pemberitahuan. Manfaat hanya dibayarkan apabila Tertanggung telah memenuhi setiap syarat yang ditentukan. Setiap keterlambatan pemberitahuan memberi hak kepada Perusahaan untuk menolak tanggung jawab. Kata yang dicetak tebal memiliki arti sebagaimana diatur dalam Bagian 12.",
+    "footnote": "8.2* Pemberitahuan yang melewati tujuh (7) hari sejak kejadian membatalkan klaim.",
+    "captions": {
+      "a": "Halaman pertama ditulis untuk Anda.",
+      "b": "Halaman kedua belas ditulis untuk pihak lain.",
+      "c": "Di ketentuan kecil, perlindungan diam-diam berakhir.",
+      "d": "safely.ink membaca setiap baris, dan melingkari baris yang merugikan Anda."
+    },
+    "note": "Teks polis rekaan, sebagai ilustrasi."
   }
 }
