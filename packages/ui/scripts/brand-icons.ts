@@ -75,8 +75,9 @@ const favicon = ico(
 const apple = await png(180, 0.1, PAPER);
 const icon192 = await png(192, 0.1, PAPER);
 const icon512 = await png(512, 0.1, PAPER);
-// Maskable icons are cropped to a circle of 80% of the side.
-const maskable512 = await png(512, 0.2, PAPER);
+// Maskable icons are cropped to a circle of 80% of the side; at 0.1 padding
+// the ball fills about 60% of the icon, inside that circle.
+const maskable512 = await png(512, 0.1, PAPER);
 
 write('apps/web/src/app/favicon.ico', favicon);
 write('apps/web/src/app/icon.svg', adaptiveSvg);

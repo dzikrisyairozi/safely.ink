@@ -33,7 +33,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
-    "brand:icons": "node scripts/brand-icons.ts"
+    "brand:icons": "node scripts/brand-icons.ts",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

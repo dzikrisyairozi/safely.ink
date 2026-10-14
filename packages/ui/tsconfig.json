@@ -1,12 +1,17 @@
 {
   "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "jsx": "react-jsx",
+    // Resolved the way the apps' bundlers resolve it.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    // scripts/ runs on Node's type stripping, which needs the .ts extension.
+    "allowImportingTsExtensions": true,
     "paths": {
       "@repo/ui/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "scripts"],
   "exclude": ["node_modules", "dist"]
 }
