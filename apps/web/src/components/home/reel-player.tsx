@@ -7,8 +7,8 @@ import {
   REEL_FORMATS,
   REEL_FPS,
   REEL_FRAMES,
-  Showreel,
-} from '@/remotion/Showreel';
+  ReelComposition,
+} from '@/remotion/ReelComposition';
 
 // Loaded on demand by showreel.tsx, so Remotion is never in the first load.
 export default function ReelPlayer({
@@ -29,7 +29,7 @@ export default function ReelPlayer({
   return (
     <Player
       ref={playerRef}
-      component={Showreel}
+      component={ReelComposition}
       inputProps={inputProps}
       durationInFrames={REEL_FRAMES}
       fps={REEL_FPS}

@@ -1,6 +1,11 @@
 import { Composition } from 'remotion';
 import type { ReelProps } from './kit';
-import { REEL_FORMATS, REEL_FPS, REEL_FRAMES, Showreel } from './Showreel';
+import {
+  REEL_FORMATS,
+  REEL_FPS,
+  REEL_FRAMES,
+  ReelComposition,
+} from './ReelComposition';
 
 const defaultProps: ReelProps = { locale: 'en', theme: 'dark' };
 
@@ -11,7 +16,7 @@ export function RemotionRoot() {
         <Composition
           key={format}
           id={`reel-${format}`}
-          component={Showreel}
+          component={ReelComposition}
           durationInFrames={REEL_FRAMES}
           fps={REEL_FPS}
           {...size}

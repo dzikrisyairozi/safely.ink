@@ -165,7 +165,8 @@ describe('showreel structured data', () => {
   });
 
   it('declares the duration the composition actually has', async () => {
-    const { REEL_FRAMES, REEL_FPS } = await import('@/remotion/Showreel');
+    const { REEL_FRAMES, REEL_FPS } =
+      await import('@/remotion/ReelComposition');
     expect(`PT${REEL_FRAMES / REEL_FPS}S`).toBe('PT42S');
   });
 });

@@ -34,7 +34,7 @@ export const REEL_FORMATS = {
 } as const;
 
 /** The whole reel. `theme` picks the token set, so it matches the page. */
-export function Showreel({ locale, theme }: ReelProps) {
+export function ReelComposition({ locale, theme }: ReelProps) {
   const copy = reelCopy(locale);
 
   return (
