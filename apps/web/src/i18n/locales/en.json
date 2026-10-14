@@ -159,7 +159,8 @@
   "footer": {
     "tagline": "A policy fuzzer: it attacks the fine print with tricky scenarios before the fine print gets the chance to attack you.",
     "contact": "Questions, or found something we got wrong?",
-    "nav": "Site"
+    "nav": "Site",
+    "analytics": "Analytics settings"
   },
   "notFound": {
     "title": "This page is not in the contract",

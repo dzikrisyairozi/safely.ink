@@ -1,11 +1,37 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Script from 'next/script';
 import { useTranslation } from '@repo/i18n';
 
 const KEY = 'analytics-consent';
+// Sent by the footer's "Analytics settings" link to show the banner again.
+const REOPEN = 'analytics-settings';
 type Choice = 'granted' | 'denied';
+
+/** Cookie strings that delete every _ga cookie, wherever GA may have set it. */
+export function expiredGaCookies(cookie: string, host: string) {
+  const names = cookie
+    .split(';')
+    .map((pair) => pair.split('=')[0]!.trim())
+    .filter((name) => name === '_ga' || name.startsWith('_ga_'));
+  const labels = host.split('.');
+  const domains = labels
+    .slice(0, -1)
+    .map((_, i) => `.${labels.slice(i).join('.')}`);
+  return names.flatMap((name) => [
+    `${name}=; max-age=0; path=/`,
+    ...domains.map((domain) => `${name}=; max-age=0; path=/; domain=${domain}`),
+  ]);
+}
+
+function withdraw() {
+  const { gtag } = window as { gtag?: (...args: unknown[]) => void };
+  gtag?.('consent', 'update', { analytics_storage: 'denied' });
+  for (const cookie of expiredGaCookies(document.cookie, location.hostname)) {
+    document.cookie = cookie;
+  }
+}
 
 function stored(): Choice | null {
   try {
@@ -29,13 +55,21 @@ export function Analytics({ gaId }: { gaId: string }) {
     stored,
     () => undefined,
   );
-  const [decided, setDecided] = useState<Choice>();
-  const choice = decided ?? saved;
+  // null once the visitor reopens the banner from the footer.
+  const [decided, setDecided] = useState<Choice | null>();
+  const choice = decided === undefined ? saved : decided;
+
+  useEffect(() => {
+    const reopen = () => setDecided(null);
+    window.addEventListener(REOPEN, reopen);
+    return () => window.removeEventListener(REOPEN, reopen);
+  }, []);
 
   const decide = (value: Choice) => {
     try {
       localStorage.setItem(KEY, value);
     } catch {}
+    if (value === 'denied') withdraw();
     setDecided(value);
   };
 
@@ -78,5 +112,18 @@ export function Analytics({ gaId }: { gaId: string }) {
         </div>
       )}
     </>
+  );
+}
+
+/** Footer link that lets a visitor change their analytics choice. */
+export function AnalyticsSettings({ label }: { label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new Event(REOPEN))}
+      className="text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {label}
+    </button>
   );
 }

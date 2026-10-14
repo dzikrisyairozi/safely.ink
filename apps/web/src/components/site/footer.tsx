@@ -1,6 +1,13 @@
 import { Pangolin } from '@repo/ui/components/brand/pangolin';
+import { AnalyticsSettings } from '@/components/site/analytics';
 import { getT } from '@/i18n/translate';
-import { CONTACT_EMAIL, SITE_NAME, localePath, type Locale } from '@/lib/site';
+import {
+  CONTACT_EMAIL,
+  GA_ID,
+  SITE_NAME,
+  localePath,
+  type Locale,
+} from '@/lib/site';
 
 export function Footer({ locale }: { locale: Locale }) {
   const t = getT(locale);
@@ -39,6 +46,11 @@ export function Footer({ locale }: { locale: Locale }) {
                 </a>
               </li>
             ))}
+            {GA_ID && (
+              <li>
+                <AnalyticsSettings label={t('footer.analytics')} />
+              </li>
+            )}
           </ul>
         </nav>
         <div className="space-y-2 text-sm md:text-right">

@@ -159,7 +159,8 @@
   "footer": {
     "tagline": "Policy fuzzer: menguji ketentuan dengan skenario sulit sebelum ketentuan itu merugikan Anda.",
     "contact": "Ada pertanyaan, atau menemukan kesalahan kami?",
-    "nav": "Situs"
+    "nav": "Situs",
+    "analytics": "Pengaturan analitik"
   },
   "notFound": {
     "title": "Halaman ini tidak ada dalam kontrak",
