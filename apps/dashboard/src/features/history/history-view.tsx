@@ -37,7 +37,7 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
   const { meta, createdAt } = entry;
 
   // An analysis that was never read (rejected, or failed while reading) has
-  // no details, only its date.
+  // no details, only its date; one that could not be listed has neither.
   const details = [
     meta && t(`analysis.docTypes.${meta.docType}`),
     meta && countryName(meta.jurisdiction),
@@ -59,7 +59,9 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
         </Link>
         <p className="text-sm text-muted-foreground">{details.join(' · ')}</p>
       </div>
-      <Badge variant="outline">{t(`history.status.${entry.status}`)}</Badge>
+      {entry.status && (
+        <Badge variant="outline">{t(`history.status.${entry.status}`)}</Badge>
+      )}
       <span className="w-8 text-center font-mono text-2xl">
         {entry.grade ?? '–'}
       </span>

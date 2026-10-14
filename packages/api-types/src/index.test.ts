@@ -381,6 +381,8 @@ test('a running analysis can be deleted only once its run is surely over', () =>
   }
   // Every write sets updatedAt; a record without it predates the field.
   expect(isDeletable({ status: 'running' }, now)).toBe(true);
+  // A record whose status no longer parses was not written by a running stage.
+  expect(isDeletable({}, now)).toBe(true);
 });
 
 test('an analysis carries its facts and counts once the rules are read', () => {

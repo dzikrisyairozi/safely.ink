@@ -387,7 +387,7 @@ export const RUN_STALE_SECONDS = 900;
 // A running analysis is kept until its run is over, or it would write its
 // records again after the delete (F-HIST-2).
 export const isDeletable = (
-  analysis: Pick<Analysis, 'status' | 'updatedAt'>,
+  analysis: Partial<Pick<Analysis, 'status' | 'updatedAt'>>,
   now: number,
 ) =>
   !RunningStatus.safeParse(analysis.status).success ||

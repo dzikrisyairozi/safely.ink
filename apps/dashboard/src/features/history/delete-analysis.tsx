@@ -16,7 +16,7 @@ export function DeleteAnalysis({
   onDeleted,
 }: {
   id: string;
-  analysis: Pick<Analysis, 'status' | 'updatedAt'>;
+  analysis: Partial<Pick<Analysis, 'status' | 'updatedAt'>>;
   onDeleted?: () => void;
 }) {
   const { t } = useTranslation('dashboard');

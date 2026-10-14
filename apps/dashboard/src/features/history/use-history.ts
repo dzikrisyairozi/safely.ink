@@ -6,16 +6,31 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { Analysis } from '@repo/api-types';
+import type { z } from 'zod';
+import { Analysis, AnalysisMeta, AnalysisStatus } from '@repo/api-types';
 import { db } from '../../lib/firebase';
 import { useAuthStore } from '../../stores/auth-store';
 
-export type HistoryEntry = Analysis & { id: string };
+// Only what a row shows, so an analysis stored before a field of the whole
+// document was required is still listed, and can be deleted (F-HIST-2).
+const HistoryFields = Analysis.pick({
+  grade: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  status: AnalysisStatus.optional(),
+  meta: AnalysisMeta.pick({
+    title: true,
+    docType: true,
+    jurisdiction: true,
+  }).nullable(),
+});
+export type HistoryEntry = z.infer<typeof HistoryFields> & { id: string };
 
 /**
  * The signed-in user's analyses, newest first, kept live (F-HIST-1).
  * Undefined until the listener answers, null when it fails. An analysis
- * that does not fit the schema is left out.
+ * that does not fit even the fields of a row is listed untitled.
  */
 export function useHistory(): HistoryEntry[] | null | undefined {
   const uid = useAuthStore((state) => state.user?.uid);
@@ -36,10 +51,11 @@ export function useHistory(): HistoryEntry[] | null | undefined {
     return onSnapshot(
       history,
       (snapshot) => {
-        const entries = snapshot.docs.flatMap((document) => {
-          const parsed = Analysis.safeParse(document.data());
-          if (!parsed.success) console.error(parsed.error);
-          return parsed.success ? [{ ...parsed.data, id: document.id }] : [];
+        const entries = snapshot.docs.map((document): HistoryEntry => {
+          const parsed = HistoryFields.safeParse(document.data());
+          if (parsed.success) return { ...parsed.data, id: document.id };
+          console.error(parsed.error);
+          return { id: document.id, meta: null };
         });
         setState({ uid, entries });
       },

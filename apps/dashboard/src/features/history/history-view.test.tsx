@@ -33,7 +33,6 @@ const meta: AnalysisMeta = {
 const createdAt = { seconds: Date.UTC(2026, 9, 14) / 1000 };
 const done: HistoryEntry = {
   id: 'analysis-1',
-  ownerUid: 'alice',
   status: 'done',
   meta,
   grade: 'C',
@@ -41,7 +40,6 @@ const done: HistoryEntry = {
 };
 const running: HistoryEntry = {
   id: 'analysis-2',
-  ownerUid: 'alice',
   status: 'fuzzing',
   meta: {
     ...meta,
@@ -54,7 +52,6 @@ const running: HistoryEntry = {
 };
 const rejected: HistoryEntry = {
   id: 'analysis-3',
-  ownerUid: 'alice',
   status: 'rejected',
   meta: null,
   createdAt,
@@ -107,6 +104,17 @@ test('an analysis that was never read is listed as untitled', () => {
 
   expect(item.getByText('Not a policy or contract')).toBeTruthy();
   expect(item.queryByText(/Insurance policy/)).toBeNull();
+});
+
+test('an analysis that could not be read at all can still be deleted', () => {
+  render(<HistoryView entries={[{ id: 'analysis-4', meta: null }]} />);
+  const item = within(row('Untitled document'));
+
+  // No status to name, and no key shown in its place.
+  expect(item.queryByText(/status/)).toBeNull();
+  expect(
+    item.getByRole('button', { name: 'Delete' }).hasAttribute('disabled'),
+  ).toBe(false);
 });
 
 test('with no analyses, the screen points to a new one', () => {

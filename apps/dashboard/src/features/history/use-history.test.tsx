@@ -70,7 +70,26 @@ test('the analyses come in the order of the answer, with their IDs', () => {
   ]);
 });
 
-test('an analysis that does not fit the schema is left out', () => {
+test('an analysis from before a field of its details was required is listed with them', () => {
+  const { result } = renderHook(() => useHistory());
+
+  // No lawChecked or detected: stored before they were required.
+  answer([
+    [
+      'analysis-1',
+      {
+        ...analysis('done'),
+        meta: { title: 'Old policy', docType: 'insurance', jurisdiction: 'ID' },
+      },
+    ],
+  ]);
+
+  expect(result.current).toMatchObject([
+    { id: 'analysis-1', status: 'done', meta: { title: 'Old policy' } },
+  ]);
+});
+
+test('an analysis that fits no schema is listed untitled, so it can still be deleted', () => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   const { result } = renderHook(() => useHistory());
 
@@ -79,7 +98,10 @@ test('an analysis that does not fit the schema is left out', () => {
     ['analysis-2', analysis('thinking')],
   ]);
 
-  expect(result.current?.map(({ id }) => id)).toEqual(['analysis-1']);
+  expect(result.current).toEqual([
+    expect.objectContaining({ id: 'analysis-1', status: 'done' }),
+    { id: 'analysis-2', meta: null },
+  ]);
 });
 
 test('a listener that fails gives null, which is not an empty list', () => {
