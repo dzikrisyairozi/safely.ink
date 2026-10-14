@@ -30,7 +30,8 @@ function TrapPage() {
   if (failed) return <GeneralError />;
   // Missing, or someone else's.
   if (analysis === null) return <NotFoundError />;
-  const lists = [traps, rules, scenarios, clauses, findings];
+  // Without the findings the trap still shows, without what the law says.
+  const lists = [traps, rules, scenarios, clauses];
   if (lists.includes(null)) return <GeneralError />;
   const trap = traps?.find((candidate) => candidate.id === trapId);
   if (traps && !trap) return <NotFoundError />;

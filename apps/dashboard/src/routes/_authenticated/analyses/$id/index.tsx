@@ -31,12 +31,13 @@ function AnalysisPage() {
   if (failed) return <GeneralError />;
   // Missing, or someone else's.
   if (analysis === null) return <NotFoundError />;
+  // Findings are left out: the law is a part of the report, and a report
+  // without it is still a report.
   if (
     traps === null ||
     rules === null ||
     scenarios === null ||
-    clauses === null ||
-    findings === null
+    clauses === null
   ) {
     return <GeneralError />;
   }
@@ -53,7 +54,7 @@ function AnalysisPage() {
             rules={rules}
             scenarios={scenarios}
             clauses={clauses}
-            findings={findings}
+            findings={findings ?? undefined}
             onConfirm={async (details) => {
               await api(`/v1/analyses/${id}/confirm`, {
                 method: 'POST',

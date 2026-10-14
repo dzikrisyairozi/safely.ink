@@ -64,8 +64,11 @@ export function TrapView({
   const cited = clauses.filter((clause) => rule?.clauseIds.includes(clause.id));
   // Where to get help comes with the law check, for the worst traps (F-REP-4).
   const { meta } = analysis;
+  // isLawChecked() only narrows the country for HELP.
   const help =
-    meta && isLawChecked(meta.jurisdiction) && SERIOUS.includes(trap.severity)
+    meta?.lawChecked &&
+    isLawChecked(meta.jurisdiction) &&
+    SERIOUS.includes(trap.severity)
       ? HELP[meta.jurisdiction][meta.docType]
       : [];
 

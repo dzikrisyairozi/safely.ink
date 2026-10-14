@@ -319,3 +319,12 @@ test('a medium trap, or a report without a law check, has no help list', () => {
   show();
   expect(helpSection()).toBeNull();
 });
+
+test('a report of a law-checked country that was not compared with the law has no help list', () => {
+  showLaw(undefined, {
+    ...lawChecked,
+    meta: { ...lawChecked.meta!, lawChecked: false },
+  });
+
+  expect(helpSection()).toBeNull();
+});
