@@ -17,5 +17,9 @@
     "title": "This page is not in the contract",
     "body": "The address may be mistyped, or the page has moved.",
     "home": "Back to the home page"
+  },
+  "meta": {
+    "title": "safely.ink: stress-test a policy or contract before you sign",
+    "description": "safely.ink is a policy fuzzer. Upload an insurance policy, loan agreement or other contract: it turns the wording into rules, runs dozens of tricky scenarios through them, and shows where you end up worse off than you would expect or than the law allows."
   }
 }

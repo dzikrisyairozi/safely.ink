@@ -17,5 +17,9 @@
     "title": "Halaman ini tidak ada dalam kontrak",
     "body": "Alamatnya mungkin salah ketik, atau halamannya sudah dipindahkan.",
     "home": "Kembali ke beranda"
+  },
+  "meta": {
+    "title": "safely.ink: uji polis atau kontrak sebelum Anda tanda tangan",
+    "description": "safely.ink adalah policy fuzzer. Unggah polis asuransi, perjanjian pinjaman, atau kontrak lain: safely.ink mengubah isinya menjadi aturan, menjalankan puluhan skenario sulit, lalu menunjukkan di mana posisi Anda lebih buruk dari yang Anda kira atau dari yang diizinkan hukum."
   }
 }
