@@ -22,14 +22,14 @@ export type Pack = {
 
 // Every type but `other` has a pack of its own, so a report is labelled
 // "general analysis" exactly when its type is `other` (F-READ-5).
-const packs: Record<Exclude<DocType, 'other'>, Pack> = {
+const packs: Record<DocType, Pack> = {
   employment,
   insurance,
   lease,
   loan,
   nda,
   terms,
+  other: general,
 };
 
-export const packFor = (docType: DocType): Pack =>
-  docType === 'other' ? general : packs[docType];
+export const packFor = (docType: DocType): Pack => packs[docType];

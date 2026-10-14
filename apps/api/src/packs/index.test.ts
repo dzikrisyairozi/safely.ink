@@ -18,7 +18,7 @@ test('a type with a pack of its own gets that pack', () => {
   }
 });
 
-test('every other type uses the general pack', () => {
+test('only `other` uses the general pack', () => {
   expect(packFor('other')).toBe(general);
 });
 
