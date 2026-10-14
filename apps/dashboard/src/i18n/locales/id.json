@@ -392,6 +392,14 @@
       "comparing": "Membandingkan",
       "done": "Selesai",
       "failed": "Gagal"
+    },
+    "delete": {
+      "action": "Hapus",
+      "title": "Hapus analisis ini?",
+      "description": "Laporan, aturan dan skenarionya, serta berkas yang diunggah dihapus permanen. Ini tidak dapat dibatalkan.",
+      "confirm": "Hapus permanen",
+      "running": "Anda dapat menghapusnya setelah pemeriksaan selesai.",
+      "failed": "Analisis tidak dapat dihapus. Coba lagi."
     }
   }
 }

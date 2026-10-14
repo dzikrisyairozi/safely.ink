@@ -392,6 +392,14 @@
       "comparing": "Comparing",
       "done": "Done",
       "failed": "Failed"
+    },
+    "delete": {
+      "action": "Delete",
+      "title": "Delete this analysis?",
+      "description": "The report, its rules and scenarios, and the uploaded file are deleted for good. This cannot be undone.",
+      "confirm": "Delete for good",
+      "running": "You can delete this when the run ends.",
+      "failed": "The analysis could not be deleted. Try again."
     }
   }
 }

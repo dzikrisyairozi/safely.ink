@@ -50,6 +50,7 @@ const running: HistoryEntry = {
     jurisdiction: 'GLOBAL',
   },
   createdAt,
+  updatedAt: { seconds: Math.floor(Date.now() / 1000) },
 };
 const rejected: HistoryEntry = {
   id: 'analysis-3',
@@ -89,6 +90,15 @@ test('a running analysis says so and has no grade yet', () => {
   expect(item.getByText('Writing scenarios')).toBeTruthy();
   expect(item.getByText(/Global/)).toBeTruthy();
   expect(item.getByText('–')).toBeTruthy();
+});
+
+test('each analysis can be deleted from its row, but not while it runs', () => {
+  render(<HistoryView entries={[running, done]} />);
+  const deleteIn = (title: string) =>
+    within(row(title)).getByRole('button', { name: 'Delete' });
+
+  expect(deleteIn('Polis Asuransi').hasAttribute('disabled')).toBe(false);
+  expect(deleteIn('Sewa Rumah').hasAttribute('disabled')).toBe(true);
 });
 
 test('an analysis that was never read is listed as untitled', () => {

@@ -3,6 +3,7 @@ import { useTranslation } from '@repo/i18n';
 import { Badge } from '@repo/ui/components/ui/badge';
 import { Button } from '@repo/ui/components/ui/button';
 import { useCountryName } from '../../lib/country-name';
+import { DeleteAnalysis } from './delete-analysis';
 import type { HistoryEntry } from './use-history';
 
 /** The user's analyses at `/history`, in the order given (F-HIST-1). */
@@ -62,6 +63,7 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
       <span className="w-8 text-center font-mono text-2xl">
         {entry.grade ?? '–'}
       </span>
+      <DeleteAnalysis id={entry.id} analysis={entry} />
     </li>
   );
 }
