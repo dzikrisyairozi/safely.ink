@@ -1,22 +1,26 @@
 import { expect, test } from 'vitest';
-import { WrittenStrategy } from '@repo/api-types';
+import { DocType, WrittenStrategy } from '@repo/api-types';
 import { general } from './general';
 import { packFor } from './index';
 import { insurance } from './insurance';
+import { loan } from './loan';
 import { terms } from './terms';
 
-test('insurance and terms have a pack of their own', () => {
-  expect(packFor('insurance')).toBe(insurance);
-  expect(packFor('terms')).toBe(terms);
+const own = { insurance, loan, terms };
+const packs = [...Object.values(own), general];
+
+test('a type with a pack of its own gets that pack', () => {
+  for (const [docType, pack] of Object.entries(own)) {
+    expect(packFor(DocType.parse(docType))).toBe(pack);
+  }
 });
 
 test('every other type uses the general pack', () => {
   expect(packFor('other')).toBe(general);
-  expect(packFor('loan')).toBe(general);
 });
 
 test('every pack has seeds for each strategy the model writes', () => {
-  for (const pack of [insurance, terms, general]) {
+  for (const pack of packs) {
     for (const strategy of WrittenStrategy.options) {
       expect(pack.seeds[strategy].length).toBeGreaterThan(0);
     }
@@ -24,7 +28,7 @@ test('every pack has seeds for each strategy the model writes', () => {
 });
 
 test('every pack says what people in that role take for granted', () => {
-  for (const pack of [insurance, terms, general]) {
+  for (const pack of packs) {
     expect(pack.hints.length).toBeGreaterThanOrEqual(4);
   }
 });

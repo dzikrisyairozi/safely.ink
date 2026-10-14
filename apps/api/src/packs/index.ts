@@ -1,6 +1,7 @@
 import type { DocType, WrittenStrategy } from '@repo/api-types';
 import { general } from './general';
 import { insurance } from './insurance';
+import { loan } from './loan';
 import { terms } from './terms';
 
 // Prompt content for one document type. A pack never changes what the code
@@ -16,6 +17,6 @@ export type Pack = {
   hints: string[];
 };
 
-const packs: Partial<Record<DocType, Pack>> = { insurance, terms };
+const packs: Partial<Record<DocType, Pack>> = { insurance, loan, terms };
 
 export const packFor = (docType: DocType): Pack => packs[docType] ?? general;
