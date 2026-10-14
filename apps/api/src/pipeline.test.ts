@@ -442,7 +442,7 @@ test('the fuzzer is told the rules as stored, the facts, the seeds and the role'
 // wording.
 test.each([
   [0, true, 240],
-  [400, true, 180],
+  [400, true, 140],
   [650, true, 90],
   [550, false, 150],
 ])(

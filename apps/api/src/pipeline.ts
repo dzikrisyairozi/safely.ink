@@ -146,7 +146,12 @@ async function fuzz(
     lawPage,
     lawAssess,
   } = config.limits.modelCallSeconds;
-  const law = meta.lawChecked ? lawSearch + lawPage + lawAssess : 0;
+  // One lookup at its slowest: the search, a grounding redirect, our fetch
+  // of a page, the model reading it instead, the assessment.
+  const { pageSeconds } = config.limits.law;
+  const law = meta.lawChecked
+    ? lawSearch + 2 * pageSeconds + lawPage + lawAssess
+    : 0;
   const left =
     Math.floor((deadline - Date.now()) / 1000) - Math.max(judge, law) - wording;
   const seconds = Math.min(most, Math.max(least, left));
