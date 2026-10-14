@@ -153,9 +153,12 @@ language is derived from the document, not hard-coded per document type:
 Packs (`apps/api/src/packs/*.ts`) add prompt content only. A pack holds the facts worth
 looking for, per strategy the situations worth trying (the scenario seeds), and what
 people in that role take for granted (the expectation hints, read only by the judge).
-`insurance` and `terms` have their own pack. Every other type uses the general
-pack (termination, auto-renewal, fees, unilateral change, liability, dispute venue) until
-its own is written.
+Every document type has its own pack (`insurance`, `loan`, `employment`, `nda`, `lease`,
+`terms`), and the type of the pack map makes a missing one a compile error. Only `other`
+uses the general pack (termination, auto-renewal, fees, unilateral change, liability,
+dispute venue), so a report is labelled "general analysis" exactly when its type is
+`other` (F-READ-5). Where the side matters (NDA, loan, employment, lease), a hint names
+the role it applies to; the judge is told the user's role.
 
 ### 3.3 Firestore
 

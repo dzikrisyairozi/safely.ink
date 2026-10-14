@@ -115,6 +115,15 @@ The API verifies ID tokens with the project ID alone, so no service-account key 
 needed on a developer machine. `pnpm test` needs Java 21 (see CONTRIBUTING for the
 Windows `PATH` note).
 
+The eval script (TSD 9) writes to the real project as `--owner`, so it needs
+Application Default Credentials: `gcloud auth login --update-adc` once. Use your own uid
+as the owner to open each eval report from `/history`; eval runs count against that
+user's daily limit.
+
+```bash
+pnpm --filter api eval <file> --type loan --country SG --role Borrower --owner <uid>
+```
+
 To try a whole run by hand, upload `apps/api/test/fixtures/demo-policy.pdf`, a made-up
 health policy. No test reads it. Its source is `demo-policy.md` next to it: when the
 wording changes, make the PDF again from that file, with text that can be selected.
