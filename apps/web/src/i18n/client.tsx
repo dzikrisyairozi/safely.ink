@@ -13,9 +13,7 @@ import type { ReactNode } from 'react';
 import { I18nProvider } from '@repo/i18n';
 import { LanguageSwitcher, type SupportedLanguage } from '@repo/i18n';
 import { useRouter } from 'next/navigation';
-
-import webEn from '@/i18n/locales/en.json';
-import webId from '@/i18n/locales/id.json';
+import { i18nFor } from '@/i18n/translate';
 
 function setCookie(name: string, value: string, days: number) {
   const maxAge = days * 24 * 60 * 60;
@@ -34,24 +32,12 @@ function WebLanguageSwitcher() {
 }
 
 interface WebI18nProviderProps {
-  locale: string;
+  locale: SupportedLanguage;
   children: ReactNode;
 }
 
 export function WebI18nProvider({ locale, children }: WebI18nProviderProps) {
-  return (
-    <I18nProvider
-      lng={locale}
-      detection={false}
-      defaultNS="web"
-      resources={{
-        en: { web: webEn },
-        id: { web: webId },
-      }}
-    >
-      {children}
-    </I18nProvider>
-  );
+  return <I18nProvider instance={i18nFor(locale)}>{children}</I18nProvider>;
 }
 
 export { WebLanguageSwitcher };

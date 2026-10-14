@@ -50,7 +50,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';
+  const locale = cookieStore.get('NEXT_LOCALE')?.value === 'id' ? 'id' : 'en';
 
   return (
     <html lang={locale} className="dark" suppressHydrationWarning>
