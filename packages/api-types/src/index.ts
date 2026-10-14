@@ -304,7 +304,9 @@ export const UPLOAD_LIMITS = {
 // still gets the scenarios; only the law check is skipped.
 export const LAW_JURISDICTIONS = ['ID', 'SG', 'AU'] as const;
 export type LawJurisdiction = (typeof LAW_JURISDICTIONS)[number];
-export const isLawChecked = (jurisdiction: string) =>
+export const isLawChecked = (
+  jurisdiction: string,
+): jurisdiction is LawJurisdiction =>
   (LAW_JURISDICTIONS as readonly string[]).includes(jurisdiction);
 
 // Why POST /v1/analyses refused the uploaded files (F-UP-1, F-UP-2). Each
