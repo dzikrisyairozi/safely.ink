@@ -9,8 +9,9 @@ deleted after 7 days, so the distance costs little.
 Until 2026-10-14 the app ran on an earlier project on the free Spark plan, which had no
 Storage or Cloud Run. That project is no longer used.
 
-Commands marked **(not yet run)** were written from the documentation and have not been
-executed against this project. Check them against `gcloud help` the first time.
+Sections 1, 3 and 4 were run against `safely-ink` on 2026-10-14. Commands marked
+**(not yet run)** were written from the documentation and have not been executed against
+this project. Check them against `gcloud help` the first time.
 
 ## 1. One-time project setup
 
@@ -159,9 +160,11 @@ The landing page is served from `safely.ink` and the dashboard from `app.safely.
 4. Set `NEXT_PUBLIC_SITE_URL=https://safely.ink` and
    `NEXT_PUBLIC_APP_URL=https://app.safely.ink` for the landing build.
 
-### API on Cloud Run **(not yet run)**
+### API on Cloud Run
 
-The build context is the repository root.
+The build context is the repository root. `docker push` signs in through
+`docker-credential-gcloud`, which lives in the gcloud `bin` folder; that folder must be
+on `PATH`. The service URL is `https://api-774697783852.asia-southeast2.run.app`.
 
 ```bash
 IMAGE=asia-southeast2-docker.pkg.dev/safely-ink/api/api:$(git rev-parse --short HEAD)
