@@ -56,6 +56,9 @@ test.each([
   'An ILLEGAL waiting period',
   'They deceive you about the limit',
   'A fraudulent exclusion',
+  'An unfair waiting period',
+  'The limit is misleading',
+  'The insurer lies about the limit',
 ])('"%s" accuses the other party', (text) => {
   expect(neutral(text)).toBe(false);
 });
@@ -63,6 +66,8 @@ test.each([
 test('a plain description of what the document does is neutral', () => {
   expect(neutral(words.title)).toBe(true);
   expect(neutral(words.action)).toBe(true);
+  // A lien is a right over property, not an accusation.
+  expect(neutral('The lender keeps a lien on the car')).toBe(true);
 });
 
 test('a trap gets the title and the questions written for it', () => {

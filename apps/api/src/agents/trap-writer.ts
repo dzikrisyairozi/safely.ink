@@ -84,9 +84,11 @@ export const writeTraps = (
     seconds,
   );
 
-// Words that accuse the other party (F-REP-7). A text with one is not shown.
+// Words that accuse the other party (F-REP-7), with every word the
+// instruction forbids. A text with one is not shown. The match is on the
+// start of a word, so "trickle" is a hit too; that costs only the text.
 const ACCUSING =
-  /\b(scam|fraud|cheat|illegal|unlawful|dishonest|decepti|deceiv|trick|steal|theft|rip-?off)/i;
+  /\b(scam|fraud|cheat|illegal|unlawful|unfair|dishonest|decepti|deceiv|mislead|lie[sd]?\b|lying|trick|steal|theft|rip-?off)/i;
 export const neutral = (text: string) => !ACCUSING.test(text);
 
 // The numbers in a text, with the separators of thousands and decimals
