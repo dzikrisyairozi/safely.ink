@@ -149,19 +149,19 @@
       },
       "rules": {
         "title": "The rules could not be worked out",
-        "description": "Something went wrong while we turned the clauses into rules. This run does not count against your daily limit; please upload the document again."
+        "description": "Something went wrong while we turned the clauses into rules. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
       },
       "fuzzing": {
         "title": "The test situations could not be written",
-        "description": "Something went wrong while we wrote situations to test the rules against. This run does not count against your daily limit; please upload the document again."
+        "description": "Something went wrong while we wrote situations to test the rules against. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
       },
       "running": {
         "title": "The rules could not be tested",
-        "description": "Something went wrong while we ran the situations through the rules. This run does not count against your daily limit; please upload the document again."
+        "description": "Something went wrong while we ran the situations through the rules. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
       },
       "comparing": {
         "title": "The results could not be compared",
-        "description": "Something went wrong while we compared the results with what a person would expect. This run does not count against your daily limit; please upload the document again."
+        "description": "Something went wrong while we compared the results with what a person would expect. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
       }
     },
     "extractingRules": {
@@ -183,7 +183,12 @@
       "description_one": "We ran {{count}} real-life situation through the rules. Now we compare the result with what a reasonable person in your place would expect.",
       "description_other": "We ran {{count}} real-life situations through the rules. Now we compare each result with what a reasonable person in your place would expect."
     },
-    "rulesLink": "How we read your document"
+    "rulesLink": "How we read your document",
+    "retry": {
+      "button": "Try this stage again",
+      "starting": "Starting again…",
+      "failed": "Could not start again. Check your connection and try again."
+    }
   },
   "rules": {
     "eyebrow": "How we read your document",

@@ -149,19 +149,19 @@
       },
       "rules": {
         "title": "Aturan tidak dapat disusun",
-        "description": "Terjadi kesalahan saat kami mengubah klausul menjadi aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+        "description": "Terjadi kesalahan saat kami mengubah klausul menjadi aturan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       },
       "fuzzing": {
         "title": "Situasi uji tidak dapat disusun",
-        "description": "Terjadi kesalahan saat kami menyusun situasi untuk menguji aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+        "description": "Terjadi kesalahan saat kami menyusun situasi untuk menguji aturan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       },
       "running": {
         "title": "Aturan tidak dapat diuji",
-        "description": "Terjadi kesalahan saat kami menjalankan situasi melalui aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+        "description": "Terjadi kesalahan saat kami menjalankan situasi melalui aturan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       },
       "comparing": {
         "title": "Hasil tidak dapat dibandingkan",
-        "description": "Terjadi kesalahan saat kami membandingkan hasil dengan apa yang wajar diharapkan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+        "description": "Terjadi kesalahan saat kami membandingkan hasil dengan apa yang wajar diharapkan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       }
     },
     "extractingRules": {
@@ -183,7 +183,12 @@
       "description_one": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Sekarang kami membandingkan hasilnya dengan apa yang wajar diharapkan orang di posisi Anda.",
       "description_other": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Sekarang kami membandingkan setiap hasil dengan apa yang wajar diharapkan orang di posisi Anda."
     },
-    "rulesLink": "Cara kami membaca dokumen Anda"
+    "rulesLink": "Cara kami membaca dokumen Anda",
+    "retry": {
+      "button": "Coba tahap ini lagi",
+      "starting": "Memulai lagi…",
+      "failed": "Tidak dapat memulai lagi. Periksa koneksi Anda dan coba lagi."
+    }
   },
   "rules": {
     "eyebrow": "Cara kami membaca dokumen Anda",

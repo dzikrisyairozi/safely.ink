@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Analysis, AnalysisMeta } from '@repo/api-types';
+import { ApiError } from '../../lib/api';
 import { AnalysisView } from './analysis-view';
 
 // The view only links back to the upload page; a plain anchor stands in for
@@ -33,7 +34,11 @@ const analysis = (changes: Partial<Analysis> = {}): Analysis => ({
   meta,
   ...changes,
 });
-const show = (shown: Analysis, onConfirm = vi.fn(async () => {})) => {
+const show = (
+  shown: Analysis,
+  onConfirm = vi.fn(async () => {}),
+  onRetry = vi.fn(async () => {}),
+) => {
   render(
     <AnalysisView
       id="analysis-1"
@@ -43,10 +48,13 @@ const show = (shown: Analysis, onConfirm = vi.fn(async () => {})) => {
       scenarios={[]}
       clauses={[]}
       onConfirm={onConfirm}
+      onRetry={onRetry}
     />,
   );
   return onConfirm;
 };
+const retryButton = () =>
+  screen.getByRole('button', { name: 'Try this stage again' });
 const confirmButton = () =>
   screen.getByRole('button', { name: 'These details are right' });
 
@@ -262,7 +270,7 @@ test('a failed rules stage names the stage', () => {
   expect(screen.getByRole('heading').textContent).toBe(
     'The rules could not be worked out',
   );
-  expect(screen.getByRole('link', { name: 'Upload it again' })).toBeTruthy();
+  expect(retryButton()).toBeTruthy();
 });
 
 test('one rule is not called "1 rules"', () => {
@@ -311,5 +319,63 @@ test.each([
   show(analysis({ status: 'failed', stage }));
 
   expect(screen.getByRole('heading').textContent).toBe(title);
-  expect(screen.getByRole('link', { name: 'Upload it again' })).toBeTruthy();
+  expect(retryButton()).toBeTruthy();
+});
+
+test('a failed reading cannot be retried, only uploaded again', () => {
+  show(analysis({ status: 'failed', stage: 'reading', meta: null }));
+
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('retry starts the stage again and waits for the run', async () => {
+  const onRetry = vi.fn(() => new Promise<void>(() => {}));
+  show(analysis({ status: 'failed', stage: 'fuzzing' }), undefined, onRetry);
+
+  fireEvent.click(retryButton());
+
+  expect(onRetry).toHaveBeenCalledOnce();
+  expect(
+    (
+      await screen.findByRole('button', { name: 'Starting again…' })
+    ).hasAttribute('disabled'),
+  ).toBe(true);
+});
+
+test('a retry over the daily limit says when it resets', async () => {
+  show(
+    analysis({ status: 'failed', stage: 'comparing' }),
+    undefined,
+    vi.fn(async () => {
+      throw new ApiError(
+        429,
+        'daily_limit',
+        'limit',
+        '2026-10-15T00:00:00.000Z',
+      );
+    }),
+  );
+
+  fireEvent.click(retryButton());
+
+  expect((await screen.findByRole('alert')).textContent).toMatch(
+    /10 documents a day/,
+  );
+  expect(retryButton()).toHaveProperty('disabled', false);
+});
+
+test('a retry that does not go through can be tried again', async () => {
+  show(
+    analysis({ status: 'failed', stage: 'running' }),
+    undefined,
+    vi.fn(async () => {
+      throw new Error('offline');
+    }),
+  );
+
+  fireEvent.click(retryButton());
+
+  expect((await screen.findByRole('alert')).textContent).toMatch(
+    /Could not start again/,
+  );
 });

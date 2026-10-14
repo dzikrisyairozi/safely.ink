@@ -21,6 +21,7 @@ import {
 import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
 import { DocumentFields } from '../../components/document-fields';
+import { ApiError } from '../../lib/api';
 import { useCountryName } from '../../lib/country-name';
 import { ReportView } from '../report/report-view';
 import { RunTracker } from './run-tracker';
@@ -228,6 +229,58 @@ const FAILED_AT: Partial<
   comparing: 'comparing',
 };
 
+function RetryStage({
+  stage,
+  onRetry,
+}: {
+  stage: 'rules' | 'fuzzing' | 'running' | 'comparing';
+  onRetry: () => Promise<void>;
+}) {
+  const { t } = useTranslation('dashboard');
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const retry = async () => {
+    setError(null);
+    setIsStarting(true);
+    try {
+      // The request stays open for the whole run. Once it has started, the
+      // status changes and this screen is gone.
+      await onRetry();
+    } catch (err) {
+      setIsStarting(false);
+      if (err instanceof ApiError && err.code === 'daily_limit') {
+        const resetAt = new Date(err.resetAt ?? '').toLocaleTimeString(
+          undefined,
+          { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' },
+        );
+        setError(t('upload.errors.daily_limit', { resetAt }));
+      } else {
+        setError(t('analysis.retry.failed'));
+      }
+    }
+  };
+
+  return (
+    <div className="mx-auto flex max-w-xl flex-col gap-4 py-16">
+      <h1 className="text-3xl tracking-tight">
+        {t(`analysis.failed.${stage}.title`)}
+      </h1>
+      <p className="text-muted-foreground">
+        {t(`analysis.failed.${stage}.description`)}
+      </p>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Button className="self-start" disabled={isStarting} onClick={retry}>
+        {isStarting ? t('analysis.retry.starting') : t('analysis.retry.button')}
+      </Button>
+    </div>
+  );
+}
+
 /** What `/analyses/$id` shows for each state of an analysis. */
 export function AnalysisView({
   id,
@@ -237,6 +290,7 @@ export function AnalysisView({
   scenarios,
   clauses,
   onConfirm,
+  onRetry,
 }: {
   id: string;
   analysis: Analysis;
@@ -246,6 +300,8 @@ export function AnalysisView({
   scenarios: StoredScenario[];
   clauses: Clause[];
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
+  // Resolves when the run it starts has ended; the screen follows the status.
+  onRetry: () => Promise<void>;
 }): JSX.Element {
   const { t } = useTranslation('dashboard');
 
@@ -272,16 +328,19 @@ export function AnalysisView({
         </Message>
       );
     case 'failed': {
-      // Retry comes with the run screen; until then the way on is to upload.
-      const stage = (analysis.stage && FAILED_AT[analysis.stage]) ?? 'reading';
-      return (
-        <Message
-          title={t(`analysis.failed.${stage}.title`)}
-          action={<Link to="/">{t('analysis.uploadAgain')}</Link>}
-        >
-          {t(`analysis.failed.${stage}.description`)}
-        </Message>
-      );
+      const stage = analysis.stage && FAILED_AT[analysis.stage];
+      // A failed reading stored nothing to resume from: upload again.
+      if (!stage) {
+        return (
+          <Message
+            title={t('analysis.failed.reading.title')}
+            action={<Link to="/">{t('analysis.uploadAgain')}</Link>}
+          >
+            {t('analysis.failed.reading.description')}
+          </Message>
+        );
+      }
+      return <RetryStage stage={stage} onRetry={onRetry} />;
     }
     case 'extracting_rules':
     case 'fuzzing':

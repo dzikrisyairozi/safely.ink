@@ -43,6 +43,9 @@ function AnalysisPage() {
                 body: JSON.stringify(details),
               });
             }}
+            onRetry={async () => {
+              await api(`/v1/analyses/${id}/retry`, { method: 'POST' });
+            }}
           />
         )}
       </Main>
