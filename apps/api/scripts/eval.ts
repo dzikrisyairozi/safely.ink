@@ -8,7 +8,7 @@
 // from; the analysis can then also be confirmed in the dashboard.
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { basename, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { Hono } from 'hono';
 import {
@@ -43,10 +43,10 @@ if (positionals.length === 0 || !owner) {
 const docType = DocType.parse(values.type);
 const jurisdiction = Jurisdiction.parse(values.country?.toUpperCase());
 
-// pnpm runs the script in apps/api; paths are meant from where it was typed.
-const paths = positionals.map((path) =>
-  resolve(process.env.INIT_CWD ?? process.cwd(), path),
-);
+// pnpm runs the script in apps/api; paths, and eval-out, are meant from where
+// it was typed.
+const typedIn = process.env.INIT_CWD ?? process.cwd();
+const paths = positionals.map((path) => resolve(typedIn, path));
 const names = paths.map((path) => basename(path));
 const analysisId = `eval-${randomUUID()}`;
 const analysis = db.doc(`analyses/${analysisId}`);
@@ -125,8 +125,8 @@ try {
     times,
   });
 
-  const out = resolve('eval-out', `${analysisId}.json`);
-  await mkdir('eval-out', { recursive: true });
+  const out = resolve(typedIn, 'eval-out', `${analysisId}.json`);
+  await mkdir(dirname(out), { recursive: true });
   await writeFile(out, JSON.stringify(report, null, 2));
   console.log(
     `${status}: ${report.counts.rules ?? 0} rules, ${report.counts.scenarios ?? 0} scenarios, ` +
