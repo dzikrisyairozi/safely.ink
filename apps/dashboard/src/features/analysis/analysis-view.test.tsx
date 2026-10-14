@@ -35,7 +35,13 @@ const analysis = (changes: Partial<Analysis> = {}): Analysis => ({
 });
 const show = (shown: Analysis, onConfirm = vi.fn(async () => {})) => {
   render(
-    <AnalysisView id="analysis-1" analysis={shown} onConfirm={onConfirm} />,
+    <AnalysisView
+      id="analysis-1"
+      analysis={shown}
+      traps={[]}
+      rules={[]}
+      onConfirm={onConfirm}
+    />,
   );
   return onConfirm;
 };

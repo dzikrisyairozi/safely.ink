@@ -258,5 +258,28 @@
     "clauses": {
       "title": "The clauses"
     }
+  },
+  "run": {
+    "stages": {
+      "label": "Stages of the run",
+      "read": "Read",
+      "rules": "Rules",
+      "fuzz": "Situations",
+      "run": "Run",
+      "compare": "Compare"
+    },
+    "counts": {
+      "clauses": "Clauses",
+      "rules": "Rules",
+      "scenarios": "Situations",
+      "traps": "Traps"
+    },
+    "traps": "Traps found so far"
+  },
+  "severity": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
   }
 }

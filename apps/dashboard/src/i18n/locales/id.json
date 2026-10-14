@@ -258,5 +258,28 @@
     "clauses": {
       "title": "Klausul"
     }
+  },
+  "run": {
+    "stages": {
+      "label": "Tahap pemeriksaan",
+      "read": "Baca",
+      "rules": "Aturan",
+      "fuzz": "Situasi",
+      "run": "Jalankan",
+      "compare": "Bandingkan"
+    },
+    "counts": {
+      "clauses": "Klausul",
+      "rules": "Aturan",
+      "scenarios": "Situasi",
+      "traps": "Jebakan"
+    },
+    "traps": "Jebakan yang ditemukan sejauh ini"
+  },
+  "severity": {
+    "critical": "Kritis",
+    "high": "Tinggi",
+    "medium": "Sedang",
+    "low": "Rendah"
   }
 }

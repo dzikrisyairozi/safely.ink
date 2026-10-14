@@ -8,6 +8,8 @@ import {
   type AnalysisMeta,
   type AnalysisStatus,
   type ConfirmAnalysisRequest,
+  type Rule,
+  type Trap,
 } from '@repo/api-types';
 import {
   Alert,
@@ -18,6 +20,7 @@ import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
 import { DocumentFields } from '../../components/document-fields';
 import { useCountryName } from '../../lib/country-name';
+import { RunTracker } from './run-tracker';
 
 function Message({
   title,
@@ -226,10 +229,15 @@ const FAILED_AT: Partial<
 export function AnalysisView({
   id,
   analysis,
+  traps,
+  rules,
   onConfirm,
 }: {
   id: string;
   analysis: Analysis;
+  // Live from their sub-collections; empty until the listeners answer.
+  traps: Trap[];
+  rules: Rule[];
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
 }): JSX.Element {
   const { t } = useTranslation('dashboard');
@@ -275,34 +283,17 @@ export function AnalysisView({
       );
     }
     case 'extracting_rules':
-      return (
-        <Message title={t('analysis.extractingRules.title')}>
-          {t('analysis.extractingRules.description')}
-        </Message>
-      );
     case 'fuzzing':
-      return (
-        <Message title={t('analysis.fuzzing.title')} action={rulesLink}>
-          {t('analysis.fuzzing.description', {
-            count: analysis.counts?.rules ?? 0,
-          })}
-        </Message>
-      );
     case 'running':
-      return (
-        <Message title={t('analysis.running.title')} action={rulesLink}>
-          {t('analysis.running.description', {
-            count: analysis.counts?.scenarios ?? 0,
-          })}
-        </Message>
-      );
     case 'comparing':
       return (
-        <Message title={t('analysis.comparing.title')} action={rulesLink}>
-          {t('analysis.comparing.description', {
-            count: analysis.counts?.scenarios ?? 0,
-          })}
-        </Message>
+        <RunTracker
+          id={id}
+          analysis={analysis}
+          status={analysis.status}
+          traps={traps}
+          rules={rules}
+        />
       );
     case 'done': {
       // The report comes with the run screen; until then the result in words.
