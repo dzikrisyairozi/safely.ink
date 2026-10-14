@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import {
-  NO_COUNTRY,
+  GLOBAL,
   type AnalysisMeta,
   type Rule,
   type StoredScenario,
@@ -47,6 +47,7 @@ const meta: AnalysisMeta = {
   userRole: 'insured',
   jurisdiction: 'ID',
   lawChecked: true,
+  detected: { docType: 'insurance', jurisdiction: 'ID' },
   language: 'id',
   pageCount: 3,
   unreadablePages: [],
@@ -112,8 +113,8 @@ test('the judge is given the kind of document, the role, the hints, the benefits
   });
 });
 
-test('without a known country, the judge is told only the kind of document', () => {
-  const input = judgeInput({ ...meta, jurisdiction: NO_COUNTRY }, pack, rules, [
+test('for a global document, the judge is told only the kind of document', () => {
+  const input = judgeInput({ ...meta, jurisdiction: GLOBAL }, pack, rules, [
     scenario,
   ]);
 

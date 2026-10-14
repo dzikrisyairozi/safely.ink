@@ -22,6 +22,7 @@ const analysis: Analysis = {
     userRole: 'insured',
     jurisdiction: 'ID',
     lawChecked: true,
+    detected: { docType: 'insurance', jurisdiction: 'ID' },
     language: 'id',
     pageCount: 12,
     unreadablePages: [],

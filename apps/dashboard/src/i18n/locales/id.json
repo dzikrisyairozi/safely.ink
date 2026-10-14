@@ -68,6 +68,16 @@
     "title": "Periksa dokumen",
     "subtitle": "Unggah polis atau kontrak, lalu safely.ink akan mengujinya dengan berbagai skenario sulit."
   },
+  "document": {
+    "type": "Jenis dokumen",
+    "country": "Negara",
+    "choose": "Pilih…",
+    "global": "Global (tanpa satu negara)",
+    "lawChecked": "{{country}} · hukum diperiksa",
+    "generalAnalysis": "Jenis ini diperiksa dengan aturan umum, dan laporannya akan diberi label analisis umum.",
+    "lawSkipped": "Kami belum membandingkan dengan hukum {{country}}. Skenario tetap dijalankan; hanya perbandingan hukum yang dilewati.",
+    "lawSkippedGlobal": "Tidak ada hukum satu negara yang berlaku, jadi tidak ada perbandingan hukum. Skenario tetap dijalankan."
+  },
   "upload": {
     "choose": "Pilih PDF atau foto halaman, atau letakkan di sini",
     "limits": "Satu PDF, atau 1 sampai 30 gambar (JPEG, PNG, WebP, HEIC). Maksimal 30 MB dan 100 halaman.",
@@ -111,15 +121,17 @@
     "confirm": {
       "eyebrow": "Periksa temuan kami sebelum melanjutkan",
       "facts": "{{pages}} halaman · bahasa {{language}}",
-      "docType": "Jenis dokumen",
-      "jurisdiction": "Negara hukum yang berlaku",
-      "otherCountry": "Negara lain",
-      "generalAnalysis": "Jenis ini diperiksa dengan aturan umum, dan laporannya akan diberi label analisis umum.",
-      "lawSkipped": "Kami belum membandingkan dengan hukum {{country}}. Skenario tetap dijalankan; hanya perbandingan hukum yang dilewati.",
       "yourRole": "Anda pihak yang mana?",
       "rolePlaceholder": "Misalnya: penyewa",
       "submit": "Rincian ini sudah benar",
-      "failed": "Rincian tidak dapat disimpan. Silakan coba lagi."
+      "failed": "Rincian tidak dapat disimpan. Silakan coba lagi.",
+      "mismatch": {
+        "title": "Dokumen mungkin menyatakan hal lain",
+        "type": "Dokumen ini tampak seperti: {{type}}.",
+        "country": "Dokumen ini merujuk pada hukum {{country}}.",
+        "countryOutside": "Dokumen ini merujuk pada hukum {{country}}, yang tidak ada dalam daftar, jadi Global paling sesuai.",
+        "use": "Gunakan yang tertulis di dokumen"
+      }
     },
     "docTypes": {
       "insurance": "Polis asuransi",
@@ -135,21 +147,21 @@
         "title": "Pembacaan tidak selesai",
         "description": "Terjadi kesalahan saat membaca dokumen. Tidak ada yang hilang di sisi Anda; silakan unggah lagi."
       },
-      "rules": {
+      "extracting_rules": {
         "title": "Aturan tidak dapat disusun",
-        "description": "Terjadi kesalahan saat kami mengubah klausul menjadi aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+        "description": "Terjadi kesalahan saat kami mengubah klausul menjadi aturan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       },
       "fuzzing": {
         "title": "Situasi uji tidak dapat disusun",
-        "description": "Terjadi kesalahan saat kami menyusun situasi untuk menguji aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+        "description": "Terjadi kesalahan saat kami menyusun situasi untuk menguji aturan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       },
       "running": {
         "title": "Aturan tidak dapat diuji",
-        "description": "Terjadi kesalahan saat kami menjalankan situasi melalui aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+        "description": "Terjadi kesalahan saat kami menjalankan situasi melalui aturan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       },
       "comparing": {
         "title": "Hasil tidak dapat dibandingkan",
-        "description": "Terjadi kesalahan saat kami membandingkan hasil dengan apa yang wajar diharapkan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+        "description": "Terjadi kesalahan saat kami membandingkan hasil dengan apa yang wajar diharapkan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       }
     },
     "extractingRules": {
@@ -171,19 +183,12 @@
       "description_one": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Sekarang kami membandingkan hasilnya dengan apa yang wajar diharapkan orang di posisi Anda.",
       "description_other": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Sekarang kami membandingkan setiap hasil dengan apa yang wajar diharapkan orang di posisi Anda."
     },
-    "done": {
-      "title": "Nilai {{grade}}",
-      "noTraps": "Tidak ada situasi yang berakhir lebih buruk daripada yang wajar diharapkan.",
-      "traps_one": "{{count}} jebakan ditemukan: bagian di mana dokumen memberi Anda kurang dari yang wajar diharapkan.",
-      "traps_other": "{{count}} jebakan ditemukan: bagian di mana dokumen memberi Anda kurang dari yang wajar diharapkan.",
-      "confidence": {
-        "high": "Keyakinan atas nilai ini: tinggi.",
-        "medium": "Keyakinan atas nilai ini: sedang.",
-        "low": "Keyakinan atas nilai ini: rendah."
-      },
-      "next": "Hukum belum dibandingkan, dan laporan lengkap adalah langkah berikutnya."
-    },
-    "rulesLink": "Cara kami membaca dokumen Anda"
+    "rulesLink": "Cara kami membaca dokumen Anda",
+    "retry": {
+      "button": "Coba tahap ini lagi",
+      "starting": "Memulai lagi…",
+      "failed": "Tidak dapat memulai lagi. Periksa koneksi Anda dan coba lagi."
+    }
   },
   "rules": {
     "eyebrow": "Cara kami membaca dokumen Anda",
@@ -245,6 +250,107 @@
     },
     "clauses": {
       "title": "Klausul"
+    }
+  },
+  "run": {
+    "stages": {
+      "label": "Tahap pemeriksaan",
+      "read": "Baca",
+      "rules": "Aturan",
+      "fuzz": "Situasi",
+      "run": "Jalankan",
+      "compare": "Bandingkan"
+    },
+    "counts": {
+      "clauses": "Klausul",
+      "rules": "Aturan",
+      "scenarios": "Situasi",
+      "traps": "Jebakan"
+    },
+    "traps": "Jebakan yang ditemukan sejauh ini"
+  },
+  "severity": {
+    "critical": "Kritis",
+    "high": "Tinggi",
+    "medium": "Sedang",
+    "low": "Rendah"
+  },
+  "report": {
+    "eyebrow": "Laporan",
+    "grade": "Nilai",
+    "confidence": {
+      "high": "Keyakinan: tinggi",
+      "medium": "Keyakinan: sedang",
+      "low": "Keyakinan: rendah"
+    },
+    "facts": {
+      "otherParty": "Pihak lain",
+      "type": "Jenis dokumen",
+      "role": "Anda adalah",
+      "country": "Negara",
+      "date": "Diperiksa pada"
+    },
+    "counts": {
+      "scenarios": "Diuji",
+      "fine": "Baik",
+      "partlyBad": "Sebagian buruk",
+      "bad": "Buruk",
+      "undetermined": "Tidak jelas",
+      "traps": "Jebakan"
+    },
+    "generalAnalysis": "Analisis umum: jenis dokumen ini diperiksa dengan aturan umum.",
+    "lawNotYet": "Hukum {{country}} belum diperiksa dalam laporan ini. Situasi dijalankan dengan aturan dokumen itu sendiri.",
+    "lawGlobal": "Global: tidak ada hukum satu negara yang berlaku, jadi hukum tidak diperiksa. Situasi dijalankan dengan aturan dokumen itu sendiri.",
+    "incomplete": {
+      "title": "Dokumen tidak lengkap",
+      "description": "Halaman {{pages}} tidak dapat dibaca, jadi isinya tidak ada dalam laporan ini."
+    },
+    "traps": {
+      "title": "Jebakan",
+      "none": "Tidak ada situasi yang berakhir lebih buruk dari yang wajar diharapkan.",
+      "expect": "Anda akan mengira",
+      "says": "Dokumen menyatakan"
+    },
+    "favour": {
+      "title": "Yang menguntungkan Anda",
+      "description": "Situasi biasa yang hasilnya sesuai harapan Anda.",
+      "none": "Tidak ada situasi biasa yang hasilnya baik."
+    },
+    "unclear": {
+      "title": "Tidak jelas, baca sendiri klausul ini",
+      "description": "Hasilnya bergantung pada klausul yang tidak dapat kami ubah menjadi aturan.",
+      "dependsOn": "Bergantung pada: {{rule}}"
+    },
+    "formula": {
+      "title": "Cara nilai dihitung",
+      "intro": "Mulai dari 100 dan kurangi poin untuk setiap jebakan:",
+      "penalty_one": "{{severity}}: {{count}} poin",
+      "penalty_other": "{{severity}}: {{count}} poin",
+      "bands": "Lalu nilainya: {{bands}}.",
+      "this": "Laporan ini: {{score}} poin, nilai {{grade}}."
+    }
+  },
+  "trap": {
+    "back": "Kembali ke laporan",
+    "action": "Yang dapat Anda lakukan",
+    "examples": "Contoh situasi",
+    "outcome": "Yang diberikan dokumen",
+    "stake": "Yang dipertaruhkan",
+    "loss": "Yang Anda rugi",
+    "expected": "Yang akan Anda kira",
+    "trace": "Bagaimana aturan memutuskannya",
+    "because": "Karena: {{fact}}",
+    "clause": "Yang dinyatakan dokumen",
+    "frequency": {
+      "common": "Sering terjadi",
+      "occasional": "Kadang terjadi",
+      "rare": "Jarang terjadi"
+    },
+    "result": {
+      "fine": "Baik",
+      "partly_bad": "Sebagian buruk",
+      "bad": "Buruk",
+      "undetermined": "Tidak jelas"
     }
   }
 }

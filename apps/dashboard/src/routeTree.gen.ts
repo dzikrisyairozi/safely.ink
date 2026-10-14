@@ -19,6 +19,7 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAnalysesIdIndexRouteImport } from './routes/_authenticated/analyses/$id/index'
 import { Route as AuthenticatedAnalysesIdRulesRouteImport } from './routes/_authenticated/analyses/$id/rules'
+import { Route as AuthenticatedAnalysesIdTrapsTrapIdRouteImport } from './routes/_authenticated/analyses/$id/traps/$trapId'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -71,6 +72,12 @@ const AuthenticatedAnalysesIdRulesRoute =
     path: '/analyses/$id/rules',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAnalysesIdTrapsTrapIdRoute =
+  AuthenticatedAnalysesIdTrapsTrapIdRouteImport.update({
+    id: '/analyses/$id/traps/$trapId',
+    path: '/analyses/$id/traps/$trapId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/503': typeof errors503Route
   '/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
   '/analyses/$id/': typeof AuthenticatedAnalysesIdIndexRoute
+  '/analyses/$id/traps/$trapId': typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
   '/analyses/$id': typeof AuthenticatedAnalysesIdIndexRoute
+  '/analyses/$id/traps/$trapId': typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
   '/_authenticated/analyses/$id/': typeof AuthenticatedAnalysesIdIndexRoute
+  '/_authenticated/analyses/$id/traps/$trapId': typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/503'
     | '/analyses/$id/rules'
     | '/analyses/$id/'
+    | '/analyses/$id/traps/$trapId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analyses/$id/rules'
     | '/analyses/$id'
+    | '/analyses/$id/traps/$trapId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -142,6 +154,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/analyses/$id/rules'
     | '/_authenticated/analyses/$id/'
+    | '/_authenticated/analyses/$id/traps/$trapId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -226,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalysesIdRulesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/analyses/$id/traps/$trapId': {
+      id: '/_authenticated/analyses/$id/traps/$trapId'
+      path: '/analyses/$id/traps/$trapId'
+      fullPath: '/analyses/$id/traps/$trapId'
+      preLoaderRoute: typeof AuthenticatedAnalysesIdTrapsTrapIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -233,12 +253,15 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAnalysesIdRulesRoute: typeof AuthenticatedAnalysesIdRulesRoute
   AuthenticatedAnalysesIdIndexRoute: typeof AuthenticatedAnalysesIdIndexRoute
+  AuthenticatedAnalysesIdTrapsTrapIdRoute: typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAnalysesIdRulesRoute: AuthenticatedAnalysesIdRulesRoute,
   AuthenticatedAnalysesIdIndexRoute: AuthenticatedAnalysesIdIndexRoute,
+  AuthenticatedAnalysesIdTrapsTrapIdRoute:
+    AuthenticatedAnalysesIdTrapsTrapIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

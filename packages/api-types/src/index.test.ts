@@ -2,7 +2,10 @@ import { expect, test } from 'vitest';
 import {
   Analysis,
   AnalysisMeta,
+  COUNTRIES,
   ConfirmAnalysisRequest,
+  GLOBAL,
+  Jurisdiction,
   CreateAnalysisRequest,
   ReaderOutput,
   Condition,
@@ -173,6 +176,7 @@ test('analysis meta survives a round trip before the user picks a role', () => {
     userRole: null,
     jurisdiction: 'SG',
     lawChecked: true,
+    detected: { docType: 'lease', jurisdiction: 'MY' },
     language: 'en',
     pageCount: 12,
     unreadablePages: [7],
@@ -182,6 +186,22 @@ test('analysis meta survives a round trip before the user picks a role', () => {
   expect(AnalysisMeta.safeParse({ ...meta, docType: 'receipt' }).success).toBe(
     false,
   );
+  const { detected: _, ...withoutDetected } = meta;
+  expect(AnalysisMeta.safeParse(withoutDetected).success).toBe(false);
+  // Analyses from before the pick are not read: their country is not a pick.
+  expect(
+    AnalysisMeta.safeParse({ ...meta, jurisdiction: 'OTHER' }).success,
+  ).toBe(false);
+});
+
+test('a document is from a JAPAC country or global', () => {
+  for (const code of [...COUNTRIES, GLOBAL]) {
+    expect(Jurisdiction.safeParse(code).success).toBe(true);
+  }
+  expect(COUNTRIES).toHaveLength(14);
+  for (const code of ['US', 'OTHER', 'id', '']) {
+    expect(Jurisdiction.safeParse(code).success).toBe(false);
+  }
 });
 
 test('a stake is an amount or nothing, never negative', () => {
@@ -200,7 +220,24 @@ test('a stake is an amount or nothing, never negative', () => {
   expect(Scenario.safeParse({ ...scenario, stake: -1 }).success).toBe(false);
 });
 
-const upload = { analysisId: 'a1b2c3d4e5f6', files: ['0-policy.pdf'] };
+const upload = {
+  analysisId: 'a1b2c3d4e5f6',
+  files: ['0-policy.pdf'],
+  docType: 'insurance',
+  jurisdiction: 'ID',
+};
+
+test('an upload request says what the document is and where it is from', () => {
+  expect(CreateAnalysisRequest.safeParse(upload).success).toBe(true);
+  const { docType: _, ...noType } = upload;
+  const { jurisdiction: __, ...noCountry } = upload;
+  expect(CreateAnalysisRequest.safeParse(noType).success).toBe(false);
+  expect(CreateAnalysisRequest.safeParse(noCountry).success).toBe(false);
+  expect(
+    CreateAnalysisRequest.safeParse({ ...upload, jurisdiction: 'GLOBAL' })
+      .success,
+  ).toBe(true);
+});
 
 test('an upload request needs 1 to 30 files', () => {
   expect(CreateAnalysisRequest.safeParse(upload).success).toBe(true);
@@ -242,6 +279,10 @@ test('a confirmation names a known document type and a role', () => {
   ).toBe(false);
   expect(
     ConfirmAnalysisRequest.safeParse({ ...confirm, userRole: '' }).success,
+  ).toBe(false);
+  expect(
+    ConfirmAnalysisRequest.safeParse({ ...confirm, jurisdiction: 'US' })
+      .success,
   ).toBe(false);
 });
 
@@ -382,4 +423,20 @@ test('a finished analysis carries its grade, its confidence and its traps', () =
     counts: { judged: 28, traps: 4 },
   });
   expect(Analysis.safeParse({ ...done, grade: 'E' }).success).toBe(false);
+});
+
+test('an analysis keeps the second it was created, from either SDK', () => {
+  // Both Timestamp classes carry seconds and nanoseconds as fields.
+  class Timestamp {
+    constructor(
+      readonly seconds: number,
+      readonly nanoseconds: number,
+    ) {}
+  }
+  const fresh = { ownerUid: 'alice', status: 'reading', meta: null };
+
+  expect(
+    Analysis.parse({ ...fresh, createdAt: new Timestamp(1_760_400_000, 5) })
+      .createdAt,
+  ).toEqual({ seconds: 1_760_400_000 });
 });

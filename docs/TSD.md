@@ -112,6 +112,14 @@ reference; the schemas are not repeated here so the two cannot drift. In short: 
 `LegalFinding` (with `Citation`), `Trap` and `AnalysisMeta`. A rule must cite at least one
 clause, and only an `unmodeled` rule may have no condition.
 
+A document is from one of `COUNTRIES` (the JAPAC codes AU, CN, HK, IN, ID, JP, MY, NZ, PH,
+SG, KR, TW, TH, VN) or is `GLOBAL`, governed by no single country; `Jurisdiction` is that
+enum. The user picks the type and the country before upload. `meta.docType` and
+`meta.jurisdiction` hold the pick; `meta.detected` holds what the Reader found on its own
+(any ISO code, or empty), which the confirm screen shows when it differs. `GRADE_FORMULA`
+(points per trap, grade bands) is shared so the report shows the formula the API grades
+with.
+
 A rule's `when` being true always means "this rule applies". For a `benefit` that is good
 for the user; for every other kind it counts against them: the condition was breached, the
 deadline missed, the exclusion, limit or charge triggered.
@@ -153,8 +161,8 @@ its own is written.
 ```
 analyses/{analysisId}
   ownerUid, status, stage, error?, createdAt, reservedAt, updatedAt
-  meta: { docType, title, parties[], userRole, jurisdiction, lawChecked, language,
-          pageCount, unreadablePages[] }
+  meta: { docType, title, parties[], userRole, jurisdiction, lawChecked,
+          detected: { docType, jurisdiction }, language, pageCount, unreadablePages[] }
   factSchema: Fact[]
   counts: { clauses, rules, scenarios, fine, partlyBad, bad, undetermined, traps }
   grade, confidence
@@ -191,13 +199,13 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 
 All routes require `Authorization: Bearer <Firebase ID token>`, verified with the Admin SDK.
 
-| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                        |
-| -------- | -------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                       |
-| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read**, sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.    |
-| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error. |
-| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                                                                                                                                                                                                                          |
-| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                         |
+| Method   | Path                       | Body                                                     | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------- | -------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/health`                  | —                                                        | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[], docType, jurisdiction }` | Type and country are what the user picked (400 without them). Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read** (which does not see the pick; its finding goes to `meta.detected`), sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists. |
+| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }`                    | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error.                                                                                                                               |
+| `POST`   | `/v1/analyses/:id/retry`   | —                                                        | Owner only (else 404). Only from `failed` in a pipeline stage (else 409; a failed reading is uploaded again). Reserves a daily slot again (429 `daily_limit`), deletes the sub-collection the failed stage writes (`rules`, `scenarios` or `traps`), sets the status to that stage and runs from there with what earlier stages stored, holding the request open like confirm. A retry that fails again gives its slot back.                                                                                   |
+| `DELETE` | `/v1/analyses/:id`         | —                                                        | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
@@ -459,8 +467,15 @@ during the day-1 spike.
 - Features: `auth` (Google button, route guard on `_authenticated`), `upload`,
   `analysis` (confirm, run tracker, report, trap detail), `rules` (how we read your
   document), `history`.
-- Data: Firebase JS SDK. Firestore listeners wrapped as React Query subscriptions; API
-  calls through one small `api.ts` client that attaches the ID token.
+- Data: Firebase JS SDK. The analysis document and its sub-collections are read with live
+  Firestore listeners (`useAnalysis`, `useSubcollection`), so the run tracker, report and
+  trap detail update without a reload; API calls go through one small `api.ts` client that
+  attaches the ID token.
+- Screens: `/` asks the document type and country (`components/document-fields.tsx`,
+  shared with the confirm screen) before the upload; `/analyses/$id` is the confirm step,
+  the run tracker (`run-tracker.tsx`), the report (`features/report/report-view.tsx`) or a
+  failed stage with retry, by status; `/analyses/$id/traps/$trapId` is the trap detail.
+  Clause links point at `/analyses/$id/rules#<clauseId>`.
 - UI strings live in the `en` locale file through `@repo/i18n`. The `id` locale is kept
   key-identical (the existing parity test enforces it) so that localisation later is not a rewrite.
 

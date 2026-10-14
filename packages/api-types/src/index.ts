@@ -208,6 +208,23 @@ export type Severity = z.infer<typeof Severity>;
 export const Grade = z.enum(['A', 'B', 'C', 'D', 'F']);
 export type Grade = z.infer<typeof Grade>;
 
+// How the grade follows from the traps (TSD 5.7, F-TRAP-4): 100 minus the
+// points of each trap, then the first band reached, highest first. The API
+// grades with these and the report shows them, so the two cannot differ.
+export const GRADE_FORMULA: {
+  penalty: Record<Severity, number>;
+  gradeBands: { from: number; value: Grade }[];
+} = {
+  penalty: { critical: 20, high: 10, medium: 5, low: 2 },
+  gradeBands: [
+    { from: 90, value: 'A' },
+    { from: 75, value: 'B' },
+    { from: 60, value: 'C' },
+    { from: 40, value: 'D' },
+    { from: 0, value: 'F' },
+  ],
+};
+
 export const Confidence = z.enum(['high', 'medium', 'low']);
 export type Confidence = z.infer<typeof Confidence>;
 
@@ -222,15 +239,39 @@ export const Trap = z.object({
 });
 export type Trap = z.infer<typeof Trap>;
 
+// The countries a user can say a document is from (JAPAC), and GLOBAL for a
+// document that no single country governs.
+export const COUNTRIES = [
+  'AU',
+  'CN',
+  'HK',
+  'IN',
+  'ID',
+  'JP',
+  'MY',
+  'NZ',
+  'PH',
+  'SG',
+  'KR',
+  'TW',
+  'TH',
+  'VN',
+] as const;
+export const GLOBAL = 'GLOBAL';
+export const Jurisdiction = z.enum([...COUNTRIES, GLOBAL]);
+export type Jurisdiction = z.infer<typeof Jurisdiction>;
+
 export const AnalysisMeta = z.object({
   docType: DocType,
   title: z.string(),
   parties: z.array(z.object({ name: z.string(), role: z.string() })),
   userRole: z.string().nullable(), // null until the user confirms
-  // "ID", "SG", "AU" or anything else. Empty when the Reader found none;
-  // NO_COUNTRY once the user has confirmed that there is none to name.
-  jurisdiction: z.string(),
+  // What the user picked, not what the Reader found.
+  jurisdiction: Jurisdiction,
   lawChecked: z.boolean(),
+  // What the Reader found on its own, shown when it differs from the pick.
+  // The country is any ISO code, or empty when the document names none.
+  detected: z.object({ docType: DocType, jurisdiction: z.string() }),
   language: z.string(),
   pageCount: z.number().int(),
   unreadablePages: z.array(z.number().int()),
@@ -251,8 +292,6 @@ export const LAW_JURISDICTIONS = ['ID', 'SG', 'AU'] as const;
 export type LawJurisdiction = (typeof LAW_JURISDICTIONS)[number];
 export const isLawChecked = (jurisdiction: string) =>
   (LAW_JURISDICTIONS as readonly string[]).includes(jurisdiction);
-// The jurisdiction of a document whose country is unknown or not listed.
-export const NO_COUNTRY = 'OTHER';
 
 // Why POST /v1/analyses refused the uploaded files (F-UP-1, F-UP-2). Each
 // is the `code` of a 400 and has its own message in the dashboard.
@@ -284,7 +323,14 @@ export type AnalysisStatus = z.infer<typeof AnalysisStatus>;
 export const Analysis = z.object({
   ownerUid: z.string(),
   status: AnalysisStatus,
-  stage: AnalysisStatus.optional(), // where a failed run stopped
+  // Where a failed run stopped: the reading, or a stage it can resume from.
+  stage: AnalysisStatus.extract([
+    'reading',
+    'extracting_rules',
+    'fuzzing',
+    'running',
+    'comparing',
+  ]).optional(),
   error: z.string().optional(),
   meta: AnalysisMeta.nullable(), // null until the document is read
   factSchema: FactSchema.optional(), // from the rules stage on
@@ -307,7 +353,11 @@ export const Analysis = z.object({
     .optional(),
   // From code, once the scenarios are compared (TSD 5.7).
   grade: Grade.optional(),
+  points: z.number().int().optional(), // what the grade was read from
   confidence: Confidence.optional(),
+  // A Firestore timestamp; only its seconds are read, so the Admin and the
+  // web SDK's both fit.
+  createdAt: z.object({ seconds: z.number() }).optional(),
 });
 export type Analysis = z.infer<typeof Analysis>;
 
@@ -320,17 +370,20 @@ const uploadName = z
   .refine((name) => !name.includes('..'));
 
 // Body of POST /v1/analyses. The files are names inside
-// uploads/{uid}/{analysisId}/, in page order.
+// uploads/{uid}/{analysisId}/, in page order. Type and country are what the
+// user said the document is, before it was read.
 export const CreateAnalysisRequest = z.object({
   analysisId: AnalysisId,
   files: z.array(uploadName).min(1).max(UPLOAD_LIMITS.maxImages),
+  docType: DocType,
+  jurisdiction: Jurisdiction,
 });
 export type CreateAnalysisRequest = z.infer<typeof CreateAnalysisRequest>;
 
 // Body of POST /v1/analyses/:id/confirm.
 export const ConfirmAnalysisRequest = z.object({
   docType: DocType,
-  jurisdiction: z.string().min(2).max(60),
+  jurisdiction: Jurisdiction,
   userRole: z.string().min(1).max(120),
 });
 export type ConfirmAnalysisRequest = z.infer<typeof ConfirmAnalysisRequest>;

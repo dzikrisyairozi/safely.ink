@@ -19,6 +19,15 @@ const pages = () =>
     .filter(Boolean);
 const startButton = () =>
   screen.getByRole('button', { name: 'Check this document' });
+// What the user says the document is, before it can be started.
+const say = (docType = 'insurance', country = 'ID') => {
+  fireEvent.change(screen.getByLabelText('Document type'), {
+    target: { value: docType },
+  });
+  fireEvent.change(screen.getByLabelText('Country'), {
+    target: { value: country },
+  });
+};
 
 // Braces matter: a function returned from beforeEach is run as its cleanup.
 beforeEach(() => {
@@ -75,6 +84,7 @@ test('starting uploads the pages in their final order and opens the analysis', a
   render(<UploadForm onRead={onRead} />);
   pick(photo('one.jpg'), photo('two.jpg'));
   fireEvent.click(screen.getByLabelText('Move two.jpg up'));
+  say();
 
   fireEvent.click(startButton());
 
@@ -83,6 +93,10 @@ test('starting uploads the pages in their final order and opens the analysis', a
     'two.jpg',
     'one.jpg',
   ]);
+  expect(start.mock.calls[0]![1]).toEqual({
+    docType: 'insurance',
+    jurisdiction: 'ID',
+  });
 });
 
 test('the daily limit message says when it resets', async () => {
@@ -91,6 +105,7 @@ test('the daily limit message says when it resets', async () => {
   );
   render(<UploadForm onRead={() => {}} />);
   pick(photo('one.jpg'));
+  say();
 
   fireEvent.click(startButton());
 
@@ -104,8 +119,48 @@ test('a document with too many pages is explained with the limit', async () => {
   start.mockRejectedValue(new ApiError(400, 'too_many_pages', 'too many'));
   render(<UploadForm onRead={() => {}} />);
   pick(new File(['x'], 'policy.pdf', { type: 'application/pdf' }));
+  say();
 
   fireEvent.click(startButton());
 
   expect((await screen.findByRole('alert')).textContent).toMatch(/100 pages/);
+});
+
+test('nothing starts until the user says what the document is and where it is from', () => {
+  render(<UploadForm onRead={() => {}} />);
+  pick(photo('one.jpg'));
+
+  expect(startButton()).toHaveProperty('disabled', true);
+  fireEvent.change(screen.getByLabelText('Document type'), {
+    target: { value: 'nda' },
+  });
+  expect(startButton()).toHaveProperty('disabled', true);
+  fireEvent.change(screen.getByLabelText('Country'), {
+    target: { value: 'JP' },
+  });
+  expect(startButton()).toHaveProperty('disabled', false);
+});
+
+test('the countries are JAPAC and Global, and the checked laws are marked', () => {
+  render(<UploadForm onRead={() => {}} />);
+
+  const options = [
+    ...screen.getByLabelText<HTMLSelectElement>('Country').options,
+  ].filter((option) => option.value);
+
+  expect(options).toHaveLength(15);
+  expect(options.at(-1)?.value).toBe('GLOBAL');
+  expect(options.find((o) => o.value === 'SG')?.textContent).toMatch(
+    /law checked/,
+  );
+  expect(options.find((o) => o.value === 'JP')?.textContent).toBe('Japan');
+});
+
+test('a global document is told there is no legal comparison', () => {
+  render(<UploadForm onRead={() => {}} />);
+
+  say('other', 'GLOBAL');
+
+  expect(screen.getByText(/No single country's law applies/)).toBeTruthy();
+  expect(screen.getByText(/general analysis/)).toBeTruthy();
 });

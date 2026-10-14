@@ -2,14 +2,15 @@ import { useState, type JSX, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from '@repo/i18n';
 import {
-  DocType,
-  LAW_JURISDICTIONS,
-  NO_COUNTRY,
-  isLawChecked,
+  GLOBAL,
+  Jurisdiction,
   type Analysis,
   type AnalysisMeta,
-  type AnalysisStatus,
   type ConfirmAnalysisRequest,
+  type Clause,
+  type Rule,
+  type StoredScenario,
+  type Trap,
 } from '@repo/api-types';
 import {
   Alert,
@@ -18,9 +19,11 @@ import {
 } from '@repo/ui/components/ui/alert';
 import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
-
-const FIELD =
-  'h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring';
+import { DocumentFields } from '../../components/document-fields';
+import { ApiError } from '../../lib/api';
+import { useCountryName } from '../../lib/country-name';
+import { ReportView } from '../report/report-view';
+import { RunTracker, type RunningStatus } from './run-tracker';
 
 function Message({
   title,
@@ -51,27 +54,23 @@ function ConfirmDetails({
   meta: AnalysisMeta;
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
 }) {
-  const { t, i18n } = useTranslation('dashboard');
+  const { t } = useTranslation('dashboard');
   const [docType, setDocType] = useState(meta.docType);
-  const [jurisdiction, setJurisdiction] = useState(
-    meta.jurisdiction || NO_COUNTRY,
-  );
+  const [jurisdiction, setJurisdiction] = useState(meta.jurisdiction);
   const [userRole, setUserRole] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  const countryName = useCountryName();
 
-  const countries = new Intl.DisplayNames([i18n.language], { type: 'region' });
-  const countryName = (code: string) => {
-    if (code === NO_COUNTRY) return t('analysis.confirm.otherCountry');
-    try {
-      return countries.of(code) ?? code;
-    } catch {
-      return code; // not a region code; show what the document said
-    }
-  };
-  const jurisdictions = [
-    ...new Set([...LAW_JURISDICTIONS, jurisdiction, NO_COUNTRY]),
-  ];
+  // What the Reader found, as a choice on this screen: a country outside the
+  // list is best described as Global; no country found is no choice at all.
+  const { detected } = meta;
+  const detectedCountry: Jurisdiction | null = detected.jurisdiction
+    ? (Jurisdiction.safeParse(detected.jurisdiction).data ?? GLOBAL)
+    : null;
+  const typeDiffers = detected.docType !== docType;
+  const countryDiffers =
+    detectedCountry !== null && detectedCountry !== jurisdiction;
 
   const submit = async () => {
     setFailed(false);
@@ -119,50 +118,50 @@ function ConfirmDetails({
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-1.5 text-sm font-medium">
-          {t('analysis.confirm.docType')}
-          <select
-            className={FIELD}
-            value={docType}
-            onChange={(event) => setDocType(DocType.parse(event.target.value))}
-          >
-            {DocType.options.map((type) => (
-              <option key={type} value={type}>
-                {t(`analysis.docTypes.${type}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="space-y-1.5 text-sm font-medium">
-          {t('analysis.confirm.jurisdiction')}
-          <select
-            className={FIELD}
-            value={jurisdiction}
-            onChange={(event) => setJurisdiction(event.target.value)}
-          >
-            {jurisdictions.map((code) => (
-              <option key={code} value={code}>
-                {countryName(code)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {docType === 'other' && (
-        <p className="text-sm text-muted-foreground">
-          {t('analysis.confirm.generalAnalysis')}
-        </p>
+      {(typeDiffers || countryDiffers) && (
+        <Alert>
+          <AlertTitle>{t('analysis.confirm.mismatch.title')}</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <ul className="list-disc pl-5">
+              {typeDiffers && (
+                <li>
+                  {t('analysis.confirm.mismatch.type', {
+                    type: t(`analysis.docTypes.${detected.docType}`),
+                  })}
+                </li>
+              )}
+              {countryDiffers && (
+                <li>
+                  {t(
+                    detectedCountry === GLOBAL
+                      ? 'analysis.confirm.mismatch.countryOutside'
+                      : 'analysis.confirm.mismatch.country',
+                    { country: countryName(detected.jurisdiction) },
+                  )}
+                </li>
+              )}
+            </ul>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDocType(detected.docType);
+                if (detectedCountry) setJurisdiction(detectedCountry);
+              }}
+            >
+              {t('analysis.confirm.mismatch.use')}
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
-      {!isLawChecked(jurisdiction) && (
-        <p className="text-sm text-muted-foreground">
-          {t('analysis.confirm.lawSkipped', {
-            country: countryName(jurisdiction),
-          })}
-        </p>
-      )}
+
+      <DocumentFields
+        docType={docType}
+        jurisdiction={jurisdiction}
+        onDocType={setDocType}
+        onJurisdiction={setJurisdiction}
+      />
 
       {meta.parties.length > 0 ? (
         <fieldset className="space-y-2">
@@ -216,37 +215,85 @@ function ConfirmDetails({
   );
 }
 
-// The stage a failed run stopped in, as the key of its message.
-const FAILED_AT: Partial<
-  Record<AnalysisStatus, 'rules' | 'fuzzing' | 'running' | 'comparing'>
-> = {
-  extracting_rules: 'rules',
-  fuzzing: 'fuzzing',
-  running: 'running',
-  comparing: 'comparing',
-};
+function RetryStage({
+  stage,
+  onRetry,
+}: {
+  stage: RunningStatus; // where the failed run stopped
+  onRetry: () => Promise<void>;
+}) {
+  const { t } = useTranslation('dashboard');
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const retry = async () => {
+    setError(null);
+    setIsStarting(true);
+    try {
+      // The request stays open for the whole run. Once it has started, the
+      // status changes and this screen is gone.
+      await onRetry();
+    } catch (err) {
+      setIsStarting(false);
+      if (err instanceof ApiError && err.code === 'daily_limit') {
+        const resetAt = new Date(err.resetAt ?? '').toLocaleTimeString(
+          undefined,
+          { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' },
+        );
+        setError(t('upload.errors.daily_limit', { resetAt }));
+      } else {
+        setError(t('analysis.retry.failed'));
+      }
+    }
+  };
+
+  return (
+    <div className="mx-auto flex max-w-xl flex-col gap-4 py-16">
+      <h1 className="text-3xl tracking-tight">
+        {t(`analysis.failed.${stage}.title`)}
+      </h1>
+      <p className="text-muted-foreground">
+        {t(`analysis.failed.${stage}.description`)}
+      </p>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Button className="self-start" disabled={isStarting} onClick={retry}>
+        {isStarting ? t('analysis.retry.starting') : t('analysis.retry.button')}
+      </Button>
+    </div>
+  );
+}
 
 /** What `/analyses/$id` shows for each state of an analysis. */
 export function AnalysisView({
   id,
   analysis,
+  traps,
+  rules,
+  scenarios,
+  clauses,
   onConfirm,
+  onRetry,
 }: {
   id: string;
   analysis: Analysis;
+  // Live from their sub-collections; undefined until the listeners answer.
+  traps: Trap[] | undefined;
+  rules: Rule[] | undefined;
+  scenarios: StoredScenario[] | undefined;
+  clauses: Clause[] | undefined;
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
-}): JSX.Element {
+  // Resolves when the run it starts has ended; the screen follows the status.
+  onRetry: () => Promise<void>;
+}): JSX.Element | null {
   const { t } = useTranslation('dashboard');
 
   if (analysis.status === 'awaiting_confirmation' && analysis.meta) {
     return <ConfirmDetails meta={analysis.meta} onConfirm={onConfirm} />;
   }
-
-  const rulesLink = (
-    <Link to="/analyses/$id/rules" params={{ id }}>
-      {t('analysis.rulesLink')}
-    </Link>
-  );
 
   switch (analysis.status) {
     case 'uploaded':
@@ -267,67 +314,51 @@ export function AnalysisView({
         </Message>
       );
     case 'failed': {
-      // Retry comes with the run screen; until then the way on is to upload.
-      const stage = (analysis.stage && FAILED_AT[analysis.stage]) ?? 'reading';
-      return (
-        <Message
-          title={t(`analysis.failed.${stage}.title`)}
-          action={<Link to="/">{t('analysis.uploadAgain')}</Link>}
-        >
-          {t(`analysis.failed.${stage}.description`)}
-        </Message>
-      );
+      const { stage } = analysis;
+      // A failed reading stored nothing to resume from: upload again.
+      if (!stage || stage === 'reading') {
+        return (
+          <Message
+            title={t('analysis.failed.reading.title')}
+            action={<Link to="/">{t('analysis.uploadAgain')}</Link>}
+          >
+            {t('analysis.failed.reading.description')}
+          </Message>
+        );
+      }
+      return <RetryStage stage={stage} onRetry={onRetry} />;
     }
     case 'extracting_rules':
-      return (
-        <Message title={t('analysis.extractingRules.title')}>
-          {t('analysis.extractingRules.description')}
-        </Message>
-      );
     case 'fuzzing':
-      return (
-        <Message title={t('analysis.fuzzing.title')} action={rulesLink}>
-          {t('analysis.fuzzing.description', {
-            count: analysis.counts?.rules ?? 0,
-          })}
-        </Message>
-      );
     case 'running':
-      return (
-        <Message title={t('analysis.running.title')} action={rulesLink}>
-          {t('analysis.running.description', {
-            count: analysis.counts?.scenarios ?? 0,
-          })}
-        </Message>
-      );
     case 'comparing':
       return (
-        <Message title={t('analysis.comparing.title')} action={rulesLink}>
-          {t('analysis.comparing.description', {
-            count: analysis.counts?.scenarios ?? 0,
-          })}
+        <RunTracker
+          id={id}
+          analysis={analysis}
+          status={analysis.status}
+          traps={traps ?? []}
+          rules={rules ?? []}
+        />
+      );
+    case 'done':
+      // A report without its traps would say there are none.
+      if (!traps || !rules || !scenarios || !clauses) return null;
+      // Done always has its details; without them there is nothing to show.
+      return analysis.meta ? (
+        <ReportView
+          id={id}
+          analysis={analysis}
+          meta={analysis.meta}
+          traps={traps}
+          rules={rules}
+          scenarios={scenarios}
+          clauses={clauses}
+        />
+      ) : (
+        <Message title={t('analysis.reading.title')}>
+          {t('analysis.reading.description')}
         </Message>
       );
-    case 'done': {
-      // The report comes with the run screen; until then the result in words.
-      const traps = analysis.counts?.traps ?? 0;
-      return (
-        <Message
-          title={t('analysis.done.title', { grade: analysis.grade })}
-          action={rulesLink}
-        >
-          {[
-            traps
-              ? t('analysis.done.traps', { count: traps })
-              : t('analysis.done.noTraps'),
-            analysis.confidence &&
-              t(`analysis.done.confidence.${analysis.confidence}`),
-            t('analysis.done.next'),
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        </Message>
-      );
-    }
   }
 }

@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Analysis, AnalysisMeta } from '@repo/api-types';
+import { ApiError } from '../../lib/api';
 import { AnalysisView } from './analysis-view';
 
 // The view only links back to the upload page; a plain anchor stands in for
@@ -22,6 +23,7 @@ const meta: AnalysisMeta = {
   userRole: null,
   jurisdiction: 'ID',
   lawChecked: true,
+  detected: { docType: 'insurance', jurisdiction: 'ID' },
   language: 'id',
   pageCount: 12,
   unreadablePages: [],
@@ -32,12 +34,27 @@ const analysis = (changes: Partial<Analysis> = {}): Analysis => ({
   meta,
   ...changes,
 });
-const show = (shown: Analysis, onConfirm = vi.fn(async () => {})) => {
+const show = (
+  shown: Analysis,
+  onConfirm = vi.fn(async () => {}),
+  onRetry = vi.fn(async () => {}),
+) => {
   render(
-    <AnalysisView id="analysis-1" analysis={shown} onConfirm={onConfirm} />,
+    <AnalysisView
+      id="analysis-1"
+      analysis={shown}
+      traps={[]}
+      rules={[]}
+      scenarios={[]}
+      clauses={[]}
+      onConfirm={onConfirm}
+      onRetry={onRetry}
+    />,
   );
   return onConfirm;
 };
+const retryButton = () =>
+  screen.getByRole('button', { name: 'Try this stage again' });
 const confirmButton = () =>
   screen.getByRole('button', { name: 'These details are right' });
 
@@ -50,10 +67,7 @@ test('the detected details are shown for the user to check', () => {
     'value',
     'insurance',
   );
-  expect(screen.getByLabelText('Governing country')).toHaveProperty(
-    'value',
-    'ID',
-  );
+  expect(screen.getByLabelText('Country')).toHaveProperty('value', 'ID');
   expect(screen.getByText('PT Asuransi Sehat Prima')).toBeTruthy();
   expect(screen.getByText('Budi Santoso')).toBeTruthy();
 });
@@ -74,7 +88,7 @@ test('the corrected type and country are what gets confirmed', async () => {
   fireEvent.change(screen.getByLabelText('Document type'), {
     target: { value: 'loan' },
   });
-  fireEvent.change(screen.getByLabelText('Governing country'), {
+  fireEvent.change(screen.getByLabelText('Country'), {
     target: { value: 'SG' },
   });
   fireEvent.click(screen.getByLabelText(/Budi Santoso/));
@@ -97,6 +111,74 @@ test('a country without a law check is named, and the run is not blocked', () =>
   );
   fireEvent.click(screen.getByLabelText(/Budi Santoso/));
   expect(confirmButton()).toHaveProperty('disabled', false);
+});
+
+test('a global document runs without a legal comparison', () => {
+  show(
+    analysis({ meta: { ...meta, jurisdiction: 'GLOBAL', lawChecked: false } }),
+  );
+
+  expect(screen.getByLabelText('Country')).toHaveProperty('value', 'GLOBAL');
+  expect(screen.getByText(/No single country's law applies/)).toBeTruthy();
+});
+
+test('when the reader agrees with the pick, nothing is flagged', () => {
+  show(analysis());
+
+  expect(screen.queryByText(/may say something else/)).toBeNull();
+});
+
+test('a document with no country found is not a mismatch', () => {
+  show(
+    analysis({
+      meta: { ...meta, detected: { docType: 'insurance', jurisdiction: '' } },
+    }),
+  );
+
+  expect(screen.queryByText(/may say something else/)).toBeNull();
+});
+
+test('what the reader found instead of the pick is shown and can be taken', () => {
+  show(
+    analysis({
+      meta: {
+        ...meta,
+        docType: 'nda',
+        jurisdiction: 'JP',
+        detected: { docType: 'insurance', jurisdiction: 'ID' },
+      },
+    }),
+  );
+
+  expect(screen.getByText(/Insurance policy/, { selector: 'li' })).toBeTruthy();
+  expect(screen.getByText(/law of Indonesia/)).toBeTruthy();
+
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Use what the document says' }),
+  );
+
+  expect(screen.getByLabelText('Document type')).toHaveProperty(
+    'value',
+    'insurance',
+  );
+  expect(screen.getByLabelText('Country')).toHaveProperty('value', 'ID');
+  expect(screen.queryByText(/may say something else/)).toBeNull();
+});
+
+test('a country outside the list is named and switches to Global', () => {
+  show(
+    analysis({
+      meta: { ...meta, detected: { docType: 'insurance', jurisdiction: 'US' } },
+    }),
+  );
+
+  expect(screen.getByText(/United States/).textContent).toMatch(
+    /not in the list/,
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Use what the document says' }),
+  );
+  expect(screen.getByLabelText('Country')).toHaveProperty('value', 'GLOBAL');
 });
 
 test('a type outside the tuned five is announced as a general analysis', () => {
@@ -188,7 +270,7 @@ test('a failed rules stage names the stage', () => {
   expect(screen.getByRole('heading').textContent).toBe(
     'The rules could not be worked out',
   );
-  expect(screen.getByRole('link', { name: 'Upload it again' })).toBeTruthy();
+  expect(retryButton()).toBeTruthy();
 });
 
 test('one rule is not called "1 rules"', () => {
@@ -220,25 +302,13 @@ test('while the results are compared the number of situations is shown', () => {
   expect(screen.getByText(/31 real-life situations/)).toBeTruthy();
 });
 
-test('a finished analysis shows its grade, its traps and the confidence', () => {
-  const counts = { clauses: 40, rules: 17, scenarios: 31, traps: 4 };
+test('a finished analysis is shown as its report', () => {
+  show(analysis({ status: 'done', grade: 'C', confidence: 'medium' }));
 
-  show(analysis({ status: 'done', grade: 'C', confidence: 'medium', counts }));
-
-  expect(screen.getByRole('heading').textContent).toBe('Grade C');
-  expect(screen.getByText(/4 traps found/)).toBeTruthy();
-  expect(screen.getByText(/Confidence in this grade: medium/)).toBeTruthy();
-  expect(
-    screen.getByRole('link', { name: 'How we read your document' }),
-  ).toBeTruthy();
-});
-
-test('a finished analysis without a trap says so', () => {
-  const counts = { clauses: 40, rules: 17, scenarios: 31, traps: 0 };
-
-  show(analysis({ status: 'done', grade: 'A', confidence: 'high', counts }));
-
-  expect(screen.getByText(/No situation ended worse/)).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+    meta.title,
+  );
+  expect(screen.getByText('Confidence: medium')).toBeTruthy();
 });
 
 test.each([
@@ -249,5 +319,91 @@ test.each([
   show(analysis({ status: 'failed', stage }));
 
   expect(screen.getByRole('heading').textContent).toBe(title);
-  expect(screen.getByRole('link', { name: 'Upload it again' })).toBeTruthy();
+  expect(retryButton()).toBeTruthy();
+});
+
+test('a failed reading cannot be retried, only uploaded again', () => {
+  show(analysis({ status: 'failed', stage: 'reading', meta: null }));
+
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('retry starts the stage again and waits for the run', async () => {
+  const onRetry = vi.fn(() => new Promise<void>(() => {}));
+  show(analysis({ status: 'failed', stage: 'fuzzing' }), undefined, onRetry);
+
+  fireEvent.click(retryButton());
+
+  expect(onRetry).toHaveBeenCalledOnce();
+  expect(
+    (
+      await screen.findByRole('button', { name: 'Starting again…' })
+    ).hasAttribute('disabled'),
+  ).toBe(true);
+});
+
+test('a retry over the daily limit says when it resets', async () => {
+  show(
+    analysis({ status: 'failed', stage: 'comparing' }),
+    undefined,
+    vi.fn(async () => {
+      throw new ApiError(
+        429,
+        'daily_limit',
+        'limit',
+        '2026-10-15T00:00:00.000Z',
+      );
+    }),
+  );
+
+  fireEvent.click(retryButton());
+
+  expect((await screen.findByRole('alert')).textContent).toMatch(
+    /10 documents a day/,
+  );
+  expect(retryButton()).toHaveProperty('disabled', false);
+});
+
+test('a retry that does not go through can be tried again', async () => {
+  show(
+    analysis({ status: 'failed', stage: 'running' }),
+    undefined,
+    vi.fn(async () => {
+      throw new Error('offline');
+    }),
+  );
+
+  fireEvent.click(retryButton());
+
+  expect((await screen.findByRole('alert')).textContent).toMatch(
+    /Could not start again/,
+  );
+});
+
+test('a finished report waits for its traps instead of saying there are none', () => {
+  const done = analysis({
+    status: 'done',
+    grade: 'D',
+    meta: { ...meta, userRole: 'insured' },
+  });
+  const report = (traps: [] | undefined) => (
+    <AnalysisView
+      id="analysis-1"
+      analysis={done}
+      traps={traps}
+      rules={[]}
+      scenarios={[]}
+      clauses={[]}
+      onConfirm={vi.fn(async () => {})}
+      onRetry={vi.fn(async () => {})}
+    />
+  );
+  const { rerender } = render(report(undefined));
+
+  expect(screen.queryByText(/No situation ended worse/)).toBeNull();
+  expect(screen.queryByText('D')).toBeNull();
+
+  rerender(report([]));
+
+  expect(screen.getByText(/No situation ended worse/)).toBeTruthy();
 });

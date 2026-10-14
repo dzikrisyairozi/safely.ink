@@ -1,5 +1,5 @@
 import { ref, uploadBytes } from 'firebase/storage';
-import type { AnalysisStatus } from '@repo/api-types';
+import type { AnalysisStatus, CreateAnalysisRequest } from '@repo/api-types';
 import { api } from '../../lib/api';
 import { auth, storage } from '../../lib/firebase';
 import { contentTypeOf } from './validate-files';
@@ -14,9 +14,13 @@ export const storedName = (file: File, position: number) =>
 
 /**
  * Uploads the pages straight to Storage under the user's own folder, then
- * asks the API to read them. Resolves when the document has been read.
+ * asks the API to read them as what the user said the document is. Resolves
+ * when the document has been read.
  */
-export async function startAnalysis(files: File[]) {
+export async function startAnalysis(
+  files: File[],
+  pick: Pick<CreateAnalysisRequest, 'docType' | 'jurisdiction'>,
+) {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error('Not signed in.');
 
@@ -35,6 +39,6 @@ export async function startAnalysis(files: File[]) {
 
   return api<{ analysisId: string; status: AnalysisStatus }>('/v1/analyses', {
     method: 'POST',
-    body: JSON.stringify({ analysisId, files: names }),
+    body: JSON.stringify({ analysisId, files: names, ...pick }),
   });
 }
