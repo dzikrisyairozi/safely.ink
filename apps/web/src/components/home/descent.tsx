@@ -1,26 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from '@repo/i18n';
 import { usePrefersReducedMotion } from '@repo/ui/hooks/use-prefers-reduced-motion';
+import { cn } from '@repo/ui/lib/utils';
+import { CAPTIONS, Footnote, PEN } from './descent-parts';
 import { Island } from './island';
 
 // The moving stage (and framer-motion with it) loads only when the section is
 // about a screen away, so it costs nothing on first load.
 const DescentStage = dynamic(() => import('./descent-stage'), { ssr: false });
-
-export const CAPTIONS = ['a', 'b', 'c', 'd'] as const;
-
-/** The red pen's loop around the footnote: this line is the trap. */
-export const PEN = {
-  d: 'M40 88 C -4 76, -2 22, 60 10 C 160 -8, 340 -4, 392 30 C 418 52, 380 92, 250 96 C 170 99, 90 98, 52 80',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 3,
-  strokeLinecap: 'round',
-  vectorEffect: 'non-scaling-stroke',
-} as const;
 
 /**
  * Full-width parallax: scrolling sinks through the layers of one contract,
@@ -45,6 +35,8 @@ export function Descent() {
     return () => io.disconnect();
   }, [reduce]);
 
+  // Both versions are in the HTML and CSS picks one, so reduced motion gets
+  // the still page from the first paint, not after hydration.
   return (
     <section
       aria-labelledby="descent"
@@ -61,54 +53,39 @@ export function Descent() {
           {t('descent.heading')}
         </h2>
       </div>
-      {reduce || failed ? (
-        <div className="mx-auto max-w-3xl space-y-8 px-4 pb-24 pt-56 md:px-6">
-          {CAPTIONS.map((c) => (
-            <p key={c} className="font-serif text-3xl md:text-4xl">
-              {t(`descent.captions.${c}`)}
-            </p>
-          ))}
-          <Footnote pen={<path {...PEN} />} />
-        </div>
-      ) : (
-        <div ref={track} className="relative h-[420vh]">
-          {/* The same words for crawlers and screen readers; the stage is decoration. */}
-          <div className="sr-only">
-            {CAPTIONS.map((c) => (
-              <p key={c}>{t(`descent.captions.${c}`)}</p>
-            ))}
-            <p>{t('descent.footnote')}</p>
-          </div>
-          {near && (
-            <Island onError={() => setFailed(true)}>
-              <DescentStage target={track} />
-            </Island>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
-export function Footnote({ pen }: { pen: ReactNode }) {
-  const { t } = useTranslation('web');
-
-  return (
-    <div className="relative">
-      <p className="relative z-10 text-pretty px-6 py-6 font-serif text-xl italic md:text-2xl">
-        {t('descent.footnote')}
-      </p>
-      <svg
-        aria-hidden
-        viewBox="0 0 400 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full overflow-visible text-destructive"
+      <div
+        className={cn(
+          'mx-auto max-w-3xl space-y-8 px-4 pb-24 pt-56 md:px-6',
+          !failed && 'hidden motion-reduce:block',
+        )}
       >
-        {pen}
-      </svg>
-      <p className="mt-2 px-6 font-mono text-[10px] uppercase tracking-widest opacity-75">
-        {t('descent.note')}
-      </p>
-    </div>
+        {CAPTIONS.map((c) => (
+          <p key={c} className="font-serif text-3xl md:text-4xl">
+            {t(`descent.captions.${c}`)}
+          </p>
+        ))}
+        <Footnote pen={<path {...PEN} />} />
+      </div>
+      <div
+        ref={track}
+        className={cn(
+          'relative h-[420vh] motion-reduce:hidden',
+          failed && 'hidden',
+        )}
+      >
+        {/* The same words for crawlers and screen readers; the stage is decoration. */}
+        <div className="sr-only">
+          {CAPTIONS.map((c) => (
+            <p key={c}>{t(`descent.captions.${c}`)}</p>
+          ))}
+          <p>{t('descent.footnote')}</p>
+        </div>
+        {near && (
+          <Island onError={() => setFailed(true)}>
+            <DescentStage target={track} />
+          </Island>
+        )}
+      </div>
+    </section>
   );
 }

@@ -39,13 +39,15 @@ html {
   }
 }
 
-/* Step glyphs: thin ink lines drawn on a loop. */
+/* Step glyphs: thin ink lines drawn a few times, then left drawn. Stopping
+   halfway through the third cycle lands in the drawn part of the keyframes;
+   motion that never stops would need a pause control (WCAG 2.2.2). */
 .glyph path,
 .glyph line,
 .glyph circle {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: glyph-draw 3.2s ease-in-out infinite;
+  animation: glyph-draw 3.2s ease-in-out 2.5 forwards;
 }
 .glyph :nth-child(2) {
   animation-delay: 0.25s;

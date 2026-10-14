@@ -9,7 +9,7 @@ import {
 } from 'framer-motion';
 import { useTranslation } from '@repo/i18n';
 import { Pangolin } from '@repo/ui/components/brand/pangolin';
-import { CAPTIONS, Footnote, PEN } from './descent';
+import { CAPTIONS, Footnote, PEN } from './descent-parts';
 
 const CLAUSES = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] as const;
 // Where each caption is on screen, as fractions of the section's scroll.
@@ -17,7 +17,8 @@ const CAPTION_AT = [
   [0, 0.04, 0.2, 0.26],
   [0.24, 0.3, 0.46, 0.52],
   [0.5, 0.56, 0.68, 0.74],
-  [0.74, 0.8, 1, 1],
+  // The last one has no fade-out stop: it stays up to the end.
+  [0.74, 0.8, 1],
 ] as const;
 
 /** The sticky stage of the descent, driven by the scroll through `target`. */
@@ -126,10 +127,15 @@ function Caption({
   children,
 }: {
   progress: MotionValue<number>;
-  at: readonly [number, number, number, number];
+  at: readonly number[];
   children: string;
 }) {
-  const opacity = useTransform(progress, [...at], [0, 1, 1, 0]);
+  // Fade in, hold, and fade out only if there is a fourth stop.
+  const opacity = useTransform(
+    progress,
+    [...at],
+    [0, 1, 1, 0].slice(0, at.length),
+  );
   const y = useTransform(progress, [at[0], at[1]], [24, 0]);
 
   return (
