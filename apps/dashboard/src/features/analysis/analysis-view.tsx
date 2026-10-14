@@ -57,10 +57,7 @@ function ConfirmDetails({
 }) {
   const { t } = useTranslation('dashboard');
   const [docType, setDocType] = useState(meta.docType);
-  // An analysis from before the pick may hold a country outside the list.
-  const [jurisdiction, setJurisdiction] = useState<Jurisdiction>(
-    Jurisdiction.safeParse(meta.jurisdiction).data ?? GLOBAL,
-  );
+  const [jurisdiction, setJurisdiction] = useState(meta.jurisdiction);
   const [userRole, setUserRole] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [failed, setFailed] = useState(false);

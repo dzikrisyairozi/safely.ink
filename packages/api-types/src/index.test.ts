@@ -188,6 +188,10 @@ test('analysis meta survives a round trip before the user picks a role', () => {
   );
   const { detected: _, ...withoutDetected } = meta;
   expect(AnalysisMeta.safeParse(withoutDetected).success).toBe(false);
+  // Analyses from before the pick are not read: their country is not a pick.
+  expect(
+    AnalysisMeta.safeParse({ ...meta, jurisdiction: 'OTHER' }).success,
+  ).toBe(false);
 });
 
 test('a document is from a JAPAC country or global', () => {

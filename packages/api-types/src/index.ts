@@ -239,14 +239,35 @@ export const Trap = z.object({
 });
 export type Trap = z.infer<typeof Trap>;
 
+// The countries a user can say a document is from (JAPAC), and GLOBAL for a
+// document that no single country governs.
+export const COUNTRIES = [
+  'AU',
+  'CN',
+  'HK',
+  'IN',
+  'ID',
+  'JP',
+  'MY',
+  'NZ',
+  'PH',
+  'SG',
+  'KR',
+  'TW',
+  'TH',
+  'VN',
+] as const;
+export const GLOBAL = 'GLOBAL';
+export const Jurisdiction = z.enum([...COUNTRIES, GLOBAL]);
+export type Jurisdiction = z.infer<typeof Jurisdiction>;
+
 export const AnalysisMeta = z.object({
   docType: DocType,
   title: z.string(),
   parties: z.array(z.object({ name: z.string(), role: z.string() })),
   userRole: z.string().nullable(), // null until the user confirms
-  // A code of COUNTRIES, or GLOBAL: what the user picked, not what the Reader
-  // found. A string, so that an analysis stored before the pick still reads.
-  jurisdiction: z.string(),
+  // What the user picked, not what the Reader found.
+  jurisdiction: Jurisdiction,
   lawChecked: z.boolean(),
   // What the Reader found on its own, shown when it differs from the pick.
   // The country is any ISO code, or empty when the document names none.
@@ -271,27 +292,6 @@ export const LAW_JURISDICTIONS = ['ID', 'SG', 'AU'] as const;
 export type LawJurisdiction = (typeof LAW_JURISDICTIONS)[number];
 export const isLawChecked = (jurisdiction: string) =>
   (LAW_JURISDICTIONS as readonly string[]).includes(jurisdiction);
-// The countries a user can say a document is from (JAPAC), and GLOBAL for a
-// document that no single country governs.
-export const COUNTRIES = [
-  'AU',
-  'CN',
-  'HK',
-  'IN',
-  'ID',
-  'JP',
-  'MY',
-  'NZ',
-  'PH',
-  'SG',
-  'KR',
-  'TW',
-  'TH',
-  'VN',
-] as const;
-export const GLOBAL = 'GLOBAL';
-export const Jurisdiction = z.enum([...COUNTRIES, GLOBAL]);
-export type Jurisdiction = z.infer<typeof Jurisdiction>;
 
 // Why POST /v1/analyses refused the uploaded files (F-UP-1, F-UP-2). Each
 // is the `code` of a 400 and has its own message in the dashboard.
