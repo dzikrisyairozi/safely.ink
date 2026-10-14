@@ -168,11 +168,11 @@ Each requirement has an ID used by the TSD and by tests.
 
 ### 4.11 History
 
-| ID       | Requirement                                                                                                                       |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| F-HIST-1 | History lists the user's analyses, newest first: title, document type, jurisdiction, date, grade, status.                         |
-| F-HIST-2 | The user can open any finished analysis and delete any analysis. Delete removes the report, rules, scenarios and the source file. |
-| F-HIST-3 | Source files are removed automatically 7 days after upload. Reports stay until deleted; the clause quotes inside them remain.     |
+| ID       | Requirement                                                                                                                                        |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-HIST-1 | History lists the user's analyses, newest first: title, document type, jurisdiction, date, grade, status.                                          |
+| F-HIST-2 | The user can open any analysis and delete any analysis whose run is not going on. Delete removes the report, rules, scenarios and the source file. |
+| F-HIST-3 | Source files are removed automatically 7 days after upload. Reports stay until deleted; the clause quotes inside them remain.                      |
 
 ### 4.12 Landing page
 
