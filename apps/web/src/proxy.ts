@@ -9,10 +9,8 @@ import {
 // English lives at unprefixed URLs and every other language under /<locale>.
 // Pages are built under app/[locale], so unprefixed paths are rewritten to the
 // English tree, and /en/... is sent back to the one public URL. There is no
-// Accept-Language guess: crawlers and shared links get the URL they asked for.
-// Only a language the visitor picked with the switcher sends `/` elsewhere.
-
-export const LOCALE_COOKIE = 'NEXT_LOCALE';
+// Accept-Language guess and no language cookie: every visitor, crawler and
+// CDN cache gets the URL it asked for.
 
 function withLocale(request: NextRequest, locale: Locale) {
   const headers = new Headers(request.headers);
@@ -33,13 +31,6 @@ export function proxy(request: NextRequest) {
   }
 
   if (isLocale(first)) return NextResponse.next(withLocale(request, first));
-
-  const saved = request.cookies.get(LOCALE_COOKIE)?.value;
-  if (pathname === '/' && isLocale(saved) && saved !== DEFAULT_LOCALE) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/${saved}`;
-    return NextResponse.redirect(url, 307);
-  }
 
   const url = request.nextUrl.clone();
   url.pathname = `/${DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;

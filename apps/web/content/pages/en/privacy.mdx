@@ -68,7 +68,7 @@ Only you. Our security rules let a signed-in user read only their own analyses a
 
 ## Cookies and browser storage
 
-- **Language**: the landing site sets a cookie called `NEXT_LOCALE` when you pick a language, so it remembers your choice. It lasts one year.
+- **Language**: the landing site sets no language cookie; the address (`/` or `/id`) decides the language. The dashboard stores the language you pick in your browser's local storage.
 - **Theme**: your light or dark preference is stored in your browser.
 - **Sign-in**: Firebase keeps your sign-in session in your browser.
 - **Analytics**: if analytics is enabled on the landing site, it uses Google Analytics, and only after you choose "Accept" on the consent banner. Before that, no Google Analytics script runs and nothing is sent. Advertising signals stay off either way. Your choice is stored in your browser, and clearing your browser's site data brings the banner back.

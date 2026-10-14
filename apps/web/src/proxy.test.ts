@@ -49,14 +49,9 @@ describe('proxy', () => {
     }
   });
 
-  it('sends / to the language picked with the switcher, and nothing else', () => {
-    const response = run('/', 'NEXT_LOCALE=id');
-    expect(response?.status).toBe(307);
-    expect(response?.headers.get('location')).toBe(`${origin}/id`);
-
-    expect(rewrittenTo('/blog', 'NEXT_LOCALE=id')).toBe(`${origin}/en/blog`);
-    expect(rewrittenTo('/', 'NEXT_LOCALE=en')).toBe(`${origin}/en`);
-    expect(rewrittenTo('/', 'NEXT_LOCALE=fr')).toBe(`${origin}/en`);
+  it('serves the URL it was asked for, whatever cookie is set', () => {
+    // A redirect that depends on a cookie would be cached by the CDN for everyone.
+    expect(rewrittenTo('/', 'NEXT_LOCALE=id')).toBe(`${origin}/en`);
   });
 
   it('tells the page which language the URL is in, for the 404 page', () => {

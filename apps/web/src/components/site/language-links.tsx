@@ -32,10 +32,6 @@ export function LanguageLinks({
             lang={l}
             title={LANGUAGE_LABELS[l].label}
             aria-current={l === locale ? 'true' : undefined}
-            onClick={() => {
-              // Remembered so that `/` opens in this language next time.
-              document.cookie = `NEXT_LOCALE=${l};path=/;max-age=31536000;samesite=lax`;
-            }}
             className={cn(
               'rounded px-1 py-1 uppercase tracking-wider transition-colors',
               l === locale
