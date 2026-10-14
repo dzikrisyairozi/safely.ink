@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import dynamic from 'next/dynamic';
 import { Maximize, Pause, Play } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -10,6 +10,20 @@ import { useTranslation } from '@repo/i18n';
 import type { Locale } from '@/lib/site';
 
 const ReelPlayer = dynamic(() => import('./reel-player'), { ssr: false });
+
+const BUTTON =
+  'inline-flex size-10 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur transition-colors hover:bg-background';
+
+// Support never changes while the page is open.
+const noChange = () => () => {};
+
+// iPhone Safari has no element fullscreen; Remotion throws there.
+function supportsFullscreen() {
+  return Boolean(
+    document.fullscreenEnabled ||
+    (document as { webkitFullscreenEnabled?: boolean }).webkitFullscreenEnabled,
+  );
+}
 
 /**
  * The showreel, played live: text in the page's language, colours in its
@@ -27,6 +41,13 @@ export function Showreel({ locale }: { locale: Locale }) {
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [tall, setTall] = useState(false);
+  const canFullscreen = useSyncExternalStore(
+    noChange,
+    supportsFullscreen,
+    () => false,
+  );
+  // A pause the visitor chose outlasts scrolling away and back.
+  const userPaused = useRef(false);
 
   const format = tall ? 'tall' : 'wide';
   const theme = resolvedTheme === 'light' ? 'light' : 'dark';
@@ -68,10 +89,11 @@ export function Showreel({ locale }: { locale: Locale }) {
     };
   }, [ready, format]);
 
-  // Autoplay only while visible, and never for reduced motion.
+  // Autoplay only while visible, never for reduced motion, and not after the
+  // visitor paused it.
   useEffect(() => {
     if (!player.current) return;
-    if (onScreen && !reduce) player.current.play();
+    if (onScreen && !reduce && !userPaused.current) player.current.play();
     else player.current.pause();
   }, [onScreen, reduce, ready]);
 
@@ -111,9 +133,12 @@ export function Showreel({ locale }: { locale: Locale }) {
         <div className="absolute bottom-3 right-3 flex gap-2">
           <button
             type="button"
-            onClick={() => player.current?.toggle()}
+            onClick={() => {
+              userPaused.current = playing;
+              player.current?.toggle();
+            }}
             aria-label={playing ? t('reel.pause') : t('reel.play')}
-            className="inline-flex size-10 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur transition-colors hover:bg-background"
+            className={BUTTON}
           >
             {playing ? (
               <Pause className="size-4" />
@@ -121,14 +146,16 @@ export function Showreel({ locale }: { locale: Locale }) {
               <Play className="size-4" />
             )}
           </button>
-          <button
-            type="button"
-            onClick={() => player.current?.requestFullscreen()}
-            aria-label={t('reel.fullscreen')}
-            className="inline-flex size-10 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur transition-colors hover:bg-background"
-          >
-            <Maximize className="size-4" />
-          </button>
+          {canFullscreen && (
+            <button
+              type="button"
+              onClick={() => player.current?.requestFullscreen()}
+              aria-label={t('reel.fullscreen')}
+              className={BUTTON}
+            >
+              <Maximize className="size-4" />
+            </button>
+          )}
         </div>
       </div>
     </section>
