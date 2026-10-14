@@ -1,6 +1,11 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import { DocumentReference } from 'firebase-admin/firestore';
-import { ErrorEnvelope, ReaderOutput, type Fact } from '@repo/api-types';
+import {
+  ErrorEnvelope,
+  ReaderOutput,
+  type Fact,
+  type LegalFinding,
+} from '@repo/api-types';
 import policy from '../../test/fixtures/reader-policy.json';
 import receipt from '../../test/fixtures/reader-receipt.json';
 import proposedFacts from '../../test/fixtures/rules-facts.json';
@@ -12,6 +17,7 @@ import { readDocument } from '../agents/reader';
 import { proposeFacts, proposeRules } from '../agents/rule-extractor';
 import { judge } from '../agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from '../agents/scenario-fuzzer';
+import { lookUpLaw } from '../legal/research';
 
 // Run through `pnpm test`: Firestore and Storage are the emulators. Only the
 // token check and the model are replaced.
@@ -31,7 +37,11 @@ vi.mock('../agents/expectation-judge', async (original) => ({
   judge: vi.fn(),
 }));
 
+// The law lookup has its own tests.
+vi.mock('../legal/research');
+
 const reader = vi.mocked(readDocument);
+const law = vi.mocked(lookUpLaw);
 const ruleWriter = vi.mocked(proposeRules);
 // The tests upload a single page, so the fixture's clauses are put on it.
 const onePagePolicy = ReaderOutput.parse({
@@ -77,6 +87,8 @@ beforeEach(async () => {
   ruleWriter.mockResolvedValue(proposedRules.rules);
   vi.mocked(proposeScenarios).mockResolvedValue(proposedScenarios.scenarios);
   vi.mocked(tellBoundaries).mockResolvedValue([]);
+  law.mockReset();
+  law.mockResolvedValue({});
   vi.mocked(judge).mockResolvedValue([
     { id: 's-002', result: 'fine', reason: 'An illness is covered.' },
   ]);
@@ -539,18 +551,16 @@ test('a retry that cannot clear its stage still gives its slot back', async () =
 
 test('a retry at comparing starts without the grade of the failed attempt', async () => {
   const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(judge).mockRejectedValue(new Error('model unavailable'));
   await create('alice', 'analysis-1');
   await confirm('alice', 'analysis-1');
   await db.doc('analyses/analysis-1').update({
-    status: 'failed',
-    stage: 'comparing',
     grade: 'F',
     points: 0,
     confidence: 'low',
     'counts.judged': 9,
     'counts.traps': 9,
   });
-  vi.mocked(judge).mockRejectedValue(new Error('model unavailable'));
 
   await retry('alice', 'analysis-1');
 
@@ -564,4 +574,63 @@ test('a retry at comparing starts without the grade of the failed attempt', asyn
   expect(analysis.counts.judged).toBeUndefined();
   expect(analysis.counts.traps).toBeUndefined();
   logged.mockRestore();
+});
+
+const unavailable: LegalFinding = {
+  status: 'no_finding',
+  reasoning: '',
+  citations: [],
+  error: 'lookup_unavailable',
+};
+const permitted: LegalFinding = {
+  status: 'permitted',
+  reasoning: 'The regulation allows a waiting period.',
+  citations: [
+    {
+      instrument: 'POJK 22/2023',
+      section: 'Pasal 18',
+      quote: 'Pelaku usaha dilarang membuat atau mencantumkan klausula baku',
+      url: 'https://peraturan.bpk.go.id/Download/1/pojk.pdf',
+    },
+  ],
+  error: null,
+};
+
+test('a finished analysis whose law lookup was unavailable checks the law again', async () => {
+  await create('alice', 'analysis-1');
+  await confirm('alice', 'analysis-1');
+  await db
+    .doc('analyses/analysis-1/findings/r-002')
+    .set({ ruleId: 'r-002', ...unavailable });
+  law.mockImplementation(async ({ stored, save }) => {
+    if (stored['r-002']?.error) await save('r-002', permitted);
+    return { 'r-002': permitted };
+  });
+
+  const res = await retry('alice', 'analysis-1');
+
+  expect(await res.json()).toEqual({
+    analysisId: 'analysis-1',
+    status: 'done',
+  });
+  expect(law).toHaveBeenLastCalledWith(
+    expect.objectContaining({ stored: { 'r-002': unavailable } }),
+  );
+  expect(
+    (await db.doc('analyses/analysis-1/findings/r-002').get()).data(),
+  ).toEqual({ ruleId: 'r-002', ...permitted });
+  expect(await stored('analysis-1')).toMatchObject({ status: 'done' });
+  // Checking again is a run like any other and takes a slot of the day.
+  expect(await startedToday('alice')).toBe(2);
+});
+
+test('a finished analysis whose law was looked up cannot be retried', async () => {
+  await create('alice', 'analysis-1');
+  await confirm('alice', 'analysis-1');
+  await db
+    .doc('analyses/analysis-1/findings/r-002')
+    .set({ ruleId: 'r-002', ...permitted });
+
+  expect((await retry('alice', 'analysis-1')).status).toBe(409);
+  expect(await startedToday('alice')).toBe(1);
 });
