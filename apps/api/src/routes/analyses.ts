@@ -12,7 +12,7 @@ import { config } from '../config';
 import { failure } from '../failure';
 import { db } from '../firebase';
 import { readDocument } from '../agents/reader';
-import { runPipeline, saveAll } from '../pipeline';
+import { clearStage, isStage, runPipeline, saveAll } from '../pipeline';
 import { checkReading } from '../pipeline/reader-check';
 import { loadUploads } from '../uploads';
 import { nextReset, releaseDailySlot, reserveDailySlot } from '../usage';
@@ -28,6 +28,13 @@ const UPLOAD_MESSAGES: Record<UploadError, string> = {
   too_large: `The upload is over ${megabytes} MB. Upload the main document only.`,
   too_many_pages: `The document has more than ${limits.uploadMaxPages} pages. Upload the main document only.`,
 };
+
+const dailyLimit = (now: Date) =>
+  failure(
+    'daily_limit',
+    `You can start ${limits.analysesPerUserPerDay} analyses a day.`,
+    nextReset(now).toISOString(),
+  );
 
 const ALREADY_EXISTS = 6; // gRPC status of a create() on an existing document
 
@@ -58,14 +65,7 @@ analyses.post('/', async (c) => {
 
   const now = new Date();
   if (!(await reserveDailySlot(uid, now))) {
-    return c.json(
-      failure(
-        'daily_limit',
-        `You can start ${limits.analysesPerUserPerDay} analyses a day.`,
-        nextReset(now).toISOString(),
-      ),
-      429,
-    );
+    return c.json(dailyLimit(now), 429);
   }
 
   const analysis = db.doc(`analyses/${analysisId}`);
@@ -191,4 +191,61 @@ analyses.post('/:id/confirm', async (c) => {
         status: await runPipeline(id.data),
       });
   }
+});
+
+// Resumes a failed run from the stage it stopped in (F-LIVE-4, FSD 6). The
+// stage starts clean; what earlier stages stored is used as it is. Like
+// confirm, the request stays open for the run.
+analyses.post('/:id/retry', async (c) => {
+  const id = AnalysisId.safeParse(c.req.param('id'));
+  if (!id.success)
+    return c.json(failure('not_found', 'No such analysis.'), 404);
+  const uid = c.get('uid');
+  const analysis = db.doc(`analyses/${id.data}`);
+
+  const data = (await analysis.get()).data();
+  // Someone else's analysis looks the same as one that does not exist.
+  if (data?.ownerUid !== uid)
+    return c.json(failure('not_found', 'No such analysis.'), 404);
+  const conflict = () =>
+    c.json(
+      failure('conflict', 'This analysis has no failed stage to retry.'),
+      409,
+    );
+  // A failed reading has nothing stored to resume from; it is uploaded again.
+  if (data.status !== 'failed' || !isStage(data.stage)) return conflict();
+  const stage: AnalysisStatus = data.stage;
+
+  // The failure gave its slot back, so the run takes one again.
+  const now = new Date();
+  if (!(await reserveDailySlot(uid, now))) {
+    return c.json(dailyLimit(now), 429);
+  }
+
+  // Of two retries at once, only one picks the analysis up.
+  const picked = await db.runTransaction(async (tx) => {
+    const current = (await tx.get(analysis)).data();
+    if (current?.status !== 'failed' || current.stage !== stage) return false;
+    tx.update(analysis, {
+      status: stage,
+      stage: FieldValue.delete(),
+      reservedAt: now,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return true;
+  });
+  if (!picked) {
+    await releaseDailySlot(uid, now);
+    return conflict();
+  }
+
+  try {
+    await clearStage(analysis, stage);
+  } catch (err) {
+    console.error(err);
+    await analysis.update({ status: 'failed', stage });
+    await releaseDailySlot(uid, now);
+    return c.json({ analysisId: id.data, status: 'failed' });
+  }
+  return c.json({ analysisId: id.data, status: await runPipeline(id.data) });
 });

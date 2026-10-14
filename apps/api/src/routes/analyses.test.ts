@@ -413,3 +413,104 @@ test('a rejected analysis cannot be confirmed', async () => {
 
   expect((await confirm('alice', 'analysis-1')).status).toBe(409);
 });
+
+const retry = (uid: string, analysisId: string) =>
+  post(`/v1/analyses/${analysisId}/retry`, uid, {});
+const ids = async (analysisId: string, name: string) =>
+  (await db.collection(`analyses/${analysisId}/${name}`).get()).docs.map(
+    (doc) => doc.id,
+  );
+
+test('a run that failed in a stage resumes there and finishes', async () => {
+  await create('alice', 'analysis-1');
+  ruleWriter.mockRejectedValueOnce(new Error('model unavailable'));
+  await confirm('alice', 'analysis-1');
+  expect(await startedToday('alice')).toBe(0);
+
+  const res = await retry('alice', 'analysis-1');
+
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({
+    analysisId: 'analysis-1',
+    status: 'done',
+  });
+  expect(await stored('analysis-1')).toMatchObject({
+    status: 'done',
+    counts: { rules: 3 },
+  });
+  expect((await stored('analysis-1'))!.stage).toBeUndefined();
+  // A run that went on counts against the day again.
+  expect(await startedToday('alice')).toBe(1);
+});
+
+test.each([
+  ['extracting_rules', 'rules'],
+  ['fuzzing', 'scenarios'],
+  ['comparing', 'traps'],
+] as const)(
+  'a retry at %s leaves nothing of the failed attempt in %s',
+  async (stage, name) => {
+    await create('alice', 'analysis-1');
+    await confirm('alice', 'analysis-1');
+    await db.doc(`analyses/analysis-1/${name}/stale`).set({ id: 'stale' });
+    await db.doc('analyses/analysis-1').update({ status: 'failed', stage });
+
+    await retry('alice', 'analysis-1');
+
+    expect(await stored('analysis-1')).toMatchObject({ status: 'done' });
+    expect(await ids('analysis-1', name)).not.toContain('stale');
+  },
+);
+
+test.each([
+  ['a failed reading', { status: 'failed', stage: 'reading' }],
+  ['a finished run', { status: 'done' }],
+  ['a run that is going on', { status: 'fuzzing' }],
+])('%s cannot be retried', async (_, state) => {
+  await create('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update(state);
+
+  const res = await retry('alice', 'analysis-1');
+
+  expect(res.status).toBe(409);
+  expect(await stored('analysis-1')).toMatchObject(state);
+});
+
+test("another user's analysis cannot be retried", async () => {
+  await create('alice', 'analysis-1');
+  await db
+    .doc('analyses/analysis-1')
+    .update({ status: 'failed', stage: 'fuzzing' });
+
+  const res = await retry('bob', 'analysis-1');
+
+  expect(res.status).toBe(404);
+  expect(await stored('analysis-1')).toMatchObject({ status: 'failed' });
+});
+
+test('a retry needs a slot of the day like a new analysis', async () => {
+  await create('alice', 'analysis-1');
+  ruleWriter.mockRejectedValueOnce(new Error('model unavailable'));
+  await confirm('alice', 'analysis-1');
+  await db.doc(`users/alice/usage/${TODAY}`).set({ started: 10 });
+
+  const res = await retry('alice', 'analysis-1');
+
+  expect(res.status).toBe(429);
+  expect(ErrorEnvelope.parse(await res.json()).error.code).toBe('daily_limit');
+  expect(await stored('analysis-1')).toMatchObject({
+    status: 'failed',
+    stage: 'extracting_rules',
+  });
+});
+
+test('a retry that fails again gives its slot back', async () => {
+  await create('alice', 'analysis-1');
+  ruleWriter.mockRejectedValue(new Error('model unavailable'));
+  await confirm('alice', 'analysis-1');
+
+  const res = await retry('alice', 'analysis-1');
+
+  expect(await res.json()).toMatchObject({ status: 'failed' });
+  expect(await startedToday('alice')).toBe(0);
+});

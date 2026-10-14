@@ -337,15 +337,39 @@ type Stage = {
   ) => Promise<void>;
   // The status when the stage is done.
   next: AnalysisStatus;
+  // The sub-collection the stage writes from scratch. Running scenarios only
+  // adds their outcomes, which a second run writes over.
+  writes: string | null;
 };
 
 // In the order they run.
 const STAGES: Stage[] = [
-  { status: 'extracting_rules', run: extractRules, next: 'fuzzing' },
-  { status: 'fuzzing', run: fuzz, next: 'running' },
-  { status: 'running', run: runScenarios, next: 'comparing' },
-  { status: 'comparing', run: compare, next: 'done' },
+  {
+    status: 'extracting_rules',
+    run: extractRules,
+    next: 'fuzzing',
+    writes: 'rules',
+  },
+  { status: 'fuzzing', run: fuzz, next: 'running', writes: 'scenarios' },
+  { status: 'running', run: runScenarios, next: 'comparing', writes: null },
+  { status: 'comparing', run: compare, next: 'done', writes: 'traps' },
 ];
+
+/** True for a status that is a stage a failed run can resume from. */
+export const isStage = (status: unknown) =>
+  STAGES.some((stage) => stage.status === status);
+
+/**
+ * Deletes what a stage wrote in an attempt that failed, so that running it
+ * again leaves nothing of that attempt behind.
+ */
+export async function clearStage(
+  analysis: DocumentReference,
+  status: AnalysisStatus,
+) {
+  const writes = STAGES.find((stage) => stage.status === status)?.writes;
+  if (writes) await db.recursiveDelete(analysis.collection(writes));
+}
 
 /**
  * Runs the stages from the current status of the analysis on, and writes
