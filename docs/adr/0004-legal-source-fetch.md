@@ -64,3 +64,22 @@ of HTML for one Act, close to the 2 MB cap in the TSD.
 - Sending a browser `User-Agent` is a workaround for bot filters on public government
   pages. Requests stay low in volume, cached in `lawPages`, and limited to the allowlist.
 - The first deploy must repeat this check from Cloud Run before the legal stage is built.
+
+## Update, 2026-10-14 (M8)
+
+A second spike, while the legal stage was built, changed the fallback for PDFs:
+
+- The URL context tool mostly refused to copy Indonesian statutes (`finishReason:
+RECITATION`, no text), and when it answered, it gave a partial copy with a preamble of
+  its own. `ojk.go.id` turned away both our fetch and the tool with a firewall page that
+  answers 200.
+- Our own fetch got the official PDFs from `peraturan.bpk.go.id` directly. PDFs are
+  now read in code with `unpdf` (MIT, no dependencies), so Indonesian citations are
+  checked against the official file, like Singapore and Australia. `pasal.id` article
+  pages are HTML and need nothing more.
+- The URL context tool stays only for pages our fetch cannot use (a short or blocked
+  page). Its text is kept only when the retrieval status is a success, and is stored
+  with `via: 'url_context'`.
+- There is no Blaze plan yet, so there is no Cloud Run deploy. The check from Cloud Run
+  above is moved to M12 (#16); the legal stage was built and run from a developer
+  machine.
