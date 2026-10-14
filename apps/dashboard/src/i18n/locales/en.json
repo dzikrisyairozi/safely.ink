@@ -303,7 +303,7 @@
     "lawNotYet": "We do not check the law of {{country}} yet, so this report has no legal comparison. The situations ran on the document's own rules.",
     "lawUnavailable": {
       "title": "Some of the law could not be looked up",
-      "description": "The official sources did not answer in time. The grade counts only what was found; checking again may change it.",
+      "description": "The official sources did not answer in time. The grade counts only what was found; checking again may change it. Checking again works the report out anew, takes a few minutes, and uses one of today's analyses.",
       "button": "Check the law again"
     },
     "lawGlobal": "Global: no single country's law applies, so the law is not checked. The situations ran on the document's own rules.",

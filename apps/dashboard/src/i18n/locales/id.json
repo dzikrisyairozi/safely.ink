@@ -303,7 +303,7 @@
     "lawNotYet": "Kami belum memeriksa hukum {{country}}, jadi laporan ini tidak memiliki perbandingan hukum. Situasi dijalankan dengan aturan dokumen itu sendiri.",
     "lawUnavailable": {
       "title": "Sebagian hukum tidak dapat dicari",
-      "description": "Sumber resmi tidak menjawab tepat waktu. Nilai hanya menghitung yang ditemukan; memeriksa lagi dapat mengubahnya.",
+      "description": "Sumber resmi tidak menjawab tepat waktu. Nilai hanya menghitung yang ditemukan; memeriksa lagi dapat mengubahnya. Memeriksa lagi menyusun ulang laporan, memakan beberapa menit, dan memakai satu jatah analisis hari ini.",
       "button": "Periksa hukum lagi"
     },
     "lawGlobal": "Global: tidak ada hukum satu negara yang berlaku, jadi hukum tidak diperiksa. Situasi dijalankan dengan aturan dokumen itu sendiri.",
