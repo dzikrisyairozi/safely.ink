@@ -43,10 +43,11 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       // 900 s. The Reader's calls run side by side in one request. In the
       // confirm request the facts, the rules and the repair run one after
       // the other, then the fuzzer's calls side by side, then the judge's
-      // batches side by side, then the wording. A fuzzer call may take what
-      // is left of confirmSeconds once the judge and the wording have theirs,
-      // between fuzz and fuzzMost: the earlier calls seldom use their whole
-      // limit, and at 90 s the baseline call did not answer in 1 run of 3.
+      // batches side by side, then the law lookup, then the wording. A fuzzer
+      // call may take what is left of confirmSeconds once the judge, the law
+      // and the wording have theirs, between fuzz and fuzzMost: the earlier
+      // calls seldom use their whole limit, and at 90 s the baseline call did
+      // not answer in 1 run of 3.
       // Measured on the demo policy, whose 21 numbered clauses the Reader gives
       // as 24 (2026-10-13): facts 66 to 78 s, rules 112 s to over 150 s, a
       // fuzzer call 55 to 60 s. A repair of two rules did not answer in 60 s.

@@ -245,8 +245,8 @@ async function runScenarios(analysis: DocumentReference) {
 // side by side, up to the rate limit of the model.
 const JUDGED_AT_ONCE = 10;
 
-// The model says what a person would expect, and the law is looked up beside
-// it; which gap is a trap, how bad it is and the grade are worked out by
+// The model says what a person would expect, then the law is looked up;
+// which gap is a trap, how bad it is and the grade are worked out by
 // score() (F-TRAP-1 to F-TRAP-5). What an earlier attempt stored is kept: a
 // retry judges only the scenarios without an expectation and looks up only
 // the rules whose lookup was unavailable.
@@ -311,7 +311,9 @@ async function compare(
   };
 
   // The batches side by side, and one that fails does not cost the others;
-  // a lost one is judged once more when there is time.
+  // a lost one is judged once more when there is time. The judge goes first,
+  // even into the law's time: without an expectation nothing is a trap, and
+  // the law gets what is left before the wording.
   const answers = await judgeAll(batches);
   const lost = batches.filter((batch, n) => !take(batch, answers[n]!));
   if (lost.length > 0 && wordingAt - Date.now() >= judgeSeconds * 1000) {
