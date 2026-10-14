@@ -273,9 +273,8 @@ async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
   // Without an expectation nothing can be a trap, and a report that found
   // none would say the document is fine.
   if (judged.length === 0) throw new Error('No scenario was judged.');
-  if (judged.length < scenarios.length) {
-    console.warn(`${scenarios.length - judged.length} scenarios not judged.`);
-  }
+  const missed = scenarios.length - judged.length;
+  if (missed > 0) console.warn(`${missed} scenarios not judged.`);
   await saveAll(
     analysis,
     'scenarios',
@@ -296,7 +295,10 @@ async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
   await saveAll(analysis, 'traps', traps);
   await analysis.update({
     grade,
-    confidence,
+    // A scenario that was not judged cannot be a trap, so the grade may be
+    // too good, and the analysis does not claim to be sure of it.
+    confidence: missed > 0 && confidence === 'high' ? 'medium' : confidence,
+    'counts.judged': judged.length,
     'counts.traps': traps.length,
     updatedAt: updatedAt(),
   });

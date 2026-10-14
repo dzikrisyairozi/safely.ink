@@ -352,6 +352,10 @@ comparison on a non-number, throws instead of quietly evaluating to false.
   is for a scenario of its batch. A batch that fails is logged, and its scenarios have no
   expectation, so they are not traps by expectation. If no scenario at all has one, the
   stage fails: a report without traps would say the document is fine.
+- `counts.judged` is the number of scenarios with an expectation. When it is below
+  `counts.scenarios` the grade may be too good, so the stage stores a confidence of
+  `medium` at best. The cap is in the stage and not in `score()`, which sees only what
+  was judged.
 
 ### 5.6 LegalResearcher (agent, Pro, with Google Search)
 

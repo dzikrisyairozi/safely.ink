@@ -367,13 +367,13 @@ test('a finished analysis carries its grade, its confidence and its traps', () =
     meta: null,
     grade: 'C',
     confidence: 'medium',
-    counts: { scenarios: 30, traps: 4 },
+    counts: { scenarios: 30, judged: 28, traps: 4 },
   };
 
   expect(Analysis.parse(done)).toMatchObject({
     grade: 'C',
     confidence: 'medium',
-    counts: { traps: 4 },
+    counts: { judged: 28, traps: 4 },
   });
   expect(Analysis.safeParse({ ...done, grade: 'E' }).success).toBe(false);
 });

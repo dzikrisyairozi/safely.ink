@@ -296,6 +296,9 @@ export const Analysis = z.object({
       partlyBad: z.number().int(),
       bad: z.number().int(),
       undetermined: z.number().int(),
+      // Scenarios with an expectation. Fewer than `scenarios` when a call of
+      // the judge failed.
+      judged: z.number().int(),
       traps: z.number().int(),
     })
     .partial()

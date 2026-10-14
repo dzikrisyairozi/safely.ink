@@ -400,6 +400,7 @@ test('scenarios of every strategy are checked, stored and run in one go', async 
     clauses: 3,
     rules: 3,
     scenarios: 8,
+    judged: 8,
     traps: 2,
     fine: 4,
     partlyBad: 0,
@@ -496,7 +497,7 @@ test('an outcome worse than expected becomes a trap, and the analysis is done wi
     status: 'done',
     grade: 'A',
     confidence: 'low',
-    counts: { traps: 1, bad: 1 },
+    counts: { traps: 1, judged: 3, bad: 1 },
   });
   expect(judged).toHaveBeenCalledWith(
     expect.objectContaining({ userRole: 'insured' }),
@@ -564,6 +565,11 @@ test('one batch of the judge that fails does not cost the other', async () => {
   const [trap] = await traps();
   expect(trap!.scenarioIds).toHaveLength(11);
   expect(trap!.scenarioIds).not.toContain('s-001');
+  // The analysis says how much was compared, and is not sure of the rest.
+  expect(await stored()).toMatchObject({
+    confidence: 'medium',
+    counts: { judged: 11 },
+  });
 });
 
 test.each([
