@@ -3,16 +3,6 @@ import { join } from 'node:path';
 import { POSTS, type Post } from '../../content/blog/posts';
 import type { Locale } from '@/lib/site';
 
-export type PostSummary = {
-  slug: string;
-  date: string;
-  updated: string;
-  tags: string[];
-  title: string;
-  description: string;
-  minutes: number;
-};
-
 const CONTENT = join(process.cwd(), 'content/blog');
 
 /** The article's MDX source. */
@@ -35,7 +25,7 @@ export function plainText(markdown: string) {
     .trim();
 }
 
-function summary(post: Post, locale: Locale): PostSummary {
+function summary(post: Post, locale: Locale) {
   return {
     slug: post.slug,
     date: post.date,
@@ -45,6 +35,8 @@ function summary(post: Post, locale: Locale): PostSummary {
     minutes: readingMinutes(postSource(locale, post.slug)),
   };
 }
+
+export type PostSummary = ReturnType<typeof summary>;
 
 /** Newest first. */
 export function listPosts(locale: Locale) {

@@ -8,13 +8,13 @@ import {
 } from 'remotion';
 import en from '../i18n/locales/en.json';
 import id from '../i18n/locales/id.json';
+import type { Locale } from '../lib/site';
 
-export type ReelLocale = 'en' | 'id';
 export type ReelCopy = typeof en.reel & { cta: string };
-export type ReelProps = { locale: ReelLocale; theme: 'light' | 'dark' };
+export type ReelProps = { locale: Locale; theme: 'light' | 'dark' };
 export type SceneProps = { copy: ReelCopy };
 
-export function reelCopy(locale: ReelLocale): ReelCopy {
+export function reelCopy(locale: Locale): ReelCopy {
   const strings = locale === 'id' ? id : en;
   return { ...strings.reel, cta: strings.cta.check };
 }

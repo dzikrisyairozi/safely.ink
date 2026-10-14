@@ -9,7 +9,7 @@ import {
   type SceneProps,
 } from '../kit';
 
-export const CLAUSE_IDS = ['1.1', '2.4', '3.2', '5.7', '6.1', '7.3', '8.2'];
+const CLAUSE_IDS = ['1.1', '2.4', '3.2', '5.7', '6.1', '7.3', '8.2'];
 
 /** A scan line passes down the page; each line it reaches becomes a clause. */
 export function Read({ copy }: SceneProps) {
