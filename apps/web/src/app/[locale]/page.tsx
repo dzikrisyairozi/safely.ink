@@ -1,28 +1,38 @@
-'use client';
+import type { Metadata } from 'next';
+import { Hero } from '@/components/home/hero';
+import { SampleTrap } from '@/components/home/sample-trap';
+import { Steps } from '@/components/home/steps';
+import { getT } from '@/i18n/translate';
+import { pageMetadata } from '@/lib/seo';
+import { DEFAULT_LOCALE, isLocale } from '@/lib/site';
 
-import { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import Hero from '@/components/hero';
-import LoadingScreen from '@/components/loading-screen';
+type Props = { params: Promise<{ locale: string }> };
 
-export default function Home() {
-  const [isLoading, setIsLoading] = useState(true);
+async function localeOf(params: Props['params']) {
+  const { locale } = await params;
+  return isLocale(locale) ? locale : DEFAULT_LOCALE;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = await localeOf(params);
+  const t = getT(locale);
+  return pageMetadata({
+    locale,
+    path: '/',
+    title: t('meta.title'),
+    description: t('meta.description'),
+    absoluteTitle: true,
+  });
+}
+
+export default async function Home({ params }: Props) {
+  const locale = await localeOf(params);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between">
-      <AnimatePresence mode="wait">
-        {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
-      </AnimatePresence>
-
-      <div
-        style={{
-          opacity: isLoading ? 0 : 1,
-          transition: 'opacity 0.5s ease-out',
-          width: '100%',
-        }}
-      >
-        <Hero />
-      </div>
+    <main id="main">
+      <Hero locale={locale} />
+      <Steps locale={locale} />
+      <SampleTrap locale={locale} />
     </main>
   );
 }

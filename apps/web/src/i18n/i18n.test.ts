@@ -33,8 +33,8 @@ describe('getT', () => {
     const tEn = getT('en');
     const tId = getT('id');
 
-    expect(tEn('hero.cta')).toBe(en.hero.cta);
-    expect(tId('hero.cta')).toBe(id.hero.cta);
-    expect(getT('en')('hero.cta')).toBe(en.hero.cta);
+    expect(tEn('cta.check')).toBe(en.cta.check);
+    expect(tId('cta.check')).toBe(id.cta.check);
+    expect(getT('en')('cta.check')).toBe(en.cta.check);
   });
 });

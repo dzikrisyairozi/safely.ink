@@ -14,7 +14,7 @@ export function Footer({ locale }: { locale: Locale }) {
             {t('footer.tagline')}
           </p>
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            {t('footer.disclaimer')}
+            {t('notice')}
           </p>
         </div>
         <div className="space-y-2 text-sm md:text-right">
