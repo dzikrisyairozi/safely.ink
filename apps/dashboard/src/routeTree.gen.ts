@@ -17,6 +17,7 @@ import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors500RouteImport } from './routes/(errors)/500'
 import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedAnalysesIdIndexRouteImport } from './routes/_authenticated/analyses/$id/index'
 import { Route as AuthenticatedAnalysesIdRulesRouteImport } from './routes/_authenticated/analyses/$id/rules'
 import { Route as AuthenticatedAnalysesIdTrapsTrapIdRouteImport } from './routes/_authenticated/analyses/$id/traps/$trapId'
@@ -60,6 +61,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAnalysesIdIndexRoute =
   AuthenticatedAnalysesIdIndexRouteImport.update({
     id: '/analyses/$id/',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
+  '/history': typeof AuthenticatedHistoryRoute
   '/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
   '/analyses/$id/': typeof AuthenticatedAnalysesIdIndexRoute
   '/analyses/$id/traps/$trapId': typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
+  '/history': typeof AuthenticatedHistoryRoute
   '/': typeof AuthenticatedIndexRoute
   '/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
   '/analyses/$id': typeof AuthenticatedAnalysesIdIndexRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/(errors)/404': typeof errors404Route
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
   '/_authenticated/analyses/$id/': typeof AuthenticatedAnalysesIdIndexRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/500'
     | '/503'
+    | '/history'
     | '/analyses/$id/rules'
     | '/analyses/$id/'
     | '/analyses/$id/traps/$trapId'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/404'
     | '/500'
     | '/503'
+    | '/history'
     | '/'
     | '/analyses/$id/rules'
     | '/analyses/$id'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/(errors)/404'
     | '/(errors)/500'
     | '/(errors)/503'
+    | '/_authenticated/history'
     | '/_authenticated/'
     | '/_authenticated/analyses/$id/rules'
     | '/_authenticated/analyses/$id/'
@@ -225,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/analyses/$id/': {
       id: '/_authenticated/analyses/$id/'
       path: '/analyses/$id'
@@ -250,6 +269,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAnalysesIdRulesRoute: typeof AuthenticatedAnalysesIdRulesRoute
   AuthenticatedAnalysesIdIndexRoute: typeof AuthenticatedAnalysesIdIndexRoute
@@ -257,6 +277,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAnalysesIdRulesRoute: AuthenticatedAnalysesIdRulesRoute,
   AuthenticatedAnalysesIdIndexRoute: AuthenticatedAnalysesIdIndexRoute,
