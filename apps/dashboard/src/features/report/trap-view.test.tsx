@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import type {
   Analysis,
   Clause,
@@ -273,4 +273,35 @@ test('a report without a law check, or with no finding yet, has no law section',
 test('a trap whose rule was not looked up has no law section', () => {
   showLaw(undefined);
   expect(screen.queryByText('What the law says')).toBeNull();
+});
+
+const helpSection = () =>
+  screen.queryByRole('heading', { name: 'Where to get help' });
+
+test('a high trap on a law-checked report says where to get help', () => {
+  showLaw(finding);
+
+  const links = within(helpSection()!.parentElement!).getAllByRole('link');
+  expect(links.map((link) => link.getAttribute('href'))).toEqual([
+    'https://kontak157.ojk.go.id',
+    'https://lapssjk.id',
+  ]);
+});
+
+test('a medium trap, or a report without a law check, has no help list', () => {
+  render(
+    <TrapView
+      id="analysis-1"
+      analysis={lawChecked}
+      trap={{ ...trap, severity: 'medium' }}
+      rules={rules}
+      scenarios={scenarios}
+      clauses={clauses}
+    />,
+  );
+  expect(helpSection()).toBeNull();
+  cleanup();
+
+  show();
+  expect(helpSection()).toBeNull();
 });

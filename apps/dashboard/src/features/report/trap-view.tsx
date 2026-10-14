@@ -1,16 +1,21 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from '@repo/i18n';
-import type {
-  Analysis,
-  Clause,
-  FactSchema,
-  Rule,
-  StoredFinding,
-  StoredScenario,
-  Trap,
+import {
+  isLawChecked,
+  type Analysis,
+  type Clause,
+  type FactSchema,
+  type Rule,
+  type Severity,
+  type StoredFinding,
+  type StoredScenario,
+  type Trap,
 } from '@repo/api-types';
 import { ClauseLabel } from '../rules/rules-view';
 import { ClauseLinks } from './clause-links';
+import { HELP } from './help';
+
+const SERIOUS: Severity[] = ['critical', 'high'];
 
 // No currency is stored on an analysis. The rule writer gives money facts the
 // currency code as their unit, so the first such unit is the document's.
@@ -57,6 +62,12 @@ export function TrapView({
   const factDescription = (key: string) =>
     factSchema.find((fact) => fact.key === key)?.description ?? key;
   const cited = clauses.filter((clause) => rule?.clauseIds.includes(clause.id));
+  // Where to get help comes with the law check, for the worst traps (F-REP-4).
+  const { meta } = analysis;
+  const help =
+    meta && isLawChecked(meta.jurisdiction) && SERIOUS.includes(trap.severity)
+      ? HELP[meta.jurisdiction][meta.docType]
+      : [];
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-10 py-8">
@@ -76,6 +87,26 @@ export function TrapView({
         <section className="space-y-2 rounded-md border bg-card p-4">
           <h2 className="text-xl tracking-tight">{t('trap.action')}</h2>
           <p className="whitespace-pre-line">{trap.action}</p>
+        </section>
+      )}
+
+      {help.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-xl tracking-tight">{t('trap.help')}</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            {help.map(({ name, url }) => (
+              <li key={url}>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  {name}
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

@@ -339,6 +339,7 @@
   "trap": {
     "back": "Kembali ke laporan",
     "action": "Yang dapat Anda lakukan",
+    "help": "Tempat mendapatkan bantuan",
     "examples": "Contoh situasi",
     "outcome": "Yang diberikan dokumen",
     "stake": "Yang dipertaruhkan",
