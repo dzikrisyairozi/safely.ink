@@ -1,14 +1,22 @@
 import { type ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type {
   Analysis,
   AnalysisMeta,
   Clause,
   Rule,
   StoredScenario,
+  StoredFinding,
   Trap,
 } from '@repo/api-types';
+import { ApiError } from '../../lib/api';
 import { ReportView } from './report-view';
 
 // A plain anchor stands in for the router; the hash is what makes a clause
@@ -149,7 +157,11 @@ const clauses = [
   clause('c-003', '9', 7),
 ];
 
-const show = (changes: Partial<AnalysisMeta> = {}) =>
+const show = (
+  changes: Partial<AnalysisMeta> = {},
+  findings: StoredFinding[] = [],
+  onRetry: () => Promise<void> = vi.fn(async () => {}),
+) =>
   render(
     <ReportView
       id="analysis-1"
@@ -159,6 +171,8 @@ const show = (changes: Partial<AnalysisMeta> = {}) =>
       rules={rules}
       scenarios={scenarios}
       clauses={clauses}
+      findings={findings}
+      onRetry={onRetry}
     />,
   );
 const section = (title: string) =>
@@ -190,7 +204,9 @@ test('the header names the other party, the country, the grade and the counts', 
   expect(
     screen.getByText('Unclear', { selector: 'dt' }).nextSibling?.textContent,
   ).toBe('1');
-  expect(screen.getByText(/law of Indonesia is not checked/)).toBeTruthy();
+  expect(
+    screen.getByText(/Compared with official sources of the law of Indonesia/),
+  ).toBeTruthy();
 });
 
 test('traps come worst first, each with the expectation, the rule and its clause', () => {
@@ -243,6 +259,8 @@ test('the points of this report are the ones the API graded with', () => {
       rules={rules}
       scenarios={scenarios}
       clauses={clauses}
+      findings={[]}
+      onRetry={vi.fn(async () => {})}
     />
   );
   const { rerender } = render(report(88));
@@ -267,4 +285,52 @@ test('unreadable pages mark the report as incomplete', () => {
   expect(
     screen.getByText('Incomplete document').parentElement?.textContent,
   ).toMatch(/Page 3, 7 could not/);
+});
+
+test('a country whose law is not checked is named, and the report says so', () => {
+  show({ jurisdiction: 'MY', lawChecked: false });
+
+  expect(
+    screen.getByText(/We do not check the law of Malaysia yet/),
+  ).toBeTruthy();
+  expect(screen.queryByText(/Compared with official sources/)).toBeNull();
+});
+
+const unavailable: StoredFinding = {
+  ruleId: 'r-001',
+  status: 'no_finding',
+  reasoning: '',
+  citations: [],
+  error: 'lookup_unavailable',
+};
+const checkAgain = () =>
+  screen.queryByRole('button', { name: 'Check the law again' });
+
+test('a law lookup that was unavailable can be checked again', async () => {
+  const onRetry = vi.fn(async () => {});
+  show({}, [unavailable], onRetry);
+
+  expect(
+    screen.getByText('Some of the law could not be looked up'),
+  ).toBeTruthy();
+  fireEvent.click(checkAgain()!);
+
+  await waitFor(() => expect(onRetry).toHaveBeenCalledOnce());
+});
+
+test('a check of the law over the daily limit says when it resets', async () => {
+  show({}, [unavailable], async () => {
+    throw new ApiError(429, 'daily_limit', 'Limit', '2026-10-15T00:00:00Z');
+  });
+
+  fireEvent.click(checkAgain()!);
+
+  expect(await screen.findByText(/10 documents a day/)).toBeTruthy();
+  expect(checkAgain()).toHaveProperty('disabled', false);
+});
+
+test('with every lookup done there is nothing to check again', () => {
+  show({}, [{ ...unavailable, error: null }]);
+
+  expect(checkAgain()).toBeNull();
 });

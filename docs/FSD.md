@@ -210,17 +210,17 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
 
 ## 7. Messages for error cases
 
-| Case                             | Message intent                                                                                                                                |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| File too large / too many pages  | State the limit, suggest uploading the main document only.                                                                                    |
-| Unsupported file type            | List accepted types.                                                                                                                          |
-| Not a policy or contract         | "This doesn't look like a policy or contract. safely.ink checks documents that set out rights and obligations between you and another party." |
-| Jurisdiction without law check   | Name the country (or say Global); say the scenarios still run and the legal comparison is skipped.                                            |
-| Detected type or country differs | Name what the document reads like; offer one click to take it; keep the user's pick otherwise.                                                |
-| Unreadable pages                 | List page numbers, offer to continue or re-upload.                                                                                            |
-| Daily limit reached              | State the limit and the reset time.                                                                                                           |
-| Legal lookup unavailable         | Report still completes; legal findings show "law lookup unavailable — try again later" with a retry for that stage.                           |
-| Stage failure                    | Name the stage, offer retry.                                                                                                                  |
+| Case                             | Message intent                                                                                                                                                        |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File too large / too many pages  | State the limit, suggest uploading the main document only.                                                                                                            |
+| Unsupported file type            | List accepted types.                                                                                                                                                  |
+| Not a policy or contract         | "This doesn't look like a policy or contract. safely.ink checks documents that set out rights and obligations between you and another party."                         |
+| Jurisdiction without law check   | Name the country (or say Global); say the scenarios still run and the legal comparison is skipped.                                                                    |
+| Detected type or country differs | Name what the document reads like; offer one click to take it; keep the user's pick otherwise.                                                                        |
+| Unreadable pages                 | List page numbers, offer to continue or re-upload.                                                                                                                    |
+| Daily limit reached              | State the limit and the reset time.                                                                                                                                   |
+| Legal lookup unavailable         | Report still completes; legal findings show "law lookup unavailable — try again later", and the report offers "Check the law again", which looks up only those rules. |
+| Stage failure                    | Name the stage, offer retry.                                                                                                                                          |
 
 ## 8. Acceptance criteria (demo-level)
 

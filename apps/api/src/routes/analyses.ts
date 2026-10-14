@@ -193,9 +193,10 @@ analyses.post('/:id/confirm', async (c) => {
   }
 });
 
-// Resumes a failed run from the stage it stopped in (F-LIVE-4, FSD 6). The
-// stage starts clean; what earlier stages stored is used as it is. Like
-// confirm, the request stays open for the run.
+// Resumes a failed run from the stage it stopped in (F-LIVE-4, FSD 6), or
+// checks the law again for a finished one whose lookup was unavailable. The
+// stage starts without its old result; what earlier stages stored is used
+// as it is. Like confirm, the request stays open for the run.
 analyses.post('/:id/retry', async (c) => {
   const id = AnalysisId.safeParse(c.req.param('id'));
   if (!id.success)
@@ -209,12 +210,29 @@ analyses.post('/:id/retry', async (c) => {
     return c.json(failure('not_found', 'No such analysis.'), 404);
   const conflict = () =>
     c.json(
-      failure('conflict', 'This analysis has no failed stage to retry.'),
+      failure(
+        'conflict',
+        'This analysis has no failed stage or law lookup to retry.',
+      ),
       409,
     );
+  // A finished analysis whose law lookup was unavailable compares again,
+  // which keeps the expectations and looks up only what is missing (FSD 7).
+  const lawMissing = async () =>
+    !(
+      await analysis
+        .collection('findings')
+        .where('error', '==', 'lookup_unavailable')
+        .limit(1)
+        .get()
+    ).empty;
   // A failed reading has nothing stored to resume from; it is uploaded again.
-  const { stage } = data;
-  if (data.status !== 'failed' || !isStage(stage)) return conflict();
+  const from = data.status;
+  const stage =
+    from === 'done' && (await lawMissing()) ? 'comparing' : data.stage;
+  if ((from !== 'failed' && from !== 'done') || !isStage(stage)) {
+    return conflict();
+  }
 
   // The failure gave its slot back, so the run takes one again.
   const now = new Date();
@@ -225,7 +243,8 @@ analyses.post('/:id/retry', async (c) => {
   // Of two retries at once, only one picks the analysis up.
   const picked = await db.runTransaction(async (tx) => {
     const current = (await tx.get(analysis)).data();
-    if (current?.status !== 'failed' || current.stage !== stage) return false;
+    if (!current || current.status !== from) return false;
+    if (from === 'failed' && current.stage !== stage) return false;
     tx.update(analysis, {
       status: stage,
       stage: FieldValue.delete(),

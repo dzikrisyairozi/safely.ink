@@ -64,10 +64,10 @@ Three deployables, all on Google Cloud, all scale to zero.
 Model IDs are constants in `apps/api/src/config.ts`. Pick the current stable IDs from the
 Gemini model list on day 0; do not hard-code IDs anywhere else.
 
-| Role                                   | Tier       | Why                                                            |
-| -------------------------------------- | ---------- | -------------------------------------------------------------- |
-| Reader, RuleExtractor, LegalResearcher | Pro tier   | Long documents, careful structured extraction, legal reasoning |
-| ScenarioFuzzer, ExpectationJudge       | Flash tier | High volume, lower difficulty, runs in parallel                |
+| Role                                                          | Tier       | Why                                                            |
+| ------------------------------------------------------------- | ---------- | -------------------------------------------------------------- |
+| Reader, RuleExtractor, law assessment                         | Pro tier   | Long documents, careful structured extraction, legal reasoning |
+| ScenarioFuzzer, ExpectationJudge, law search and page reading | Flash tier | High volume, lower difficulty, runs in parallel                |
 
 ## 2. Repository layout
 
@@ -90,7 +90,8 @@ apps/
                           scenario-fuzzer, expectation-judge, legal-researcher
       packs/              one file per document type: prompt content
       engine/             evaluate.ts, score.ts, validate.ts  (pure functions, no I/O)
-      legal/              search.ts (grounded search), fetch.ts (page fetch + cache), verify.ts (quote check)
+      legal/              search.ts (grounded search), fetch.ts (page fetch + cache), verify.ts (quote check),
+                          research.ts (one lookup per deciding rule)
       firebase.ts         Admin SDK init
     Dockerfile
 packages/
@@ -169,14 +170,14 @@ analyses/{analysisId}
   clauses/{clauseId}        Clause
   rules/{ruleId}            Rule
   scenarios/{scenarioId}    Scenario + outcome: Outcome + expectation { result, reason }
-  findings/{ruleId}         { status, reasoning, citations[] }
+  findings/{ruleId}         { ruleId, status, reasoning, citations[], error }
   traps/{trapId}            { title, severity, ruleId, scenarioIds[], action }
 
 users/{uid}/usage/{yyyy-mm-dd}   { started, attempts }   // daily limit, F-UP-5; attempts
                                                          // never goes down, cap 30
 
 lawPages/{sha256(url)}                                   // F-CMP-6
-  url, host, jurisdiction, text, fetchedAt
+  url, host, jurisdiction, text, via: 'fetch' | 'url_context', fetchedAt
 ```
 
 Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
@@ -199,13 +200,13 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 
 All routes require `Authorization: Bearer <Firebase ID token>`, verified with the Admin SDK.
 
-| Method   | Path                       | Body                                                     | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| -------- | -------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/health`                  | —                                                        | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[], docType, jurisdiction }` | Type and country are what the user picked (400 without them). Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read** (which does not see the pick; its finding goes to `meta.detected`), sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists. |
-| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }`                    | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error.                                                                                                                               |
-| `POST`   | `/v1/analyses/:id/retry`   | —                                                        | Owner only (else 404). Only from `failed` in a pipeline stage (else 409; a failed reading is uploaded again). Reserves a daily slot again (429 `daily_limit`), deletes the sub-collection the failed stage writes (`rules`, `scenarios` or `traps`), sets the status to that stage and runs from there with what earlier stages stored, holding the request open like confirm. A retry that fails again gives its slot back.                                                                                   |
-| `DELETE` | `/v1/analyses/:id`         | —                                                        | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Method   | Path                       | Body                                                     | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------- | -------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/health`                  | —                                                        | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[], docType, jurisdiction }` | Type and country are what the user picked (400 without them). Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read** (which does not see the pick; its finding goes to `meta.detected`), sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                                                                     |
+| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }`                    | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error.                                                                                                                                                                                                                   |
+| `POST`   | `/v1/analyses/:id/retry`   | —                                                        | Owner only (else 404). From `failed` in a pipeline stage, or from `done` when a finding has `error: 'lookup_unavailable'` (then the stage is `comparing`); else 409 (a failed reading is uploaded again). Reserves a daily slot again (429 `daily_limit`), deletes the sub-collection the stage writes (`rules`, `scenarios` or `traps`) and its result fields, sets the status to that stage and runs from there with what earlier stages stored, holding the request open like confirm. `comparing` keeps stored expectations and usable findings. A retry that fails again gives its slot back. |
+| `DELETE` | `/v1/analyses/:id`         | —                                                        | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
@@ -225,9 +226,11 @@ gives back the daily slot of the day it was taken on (`reservedAt`).
 Built so far: `extracting_rules`, `fuzzing`, `running`, `comparing`. Each stage names the
 status that follows it, and the run starts at the stage that matches the status of the
 analysis. A stage reads its input from Firestore, not from the stage before it, so what is
-evaluated is what is stored. After `comparing` the analysis is `done`. The legal lookup
-(5.6) is not built: `comparing` gives `score()` no findings, so a trap comes only from an
-outcome worse than the expectation.
+evaluated is what is stored. After `comparing` the analysis is `done`. `comparing` runs
+the ExpectationJudge (5.5) and the legal lookup (5.6) side by side, then `score()` (5.7)
+with both. It keeps what an earlier attempt stored: it judges only scenarios without an
+expectation and looks up only rules without a usable finding, so a retry finishes what is
+missing.
 
 ### 5.1 Reader (agent, Pro)
 
@@ -366,41 +369,60 @@ comparison on a non-number, throws instead of quietly evaluating to false.
   `medium` at best. The cap is in the stage and not in `score()`, which sees only what
   was judged.
 
-### 5.6 LegalResearcher (agent, Pro, with Google Search)
+### 5.6 LegalResearcher (agents, Flash search, Pro assessment)
 
-Runs once per **deciding rule** of a `bad` or `partly_bad` scenario (deduplicated), in
-parallel with a concurrency limit. Skipped entirely when the jurisdiction has no allowlist
-(`meta.lawChecked = false`, F-READ-6).
+`lookUpLaw()` in `legal/research.ts` runs once per **deciding rule** of a `bad` or
+`partly_bad` scenario (deduplicated), the rules deciding the most such scenarios first,
+`limits.law.atOnce` at a time, beside the ExpectationJudge. A rule not done by the request
+deadline minus the wording call is `lookup_unavailable`. Each finding is written to
+`findings/{ruleId}` as soon as it exists. Skipped entirely when the jurisdiction has no
+allowlist (`meta.lawChecked = false`, F-READ-6).
 
 Allowlist (`config.ts`), confirmed by the fetch spike in [ADR 4](./adr/0004-legal-source-fetch.md):
 
-| Jurisdiction | Official sources                                                                  |
-| ------------ | --------------------------------------------------------------------------------- |
-| ID           | `peraturan.go.id`, `peraturan.bpk.go.id`, `jdih.*.go.id`, `ojk.go.id`, `pasal.id` |
-| SG           | `sso.agc.gov.sg`, `mas.gov.sg`, `mom.gov.sg`                                      |
-| AU           | `legislation.gov.au`, `asic.gov.au`, `fairwork.gov.au`                            |
+| Jurisdiction | Official sources                                                      |
+| ------------ | --------------------------------------------------------------------- |
+| ID           | `peraturan.go.id`, `peraturan.bpk.go.id`, `jdih.*.go.id`, `ojk.go.id` |
+| SG           | `sso.agc.gov.sg`, `mas.gov.sg`, `mom.gov.sg`                          |
+| AU           | `legislation.gov.au`, `asic.gov.au`, `fairwork.gov.au`                |
 
 Steps:
 
-1. **Search** (`legal/search.ts`). Gemini call with the Google Search tool. The prompt
-   carries the rule summary, document type, user's role and jurisdiction, and instructs
-   `site:` restriction to the allowlist. Grounding redirect URLs are resolved; results
-   whose host is not on the allowlist are discarded (F-CMP-5).
-2. **Fetch** (`legal/fetch.ts`). For each surviving URL: read `lawPages` first; on a miss,
-   HTTP GET with browser-like headers (allowlisted hosts only, 10 s timeout, 5 MB cap),
-   strip HTML to text, store. If the page is unusable (not 200, not HTML, or under 1,000
-   characters of text, which is the normal case for Indonesian statutes published as
-   PDF), retrieve it with the URL context tool instead and store that text.
-3. **Assess.** Second Gemini call, no tools, structured output, given the rule and the
-   fetched page texts: `{ status, reasoning, citations: [{ instrument, section, quote, url }] }`.
-4. **Verify** (`legal/verify.ts`, F-CMP-4). Quote and page text are normalised (whitespace,
-   case, punctuation); the quote must be a substring of the text stored for that URL. A
-   citation that fails is removed; a finding left with none becomes `no_finding`.
+1. **Search** (`legal/search.ts`). Flash with the Google Search tool, thinking low (15 to
+   21 s instead of 37 to 115 s), no schema (ADR 3). The input, built by `searchInput()`,
+   is the rule summary, its kind, the kind of document, the user's role and the country,
+   plus `site:` for each allowlisted host. Source URLs come from the grounding metadata;
+   each grounding redirect is resolved by reading its `Location` header, never followed.
+   Results whose host is not on the allowlist are discarded (F-CMP-5); at most
+   `limits.law.pagesPerRule` (3) pages are kept.
+2. **Fetch** (`legal/fetch.ts`). For each URL: read `lawPages` first (used while under 30
+   days old); on a miss, HTTP GET with browser-like headers, redirects followed only while
+   they stay on the allowlist, 20 s timeout, 5 MB cap. HTML is stripped to text in code;
+   a PDF is read in code with `unpdf`, which covers the Indonesian statutes on
+   `peraturan.bpk.go.id`. A page with under 1,000 characters (an error, a metadata page,
+   or a firewall that answers 200, as `ojk.go.id` does) is read with the URL context tool
+   instead (`readLawPage()`, on `@google/genai` because ADK drops the URL context
+   metadata); its text is used only when the retrieval status is a success and the answer
+   did not end in `RECITATION`, and is stored with `via: 'url_context'`. A page that
+   cannot be fetched again keeps its old text.
+3. **Assess.** Pro, no tools, `LegalAssessment` schema, given the same input as the search
+   and the page texts: `{ status, reasoning, citations: [{ instrument, section, quote, url }] }`.
+   The pages share a budget of 1.5 million characters, in the order found: s 117 of the
+   Fair Work Act starts at character 393,000 of one page, and the whole page took 38 s.
+4. **Verify** (`legal/verify.ts`, F-CMP-4). Quote and page text are normalised (NFKC,
+   case, punctuation and symbols removed, whitespace collapsed). A citation is kept only
+   when its URL is one of the pages given to the assessment that we fetched ourselves
+   (`via: 'fetch'`), its host is allowlisted, and the quote, at least 30 normalised
+   characters, is a substring of the stored text. A page read with the URL context tool
+   is the model's own copy: it informs the assessment but never verifies a quote. A
+   finding left with no citation becomes `no_finding`.
 
-If search or fetch is unavailable, the finding is `no_finding` with
-`error: 'lookup_unavailable'` and the pipeline continues.
+If the search, every page or the assessment fails, or the deadline passes, the finding is
+`no_finding` with `error: 'lookup_unavailable'` and the pipeline continues; the report
+offers "Check the law again" (section 4, retry). A search that finds no allowlisted page
+is `no_finding` with no error.
 
-The document's own text never reaches the search step; only the rule summary does.
+The document's own text never reaches the lookup; only the rule summary does.
 
 ### 5.7 score() (code)
 
@@ -422,8 +444,9 @@ scenario ID), legal findings (by rule ID) and the analysis meta.
 - Trap titles and "what you can do" text are written by one final Flash call (60 s) from
   the structured trap data: the deciding rule and up to two example scenarios per trap.
   The numbers above are never produced by the model; only `title` and `action` are read
-  from its answer. `action` is questions to ask the other party; where to get help comes
-  with the legal comparison.
+  from its answer. `action` is questions to ask the other party. Where to get help (F-REP-4) is a fixed
+  list per law-checked country and document type in the dashboard
+  (`features/report/help.ts`), shown on critical and high traps.
 - The traps, the grade and the confidence are stored before that call. If it fails, the
   analysis is still `done` and `title` and `action` stay null; the report shows the rule's
   summary instead.
@@ -451,7 +474,7 @@ The law store is not built up front. It fills as a side effect of analyses.
 
 | Stage             | What                                                                                                                                                                                                                                      | Status  |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| Page cache        | `lawPages` keyed by URL hash. Saves the fetch on every later analysis that cites the same page. Entries older than 30 days are refetched.                                                                                                 | P0      |
+| Page cache        | `lawPages` keyed by URL hash. Saves the fetch on every later analysis that cites the same page. Entries older than 30 days are refetched.                                                                                                 | Built   |
 | Finding reuse     | Embed each **verified** finding (rule summary + document type + jurisdiction). Before searching, vector-search prior findings; on a close match, reuse its citations and re-run only the assess and verify steps against the cached page. | Stretch |
 | Managed retrieval | Vertex AI Search over the allowlisted sites.                                                                                                                                                                                              | Later   |
 
@@ -537,6 +560,9 @@ tokens on every route but `/health`. CORS allows the dashboard origin only.
 - Cloud Run `max-instances 5`; budget alert on the project.
 - Per-call model timeout (`limits.modelCallSeconds`); a stage fails when a call times out.
   There is no retry: a second wait does not fit in one request next to the first.
+- The law lookup: `limits.law` (rules at once, pages per rule, 5 MB and 20 s per page,
+  30 days in `lawPages`) and 1.5 million characters of pages per assessment. The fuzz
+  stage leaves the comparing the longer of the judge and one lookup, plus the wording.
 
 ## 9. Testing
 
@@ -578,21 +604,25 @@ the analysis document for the eval report.
 
 ## 12. Known shortcuts and their ceilings
 
-| Shortcut                          | Ceiling                                                         | Upgrade path                                                 |
-| --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ |
-| Run inside the HTTP request       | One run per request, 900 s                                      | Cloud Tasks + worker service                                 |
-| AI Studio key                     | Lower rate limits, key management                               | Vertex AI with service-account auth                          |
-| Fact schema invented per document | Two analyses of similar documents are not directly comparable   | Canonical fact library per pack, mapped from derived schemas |
-| Flat condition language           | Discretion, vagueness and multi-step procedures are `unmodeled` | Richer rule language; LLM adjudicator for unmodeled rules    |
-| Search grounding for law          | May miss the relevant article; depends on site availability     | Finding reuse (section 6), then managed retrieval            |
-| Hand-tuned grade weights          | Not validated                                                   | Calibrate against labelled documents                         |
-| English-only UI                   | Excludes many JAPAC users                                       | Fill the `id` locale, add others                             |
+| Shortcut                          | Ceiling                                                            | Upgrade path                                                 |
+| --------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Run inside the HTTP request       | One run per request, 900 s                                         | Cloud Tasks + worker service                                 |
+| AI Studio key                     | Lower rate limits, key management                                  | Vertex AI with service-account auth                          |
+| Fact schema invented per document | Two analyses of similar documents are not directly comparable      | Canonical fact library per pack, mapped from derived schemas |
+| Flat condition language           | Discretion, vagueness and multi-step procedures are `unmodeled`    | Richer rule language; LLM adjudicator for unmodeled rules    |
+| Search grounding for law          | May miss the relevant article; depends on site availability        | Finding reuse (section 6), then managed retrieval            |
+| Whole pages to the assessment     | Cost and time grow with page length (338,000 tokens for one Act)   | Send the passages around the section the search named        |
+| URL context for blocked hosts     | The model's copy is context only: a blocked host gives no citation | Fetch through an allowed route, or drop such hosts           |
+| Hand-tuned grade weights          | Not validated                                                      | Calibrate against labelled documents                         |
+| English-only UI                   | Excludes many JAPAC users                                          | Fill the `id` locale, add others                             |
 
 ## 13. Open technical questions
 
 1. Resolved in [ADR 3](./adr/0003-agent-framework.md): agents run on `@google/adk`;
    search and structured output are separate calls; fan-out is plain concurrent calls.
 2. Resolved in [ADR 4](./adr/0004-legal-source-fetch.md): direct fetch works for SG and
-   AU with browser-like headers; Indonesian statutes go through the URL context tool.
+   AU with browser-like headers; Indonesian statutes are fetched as the official PDFs and
+   read with `unpdf`. The URL context tool is only the fallback for a blocked or short
+   page, and its text never verifies a quote.
 3. Firebase App Hosting behaviour with a pnpm monorepo and Next.js 16; fallback is a
    Cloud Run container for `apps/web`.

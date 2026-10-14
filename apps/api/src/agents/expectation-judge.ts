@@ -37,9 +37,9 @@ id: the id of the situation, exactly as given. One entry per situation.
 reason: one short sentence in English, in plain words, from the person's
 side ("you ..."). Do not name the other party in a way that blames it.`;
 
-// Not about() from ./run: that one passes the title, which the judge must
-// not read.
-const KIND: Record<DocType, string> = {
+// Not about() from ./run: that one passes the title, which the judge and the
+// law search must not read.
+export const KIND: Record<DocType, string> = {
   insurance: 'an insurance policy',
   loan: 'a loan agreement',
   employment: 'an employment contract',

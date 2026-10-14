@@ -1,15 +1,21 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from '@repo/i18n';
-import type {
-  Analysis,
-  Clause,
-  FactSchema,
-  Rule,
-  StoredScenario,
-  Trap,
+import {
+  isLawChecked,
+  type Analysis,
+  type Clause,
+  type FactSchema,
+  type Rule,
+  type Severity,
+  type StoredFinding,
+  type StoredScenario,
+  type Trap,
 } from '@repo/api-types';
 import { ClauseLabel } from '../rules/rules-view';
 import { ClauseLinks } from './clause-links';
+import { HELP } from './help';
+
+const SERIOUS: Severity[] = ['critical', 'high'];
 
 // No currency is stored on an analysis. The rule writer gives money facts the
 // currency code as their unit, so the first such unit is the document's.
@@ -35,6 +41,7 @@ export function TrapView({
   rules,
   scenarios,
   clauses,
+  finding,
 }: {
   id: string;
   analysis: Analysis;
@@ -42,6 +49,7 @@ export function TrapView({
   rules: Rule[];
   scenarios: StoredScenario[];
   clauses: Clause[];
+  finding?: StoredFinding; // of the trap's rule, once the law was looked up
 }) {
   const { t, i18n } = useTranslation('dashboard');
   const factSchema = analysis.factSchema ?? [];
@@ -54,6 +62,15 @@ export function TrapView({
   const factDescription = (key: string) =>
     factSchema.find((fact) => fact.key === key)?.description ?? key;
   const cited = clauses.filter((clause) => rule?.clauseIds.includes(clause.id));
+  // Where to get help comes with the law check, for the worst traps (F-REP-4).
+  const { meta } = analysis;
+  // isLawChecked() only narrows the country for HELP.
+  const help =
+    meta?.lawChecked &&
+    isLawChecked(meta.jurisdiction) &&
+    SERIOUS.includes(trap.severity)
+      ? HELP[meta.jurisdiction][meta.docType]
+      : [];
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-10 py-8">
@@ -73,6 +90,26 @@ export function TrapView({
         <section className="space-y-2 rounded-md border bg-card p-4">
           <h2 className="text-xl tracking-tight">{t('trap.action')}</h2>
           <p className="whitespace-pre-line">{trap.action}</p>
+        </section>
+      )}
+
+      {help.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-xl tracking-tight">{t('trap.help')}</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            {help.map(({ name, url, about }) => (
+              <li key={url}>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  {about ? `${name} (${t(`trap.helpAbout.${about}`)})` : name}
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
@@ -179,6 +216,47 @@ export function TrapView({
           ))}
         </section>
       )}
+
+      {analysis.meta?.lawChecked && finding && <LawSection finding={finding} />}
     </div>
+  );
+}
+
+/** What the law says about the trap's rule, with its checked citations. */
+function LawSection({ finding }: { finding: StoredFinding }) {
+  const { t } = useTranslation('dashboard');
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-xl tracking-tight">{t('trap.law.title')}</h2>
+      {finding.error ? (
+        <p className="text-muted-foreground">{t('trap.law.unavailable')}</p>
+      ) : (
+        <>
+          <p className="font-medium">
+            {t(`trap.law.status.${finding.status}`)}
+          </p>
+          {finding.reasoning && <p>{finding.reasoning}</p>}
+          {finding.citations.map((citation, n) => (
+            <figure key={n} className="space-y-2 rounded-md border p-4">
+              <figcaption className="font-mono text-xs text-muted-foreground">
+                {citation.instrument} · {citation.section}
+              </figcaption>
+              <blockquote className="whitespace-pre-line font-serif">
+                {citation.quote}
+              </blockquote>
+              <a
+                href={citation.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm underline"
+              >
+                {t('trap.law.source')}
+              </a>
+            </figure>
+          ))}
+        </>
+      )}
+    </section>
   );
 }

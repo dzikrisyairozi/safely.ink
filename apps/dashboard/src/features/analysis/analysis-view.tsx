@@ -9,6 +9,7 @@ import {
   type ConfirmAnalysisRequest,
   type Clause,
   type Rule,
+  type StoredFinding,
   type StoredScenario,
   type Trap,
 } from '@repo/api-types';
@@ -20,10 +21,10 @@ import {
 import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
 import { DocumentFields } from '../../components/document-fields';
-import { ApiError } from '../../lib/api';
 import { useCountryName } from '../../lib/country-name';
 import { ReportView } from '../report/report-view';
 import { RunTracker, type RunningStatus } from './run-tracker';
+import { useRetry } from './use-retry';
 
 function Message({
   title,
@@ -223,29 +224,7 @@ function RetryStage({
   onRetry: () => Promise<void>;
 }) {
   const { t } = useTranslation('dashboard');
-  const [isStarting, setIsStarting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const retry = async () => {
-    setError(null);
-    setIsStarting(true);
-    try {
-      // The request stays open for the whole run. Once it has started, the
-      // status changes and this screen is gone.
-      await onRetry();
-    } catch (err) {
-      setIsStarting(false);
-      if (err instanceof ApiError && err.code === 'daily_limit') {
-        const resetAt = new Date(err.resetAt ?? '').toLocaleTimeString(
-          undefined,
-          { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' },
-        );
-        setError(t('upload.errors.daily_limit', { resetAt }));
-      } else {
-        setError(t('analysis.retry.failed'));
-      }
-    }
-  };
+  const { retry, isStarting, error } = useRetry(onRetry);
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-16">
@@ -275,6 +254,7 @@ export function AnalysisView({
   rules,
   scenarios,
   clauses,
+  findings,
   onConfirm,
   onRetry,
 }: {
@@ -285,6 +265,7 @@ export function AnalysisView({
   rules: Rule[] | undefined;
   scenarios: StoredScenario[] | undefined;
   clauses: Clause[] | undefined;
+  findings: StoredFinding[] | undefined;
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
   // Resolves when the run it starts has ended; the screen follows the status.
   onRetry: () => Promise<void>;
@@ -354,6 +335,9 @@ export function AnalysisView({
           rules={rules}
           scenarios={scenarios}
           clauses={clauses}
+          // The law is a part of the report, not a reason to wait for it.
+          findings={findings ?? []}
+          onRetry={onRetry}
         />
       ) : (
         <Message title={t('analysis.reading.title')}>

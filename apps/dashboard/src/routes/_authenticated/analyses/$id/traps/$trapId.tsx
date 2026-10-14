@@ -1,5 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Clause, Rule, StoredScenario, Trap } from '@repo/api-types';
+import {
+  Clause,
+  Rule,
+  StoredFinding,
+  StoredScenario,
+  Trap,
+} from '@repo/api-types';
 import { AppHeader } from '../../../../../components/layout/app-header';
 import { Main } from '../../../../../components/layout/main';
 import { useAnalysis } from '../../../../../features/analysis/use-analysis';
@@ -19,10 +25,12 @@ function TrapPage() {
   const rules = useSubcollection(id, 'rules', Rule);
   const scenarios = useSubcollection(id, 'scenarios', StoredScenario);
   const clauses = useSubcollection(id, 'clauses', Clause);
+  const findings = useSubcollection(id, 'findings', StoredFinding);
 
   if (failed) return <GeneralError />;
   // Missing, or someone else's.
   if (analysis === null) return <NotFoundError />;
+  // Without the findings the trap still shows, without what the law says.
   const lists = [traps, rules, scenarios, clauses];
   if (lists.includes(null)) return <GeneralError />;
   const trap = traps?.find((candidate) => candidate.id === trapId);
@@ -40,6 +48,7 @@ function TrapPage() {
             rules={rules}
             scenarios={scenarios}
             clauses={clauses}
+            finding={findings?.find(({ ruleId }) => ruleId === trap.ruleId)}
           />
         )}
       </Main>

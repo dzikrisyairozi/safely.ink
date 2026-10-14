@@ -1,6 +1,12 @@
 import { beforeEach, expect, test, vi } from 'vitest';
 import { Timestamp } from 'firebase-admin/firestore';
-import { FactSchema, Rule, StoredScenario, type Fact } from '@repo/api-types';
+import {
+  FactSchema,
+  Rule,
+  StoredScenario,
+  type Fact,
+  type LegalFinding,
+} from '@repo/api-types';
 import proposedFacts from '../test/fixtures/rules-facts.json';
 import proposedRules from '../test/fixtures/rules-rules.json';
 import proposedScenarios from '../test/fixtures/fuzz-scenarios.json';
@@ -14,6 +20,7 @@ import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
 import { config } from './config';
 import { evaluate } from './engine/evaluate';
 import { db } from './firebase';
+import { lookUpLaw } from './legal/research';
 import { runPipeline } from './pipeline';
 import { writeTraps } from './agents/trap-writer';
 import { BASE_FACTS } from './pipeline/rule-check';
@@ -31,6 +38,9 @@ vi.mock('./agents/expectation-judge', async (original) => ({
   ...(await original<typeof import('./agents/expectation-judge')>()),
   judge: vi.fn(),
 }));
+// The lookup has its own tests; here only what it is given and what comes
+// of it.
+vi.mock('./legal/research');
 
 const facts = vi.mocked(proposeFacts);
 const rules = vi.mocked(proposeRules);
@@ -39,6 +49,7 @@ const fuzzer = vi.mocked(proposeScenarios);
 const boundaries = vi.mocked(tellBoundaries);
 const judged = vi.mocked(judge);
 const writer = vi.mocked(writeTraps);
+const law = vi.mocked(lookUpLaw);
 // The judge expects every situation to end well unless a test says more.
 const expectsFine = async ({ scenarios }: JudgeInput) =>
   scenarios.map(({ id }) => ({ id, result: 'fine', reason: 'It is covered.' }));
@@ -71,6 +82,8 @@ beforeEach(async () => {
   judged.mockImplementation(expectsFine);
   // No words for a trap unless a test gives some.
   writer.mockResolvedValue([]);
+  // The law says nothing unless a test says more.
+  law.mockResolvedValue({});
 
   await analysis.set({
     ownerUid: 'alice',
@@ -425,13 +438,17 @@ test('the fuzzer is told the rules as stored, the facts, the seeds and the role'
 });
 
 // The clock is moved while the rule writer works; Firestore runs as usual.
+// The comparing keeps the longer of the judge and the law lookup, and the
+// wording.
 test.each([
-  [0, 240],
-  [550, 150],
-  [650, 90],
+  [0, true, 240],
+  [400, true, 140],
+  [650, true, 90],
+  [550, false, 150],
 ])(
-  'when the rules took %i s, a fuzzer call may take %i s',
-  async (used, seconds) => {
+  'when the rules took %i s (law checked: %s), a fuzzer call may take %i s',
+  async (used, lawChecked, seconds) => {
+    await analysis.update({ 'meta.lawChecked': lawChecked });
     vi.useFakeTimers({ toFake: ['Date'] });
     rules.mockImplementation(async () => {
       vi.setSystemTime(Date.now() + used * 1000);
@@ -549,18 +566,56 @@ test('an outcome that is what the user expected is no trap', async () => {
   expect(await stored()).toMatchObject({ grade: 'A', counts: { traps: 0 } });
 });
 
-test('one batch of the judge that fails does not cost the other', async () => {
-  // 21 scenarios are three batches; the first is lost.
-  const many = Array.from({ length: 21 }, (_, n) => ({
-    ...waiting[1]!,
-    id: `s-${String(n + 1).padStart(3, '0')}`,
-  }));
-  judged.mockRejectedValueOnce(new Error('model unavailable'));
+// 21 scenarios are three batches of the judge.
+const many = Array.from({ length: 21 }, (_, n) => ({
+  ...waiting[1]!,
+  id: `s-${String(n + 1).padStart(3, '0')}`,
+}));
+
+test('a batch of the judge that fails is judged once more', async () => {
+  judged.mockRejectedValueOnce(new Error('429 Too Many Requests'));
   await readyToRun(many);
 
   expect(await runPipeline('analysis-1')).toBe('done');
 
+  expect(judged).toHaveBeenCalledTimes(4);
+  expect(
+    (await storedScenarios()).filter(({ expectation }) => expectation),
+  ).toHaveLength(21);
+  expect(await stored()).toMatchObject({
+    confidence: 'high',
+    counts: { judged: 21 },
+  });
+});
+
+test('a lost batch is not judged again when the wording would not be reached', async () => {
+  const { judge: seconds } = config.limits.modelCallSeconds;
+  config.limits.modelCallSeconds.judge = config.limits.confirmSeconds;
+  judged.mockRejectedValueOnce(new Error('429 Too Many Requests'));
+  await readyToRun(many);
+
+  try {
+    expect(await runPipeline('analysis-1')).toBe('done');
+  } finally {
+    config.limits.modelCallSeconds.judge = seconds;
+  }
+
   expect(judged).toHaveBeenCalledTimes(3);
+  expect(await stored()).toMatchObject({ counts: { judged: 11 } });
+});
+
+test('one batch of the judge that fails twice does not cost the other', async () => {
+  // The first batch is lost, and lost again when judged once more.
+  judged
+    .mockRejectedValueOnce(new Error('model unavailable'))
+    .mockImplementationOnce(expectsFine)
+    .mockImplementationOnce(expectsFine)
+    .mockRejectedValueOnce(new Error('model unavailable'));
+  await readyToRun(many);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(judged).toHaveBeenCalledTimes(4);
   expect(
     (await storedScenarios()).filter(({ expectation }) => expectation),
   ).toHaveLength(11);
@@ -671,4 +726,85 @@ test('with no trap there is nothing to write', async () => {
   expect(await runPipeline('analysis-1')).toBe('done');
 
   expect(writer).not.toHaveBeenCalled();
+});
+
+const conflicts: LegalFinding = {
+  status: 'conflicts',
+  reasoning: 'The regulation forbids a waiting period for emergencies.',
+  citations: [
+    {
+      instrument: 'POJK 22/2023',
+      section: 'Pasal 18',
+      quote: 'Pelaku usaha dilarang membuat atau mencantumkan klausula baku',
+      url: 'https://peraturan.bpk.go.id/Download/1/pojk.pdf',
+    },
+  ],
+  error: null,
+};
+const unavailable: LegalFinding = {
+  status: 'no_finding',
+  reasoning: '',
+  citations: [],
+  error: 'lookup_unavailable',
+};
+const findings = async () =>
+  (await analysis.collection('findings').get()).docs.map((doc) => doc.data());
+
+test('the law is looked up beside the judge, and its findings are stored and graded', async () => {
+  // The user expects what happens, so only the law makes s-002 a trap.
+  judged.mockImplementation(async ({ scenarios }) =>
+    scenarios.map(({ id }) => ({ id, result: 'bad', reason: 'Too early.' })),
+  );
+  law.mockImplementation(async ({ save }) => {
+    await save('r-002', conflicts);
+    return { 'r-002': conflicts };
+  });
+  await readyToRun(waiting);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(await findings()).toEqual([{ ruleId: 'r-002', ...conflicts }]);
+  // The whole stake (3), common (2) and a conflict with the law (3).
+  expect(await traps()).toMatchObject([
+    { ruleId: 'r-002', scenarioIds: ['s-002'], severity: 'critical' },
+  ]);
+  const [asked] = law.mock.calls[0]!;
+  expect(asked.outcomes).toHaveLength(3);
+  expect(asked.stored).toEqual({});
+  expect(asked.meta).toMatchObject({ jurisdiction: 'ID', lawChecked: true });
+  // Done in time for the wording, before the request ends.
+  expect(asked.deadline).toBeLessThan(
+    Date.now() + (config.limits.confirmSeconds - 60) * 1000,
+  );
+});
+
+test('a lookup that was unavailable leaves the analysis done', async () => {
+  law.mockImplementation(async ({ save }) => {
+    await save('r-002', unavailable);
+    return { 'r-002': unavailable };
+  });
+  await readyToRun(waiting);
+
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(await findings()).toEqual([{ ruleId: 'r-002', ...unavailable }]);
+  expect(await traps()).toMatchObject([{ ruleId: 'r-002', severity: 'high' }]);
+});
+
+test('comparing again keeps the stored expectations and gives the lookup the stored findings', async () => {
+  law.mockImplementation(async ({ save }) => {
+    await save('r-002', unavailable);
+    return { 'r-002': unavailable };
+  });
+  await readyToRun(waiting);
+  await runPipeline('analysis-1');
+  judged.mockClear();
+  law.mockClear();
+
+  await analysis.update({ status: 'comparing' });
+  expect(await runPipeline('analysis-1')).toBe('done');
+
+  expect(judged).not.toHaveBeenCalled();
+  expect(law.mock.calls[0]![0].stored).toEqual({ 'r-002': unavailable });
+  expect(await stored()).toMatchObject({ counts: { judged: 3, traps: 1 } });
 });

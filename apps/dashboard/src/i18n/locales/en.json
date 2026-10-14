@@ -299,7 +299,13 @@
       "traps": "Traps"
     },
     "generalAnalysis": "General analysis: this kind of document is checked with the general rules.",
-    "lawNotYet": "The law of {{country}} is not checked in this report yet. The situations ran on the document's own rules.",
+    "lawChecked": "Compared with official sources of the law of {{country}}. Each citation was found on the page it links to.",
+    "lawNotYet": "We do not check the law of {{country}} yet, so this report has no legal comparison. The situations ran on the document's own rules.",
+    "lawUnavailable": {
+      "title": "Some of the law could not be looked up",
+      "description": "The official sources did not answer in time. The grade counts only what was found; checking again may change it. Checking again works the report out anew, takes a few minutes, and uses one of today's analyses.",
+      "button": "Check the law again"
+    },
     "lawGlobal": "Global: no single country's law applies, so the law is not checked. The situations ran on the document's own rules.",
     "incomplete": {
       "title": "Incomplete document",
@@ -333,6 +339,11 @@
   "trap": {
     "back": "Back to the report",
     "action": "What you can do",
+    "help": "Where to get help",
+    "helpAbout": {
+      "financialDisputes": "financial services disputes",
+      "legalAid": "legal aid"
+    },
     "examples": "Example situations",
     "outcome": "What the document gives",
     "stake": "At stake",
@@ -341,6 +352,17 @@
     "trace": "How the rules decided it",
     "because": "Because of: {{fact}}",
     "clause": "What the document says",
+    "law": {
+      "title": "What the law says",
+      "status": {
+        "conflicts": "The law does not allow this.",
+        "restricted": "The law allows this only under conditions.",
+        "permitted": "The law allows this.",
+        "no_finding": "We found no law that settles this."
+      },
+      "source": "Open the official source",
+      "unavailable": "Law lookup unavailable. Try again later from the report."
+    },
     "frequency": {
       "common": "Happens often",
       "occasional": "Happens now and then",

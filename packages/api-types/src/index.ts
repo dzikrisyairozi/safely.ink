@@ -187,20 +187,34 @@ export const Citation = z.object({
 });
 export type Citation = z.infer<typeof Citation>;
 
-// What the law says about one deciding rule.
-export const LegalFinding = z
-  .object({
-    status: z.enum(['conflicts', 'restricted', 'permitted', 'no_finding']),
-    reasoning: z.string(),
-    citations: z.array(Citation),
-    error: z.literal('lookup_unavailable').nullable(),
-  })
-  .refine(
-    (finding) =>
-      finding.status === 'no_finding' || finding.citations.length > 0,
-    { path: ['citations'], message: 'A finding needs at least one citation' },
-  );
+// What the model says the law says about one deciding rule, before code has
+// looked for its quotes in the pages (F-CMP-4).
+export const LegalAssessment = z.object({
+  status: z.enum(['conflicts', 'restricted', 'permitted', 'no_finding']),
+  reasoning: z.string(),
+  citations: z.array(Citation),
+});
+export type LegalAssessment = z.infer<typeof LegalAssessment>;
+
+const cited: Parameters<typeof LegalAssessment.refine> = [
+  (finding) => finding.status === 'no_finding' || finding.citations.length > 0,
+  { path: ['citations'], message: 'A finding needs at least one citation' },
+];
+const lookupError = z.literal('lookup_unavailable').nullable();
+
+// What the law says about one deciding rule, once checked.
+export const LegalFinding = LegalAssessment.extend({
+  error: lookupError,
+}).refine(...cited);
 export type LegalFinding = z.infer<typeof LegalFinding>;
+
+// The Firestore document analyses/{id}/findings/{ruleId}. It names its rule,
+// as a trap does, because a listener reads the data and not the ID.
+export const StoredFinding = LegalAssessment.extend({
+  ruleId: z.string(),
+  error: lookupError,
+}).refine(...cited);
+export type StoredFinding = z.infer<typeof StoredFinding>;
 
 export const Severity = z.enum(['critical', 'high', 'medium', 'low']);
 export type Severity = z.infer<typeof Severity>;
@@ -290,7 +304,9 @@ export const UPLOAD_LIMITS = {
 // still gets the scenarios; only the law check is skipped.
 export const LAW_JURISDICTIONS = ['ID', 'SG', 'AU'] as const;
 export type LawJurisdiction = (typeof LAW_JURISDICTIONS)[number];
-export const isLawChecked = (jurisdiction: string) =>
+export const isLawChecked = (
+  jurisdiction: string,
+): jurisdiction is LawJurisdiction =>
   (LAW_JURISDICTIONS as readonly string[]).includes(jurisdiction);
 
 // Why POST /v1/analyses refused the uploaded files (F-UP-1, F-UP-2). Each

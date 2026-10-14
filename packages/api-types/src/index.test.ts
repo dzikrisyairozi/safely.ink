@@ -11,10 +11,12 @@ import {
   Condition,
   ErrorEnvelope,
   Expectation,
+  LegalAssessment,
   LegalFinding,
   Rule,
   RuleDraft,
   Scenario,
+  StoredFinding,
   StoredScenario,
   Strategy,
   Trap,
@@ -149,6 +151,38 @@ test('a legal finding needs a citation unless it found nothing', () => {
     false,
   );
   expect(LegalFinding.safeParse(nothingFound).success).toBe(true);
+});
+
+test('a stored finding names its rule and keeps the citation rule', () => {
+  const finding = {
+    ruleId: 'r-004',
+    status: 'restricted',
+    reasoning: 'The Act allows the fee only up to a cap.',
+    citations: [
+      {
+        instrument: 'Consumer Credit Act',
+        section: 's 9',
+        quote: 'A lender must not charge a default fee',
+        url: 'https://legislation.gov.au/C2009A00134',
+      },
+    ],
+    error: null,
+  };
+  const { ruleId: _, ...withoutRule } = finding;
+
+  expect(StoredFinding.parse(finding)).toEqual(finding);
+  expect(StoredFinding.safeParse(withoutRule).success).toBe(false);
+  expect(StoredFinding.safeParse({ ...finding, citations: [] }).success).toBe(
+    false,
+  );
+});
+
+test('an assessment is what the model says before its quotes are checked', () => {
+  // A finding with no citation is refused when stored, not when the model
+  // answers: the check downgrades it to no_finding itself.
+  const answer = { status: 'conflicts', reasoning: 'r', citations: [] };
+
+  expect(LegalAssessment.parse(answer)).toEqual(answer);
 });
 
 test('a trap can wait for its title but not for its examples', () => {

@@ -1,14 +1,16 @@
 import { type ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import type {
   Analysis,
   Clause,
   Fact,
   Rule,
+  StoredFinding,
   StoredScenario,
   Trap,
 } from '@repo/api-types';
+import { i18n } from '@repo/i18n';
 import { TrapView } from './trap-view';
 
 vi.mock('@tanstack/react-router', () => ({
@@ -183,4 +185,146 @@ test('the deciding clause is quoted with its page and gloss', () => {
   expect(quoted.textContent).toMatch(/Clause 4\.1, page 3/);
   expect(quoted.textContent).toMatch(/Tidak ada manfaat dalam 30 hari pertama/);
   expect(quoted.textContent).toMatch(/No benefit in the first 30 days/);
+});
+
+const lawChecked: Analysis = {
+  ...analysis,
+  meta: {
+    docType: 'insurance',
+    title: 'Polis',
+    parties: [],
+    userRole: 'insured',
+    jurisdiction: 'ID',
+    lawChecked: true,
+    detected: { docType: 'insurance', jurisdiction: 'ID' },
+    language: 'id',
+    pageCount: 3,
+    unreadablePages: [],
+  },
+};
+const finding: StoredFinding = {
+  ruleId: 'r-001',
+  status: 'conflicts',
+  reasoning: 'The law forbids a clause that moves the insurer’s duty to you.',
+  citations: [
+    {
+      instrument: 'Undang-Undang Nomor 8 Tahun 1999',
+      section: 'Pasal 18 ayat (1)',
+      quote: 'a. menyatakan pengalihan tanggung jawab pelaku usaha;',
+      url: 'https://peraturan.bpk.go.id/Details/45288/uu-no-8-tahun-1999',
+    },
+  ],
+  error: null,
+};
+const showLaw = (shown: StoredFinding | undefined, on = lawChecked) =>
+  render(
+    <TrapView
+      id="analysis-1"
+      analysis={on}
+      trap={trap}
+      rules={rules}
+      scenarios={scenarios}
+      clauses={clauses}
+      finding={shown}
+    />,
+  );
+const lawSection = () =>
+  screen.getByRole('heading', { name: 'What the law says' }).parentElement!;
+
+test('the legal finding shows what the law says, its quote and a link to the official page', () => {
+  showLaw(finding);
+
+  const law = lawSection();
+  expect(law.textContent).toMatch(/The law does not allow this\./);
+  expect(law.textContent).toMatch(/moves the insurer’s duty/);
+  expect(law.textContent).toMatch(
+    /Undang-Undang Nomor 8 Tahun 1999 · Pasal 18 ayat \(1\)/,
+  );
+  expect(law.textContent).toMatch(/pengalihan tanggung jawab/);
+  const link = within(law).getByRole('link', {
+    name: 'Open the official source',
+  });
+  expect(link.getAttribute('href')).toBe(finding.citations[0]!.url);
+  expect(link.getAttribute('target')).toBe('_blank');
+});
+
+test('a rule the law says nothing about says so, without citations', () => {
+  showLaw({ ...finding, status: 'no_finding', reasoning: '', citations: [] });
+
+  expect(lawSection().textContent).toMatch(/We found no law that settles this/);
+  expect(within(lawSection()).queryByRole('link')).toBeNull();
+});
+
+test('a lookup that was unavailable says to try again', () => {
+  showLaw({
+    ...finding,
+    status: 'no_finding',
+    citations: [],
+    error: 'lookup_unavailable',
+  });
+
+  expect(lawSection().textContent).toMatch(/Law lookup unavailable/);
+});
+
+test('a report without a law check, or with no finding yet, has no law section', () => {
+  showLaw(finding, analysis);
+  expect(screen.queryByText('What the law says')).toBeNull();
+});
+
+test('a trap whose rule was not looked up has no law section', () => {
+  showLaw(undefined);
+  expect(screen.queryByText('What the law says')).toBeNull();
+});
+
+const helpSection = () =>
+  screen.queryByRole('heading', { name: 'Where to get help' });
+
+test('a high trap on a law-checked report says where to get help', () => {
+  showLaw(finding);
+
+  const links = within(helpSection()!.parentElement!).getAllByRole('link');
+  expect(links.map((link) => link.getAttribute('href'))).toEqual([
+    'https://kontak157.ojk.go.id',
+    'https://lapssjk.id',
+  ]);
+  expect(links[1]!.textContent).toBe('LAPS SJK (financial services disputes)');
+});
+
+test('the name of a body stays as it is, and what it does is translated', async () => {
+  await i18n.changeLanguage('id');
+  try {
+    showLaw(finding);
+    expect(screen.getByRole('link', { name: /^LAPS SJK/ }).textContent).toBe(
+      'LAPS SJK (sengketa jasa keuangan)',
+    );
+  } finally {
+    await i18n.changeLanguage('en');
+  }
+});
+
+test('a medium trap, or a report without a law check, has no help list', () => {
+  render(
+    <TrapView
+      id="analysis-1"
+      analysis={lawChecked}
+      trap={{ ...trap, severity: 'medium' }}
+      rules={rules}
+      scenarios={scenarios}
+      clauses={clauses}
+    />,
+  );
+  expect(helpSection()).toBeNull();
+  cleanup();
+
+  show();
+  expect(helpSection()).toBeNull();
+});
+
+test('a report of a law-checked country that was not compared with the law has no help list', () => {
+  showLaw(undefined, {
+    ...lawChecked,
+    meta: { ...lawChecked.meta!, lawChecked: false },
+  });
+
+  expect(helpSection()).toBeNull();
 });

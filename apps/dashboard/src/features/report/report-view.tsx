@@ -8,6 +8,7 @@ import {
   type AnalysisMeta,
   type Clause,
   type Rule,
+  type StoredFinding,
   type StoredScenario,
   type Trap,
 } from '@repo/api-types';
@@ -18,6 +19,7 @@ import {
 } from '@repo/ui/components/ui/alert';
 import { Button } from '@repo/ui/components/ui/button';
 import { useCountryName } from '../../lib/country-name';
+import { useRetry } from '../analysis/use-retry';
 import { ClauseLinks } from './clause-links';
 
 // The counts of F-REP-1, in the order they are shown.
@@ -39,6 +41,8 @@ export function ReportView({
   rules,
   scenarios,
   clauses,
+  findings,
+  onRetry,
 }: {
   id: string;
   analysis: Analysis;
@@ -47,8 +51,12 @@ export function ReportView({
   rules: Rule[];
   scenarios: StoredScenario[];
   clauses: Clause[];
+  findings: StoredFinding[];
+  // Checks the law again; resolves when that run has ended.
+  onRetry: () => Promise<void>;
 }) {
   const { t, i18n } = useTranslation('dashboard');
+  const { retry, isStarting, error: retryError } = useRetry(onRetry);
   const countryName = useCountryName();
   const ruleById = new Map(rules.map((rule) => [rule.id, rule]));
   const clauseIdsOf = (ruleIds: (string | null)[]) => [
@@ -142,15 +150,33 @@ export function ReportView({
 
         <ul className="space-y-1 text-sm text-muted-foreground">
           {meta.docType === 'other' && <li>{t('report.generalAnalysis')}</li>}
-          {/* No analysis is compared with the law until M8 (#12). */}
           <li>
-            {meta.jurisdiction === GLOBAL
-              ? t('report.lawGlobal')
-              : t('report.lawNotYet', {
+            {meta.lawChecked
+              ? t('report.lawChecked', {
                   country: countryName(meta.jurisdiction),
-                })}
+                })
+              : meta.jurisdiction === GLOBAL
+                ? t('report.lawGlobal')
+                : t('report.lawNotYet', {
+                    country: countryName(meta.jurisdiction),
+                  })}
           </li>
         </ul>
+
+        {meta.lawChecked && findings.some(({ error }) => error) && (
+          <Alert>
+            <AlertTitle>{t('report.lawUnavailable.title')}</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p>{t('report.lawUnavailable.description')}</p>
+              {retryError && <p className="text-destructive">{retryError}</p>}
+              <Button size="sm" disabled={isStarting} onClick={retry}>
+                {isStarting
+                  ? t('analysis.retry.starting')
+                  : t('report.lawUnavailable.button')}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {meta.unreadablePages.length > 0 && (
           <Alert variant="destructive">
