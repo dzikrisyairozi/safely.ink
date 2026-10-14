@@ -118,6 +118,33 @@ export function breadcrumbsLd(items: { name: string; path: string }[]) {
   };
 }
 
+export function softwareApplicationLd(locale: Locale, description: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: SITE_NAME,
+    description,
+    url: absoluteUrl(localePath(locale)),
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    inLanguage: locale,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    publisher: { '@id': ORGANIZATION_ID },
+  };
+}
+
+export function faqPageLd(items: { question: string; answer: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map(({ question, answer }) => ({
+      '@type': 'Question',
+      name: question,
+      acceptedAnswer: { '@type': 'Answer', text: answer },
+    })),
+  };
+}
+
 /** Structured data as a script tag; `<` is escaped so text cannot close it. */
 export function JsonLd({ data }: { data: object }) {
   return (

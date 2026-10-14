@@ -3,7 +3,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import robots, { AI_CRAWLERS } from '@/app/robots';
 import sitemap from '@/app/sitemap';
-import { JsonLd, breadcrumbsLd, pageMetadata } from './seo';
+import {
+  JsonLd,
+  breadcrumbsLd,
+  faqPageLd,
+  pageMetadata,
+  softwareApplicationLd,
+} from './seo';
 
 const site = 'https://safely.test';
 
@@ -106,5 +112,26 @@ describe('JsonLd', () => {
     expect(html).not.toContain('</script><b>');
     expect(html).toContain('\\u003c/script>');
     expect(html).toContain(`"item":"${site}/"`);
+  });
+});
+
+describe('home structured data', () => {
+  it('turns every FAQ entry into a question with its answer', async () => {
+    const { faqItems, FAQ_KEYS } = await import('@/components/home/faq');
+    const ld = faqPageLd(faqItems('id'));
+
+    expect(ld.mainEntity).toHaveLength(FAQ_KEYS.length);
+    for (const entry of ld.mainEntity) {
+      expect(entry.name).not.toMatch(/^faq\./);
+      expect(entry.acceptedAnswer.text.length).toBeGreaterThan(40);
+    }
+  });
+
+  it('describes the app in the page language', () => {
+    expect(softwareApplicationLd('id', 'd')).toMatchObject({
+      url: `${site}/id`,
+      inLanguage: 'id',
+      offers: { price: '0' },
+    });
   });
 });
