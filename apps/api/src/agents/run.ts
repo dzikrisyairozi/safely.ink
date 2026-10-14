@@ -62,24 +62,26 @@ export async function runAgent<
     }
     return text;
   };
-  const answer = await inTime(finalAnswer(), name, seconds);
+  // A call that hangs must end inside the request, so the stage fails and the
+  // analysis is not left waiting (TSD 9). runEphemeral takes no abort signal.
+  const answer = await inTime(
+    finalAnswer(),
+    seconds * 1000,
+    `The ${name} did not answer in ${seconds} s.`,
+  );
   // ADK can end with an empty answer and no error (ADR 3).
   if (!answer.trim()) throw new Error(`The ${name} returned an empty answer.`);
   return (accept ?? schema).parse(JSON.parse(answer)) as z.infer<Accept>;
 }
 
 /**
- * A call that hangs must end inside the request, so the stage fails and the
- * analysis is not left waiting (TSD 9). runEphemeral takes no abort signal:
- * the call that lost is not cancelled, only no longer waited for.
+ * The work, or an error with `message` once `ms` have passed. The work that
+ * lost is not cancelled, only no longer waited for.
  */
-async function inTime<T>(work: Promise<T>, name: string, seconds: number) {
+export function inTime<T>(work: Promise<T>, ms: number, message: string) {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`The ${name} did not answer in ${seconds} s.`)),
-      seconds * 1000,
-    );
+    timer = setTimeout(() => reject(new Error(message)), ms);
   });
   return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
 }
@@ -131,7 +133,11 @@ export async function runSearch({
     }
     return { answer, uris };
   };
-  const { answer, uris } = await inTime(search(), name, seconds);
+  const { answer, uris } = await inTime(
+    search(),
+    seconds * 1000,
+    `The ${name} did not answer in ${seconds} s.`,
+  );
   // An empty answer is a failure, not a search that found nothing (ADR 3).
   if (!answer.trim()) throw new Error(`The ${name} returned an empty answer.`);
   return uris;

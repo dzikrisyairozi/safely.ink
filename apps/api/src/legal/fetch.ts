@@ -73,15 +73,16 @@ export const htmlToText = (html: string) =>
     .filter(Boolean)
     .join('\n');
 
-// The body, or null once it is larger than the limit.
-async function readCapped(response: Response, signal: AbortSignal) {
+// The body, or null once it is larger than the limit. The timeout of the
+// request also ends the body.
+async function readCapped(response: Response) {
   const limit = config.limits.law.pageBytes;
   const chunks: Uint8Array[] = [];
   let size = 0;
   for await (const chunk of response.body ?? []) {
     size += chunk.byteLength;
     // Leaving the loop cancels the rest of the body.
-    if (size > limit || signal.aborted) return null;
+    if (size > limit) return null;
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
@@ -111,7 +112,7 @@ async function download(url: string, jurisdiction: LawJurisdiction) {
     }
     if (response.status !== 200) return null;
 
-    const body = await readCapped(response, signal);
+    const body = await readCapped(response);
     if (!body) return null;
     const type = response.headers.get('content-type') ?? '';
     const isPdf = body.subarray(0, 5).toString('latin1') === '%PDF-';

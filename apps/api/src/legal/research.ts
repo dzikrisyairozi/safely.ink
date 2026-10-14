@@ -7,6 +7,7 @@ import {
   type Rule,
 } from '@repo/api-types';
 import { assessLaw, readLawPage } from '../agents/legal-researcher';
+import { inTime } from '../agents/run';
 import { config } from '../config';
 import { readPage } from './fetch';
 import { findSources } from './search';
@@ -57,19 +58,6 @@ async function research(
   );
 }
 
-// Rejects once the deadline has passed. The work that lost goes on, but is
-// no longer waited for.
-function byDeadline<T>(work: Promise<T>, deadline: number) {
-  let timer: NodeJS.Timeout | undefined;
-  const late = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error('Not done by the deadline.')),
-      deadline - Date.now(),
-    );
-  });
-  return Promise.race([work, late]).finally(() => clearTimeout(timer));
-}
-
 /**
  * What the law says about each rule that decides a bad or partly bad
  * outcome (F-CMP-2), by rule ID. A stored finding is kept unless its lookup
@@ -112,9 +100,10 @@ export async function lookUpLaw({
     for (let rule = queue.shift(); rule; rule = queue.shift()) {
       const finding =
         Date.now() < deadline
-          ? await byDeadline(
+          ? await inTime(
               research(rule, { ...meta, jurisdiction }),
-              deadline,
+              deadline - Date.now(),
+              'Not done by the deadline.',
             ).catch((err) => {
               console.warn(
                 `Law lookup for ${rule!.id} unavailable:`,
