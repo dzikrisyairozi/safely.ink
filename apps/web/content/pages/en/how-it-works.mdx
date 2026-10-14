@@ -51,13 +51,13 @@ When an unmodeled rule could decide the case, the engine does not guess. The out
 
 ## 5. Compare with what you would expect
 
-A separate model plays the person who did not read the fine print. It sees only the kind of document, your role, what the document promises you, and the scenario story. It never sees the exclusions, conditions, charges or the outcome. For each scenario it says what a reasonable person would expect, and why, in one sentence.
+A separate model plays the person who did not read the fine print. It sees only the kind of document and its country, your role, general hints for that kind of document, what the document promises you, and the scenario story. It never sees the exclusions, conditions, charges or the outcome. For each scenario it says what a reasonable person would expect, and why, in one sentence.
 
 ## 6. Compare with the law
 
 For documents from Indonesia, Singapore or Australia, every rule that decides a bad or partly bad outcome is checked against that country's law. The search is limited to a list of official sources, such as legislation sites and financial and employment regulators. Only the rule's one-line summary goes into the search, never your document's text.
 
-Our own code fetches the pages found. A model reads them and says whether the rule **conflicts** with the law, is **restricted** (allowed only under conditions the document may not meet), is **permitted**, or that there is **no finding**. Then code checks every quote: a citation is shown only if its quoted words appear in the text of the official page we fetched. If no quote survives, the finding becomes "no finding". Evidence or silence.
+Our own code fetches the pages found. When a site blocks us, the model reads the page itself instead, but such a copy is never used to check a quote. A model reads the pages and says whether the rule **conflicts** with the law, is **restricted** (allowed only under conditions the document may not meet), is **permitted**, or that there is **no finding**. Then code checks every quote: a citation is shown only if its quoted words appear in the text of the official page we fetched. If no quote survives, the finding becomes "no finding". Evidence or silence.
 
 For other countries, or a document no single country governs, the scenarios still run and the report says the legal comparison was skipped.
 

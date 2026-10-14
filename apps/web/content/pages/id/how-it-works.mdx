@@ -51,13 +51,13 @@ Jika aturan yang tidak dimodelkan bisa menentukan kasusnya, mesin tidak menebak.
 
 ## 5. Membandingkan dengan harapan Anda
 
-Model terpisah berperan sebagai orang yang tidak membaca isi detail dokumen. Ia hanya melihat jenis dokumen, peran Anda, apa yang dijanjikan dokumen kepada Anda, dan cerita skenarionya. Ia tidak pernah melihat pengecualian, syarat, biaya, maupun hasilnya. Untuk setiap skenario, ia menyatakan apa yang wajar diharapkan orang di posisi Anda beserta alasannya dalam satu kalimat.
+Model terpisah berperan sebagai orang yang tidak membaca isi detail dokumen. Ia hanya melihat jenis dokumen dan negaranya, peran Anda, petunjuk umum untuk jenis dokumen itu, apa yang dijanjikan dokumen kepada Anda, dan cerita skenarionya. Ia tidak pernah melihat pengecualian, syarat, biaya, maupun hasilnya. Untuk setiap skenario, ia menyatakan apa yang wajar diharapkan orang di posisi Anda beserta alasannya dalam satu kalimat.
 
 ## 6. Membandingkan dengan hukum
 
 Untuk dokumen dari Indonesia, Singapura, atau Australia, setiap aturan yang menentukan hasil buruk atau sebagian buruk diperiksa terhadap hukum negara tersebut. Pencarian dibatasi pada daftar sumber resmi, seperti situs peraturan perundang-undangan serta regulator keuangan dan ketenagakerjaan. Yang masuk ke pencarian hanya ringkasan satu baris dari aturan itu, tidak pernah teks dokumen Anda.
 
-Kode kami sendiri yang mengambil halaman-halaman yang ditemukan. Model membacanya dan menyatakan apakah aturan itu **bertentangan** dengan hukum, **dibatasi** (hanya boleh dengan syarat yang mungkin tidak dipenuhi dokumen), **diizinkan**, atau **tidak ada temuan**. Lalu kode memeriksa setiap kutipan: kutipan hanya ditampilkan jika kata-katanya ada di teks halaman resmi yang kami ambil. Jika tidak ada kutipan yang lolos, temuannya menjadi "tidak ada temuan". Bukti, atau diam.
+Kode kami sendiri yang mengambil halaman-halaman yang ditemukan. Jika sebuah situs memblokir kami, model membaca halaman itu sendiri, tetapi salinan seperti itu tidak pernah dipakai untuk memeriksa kutipan. Model membaca halaman-halaman itu dan menyatakan apakah aturan itu **bertentangan** dengan hukum, **dibatasi** (hanya boleh dengan syarat yang mungkin tidak dipenuhi dokumen), **diizinkan**, atau **tidak ada temuan**. Lalu kode memeriksa setiap kutipan: kutipan hanya ditampilkan jika kata-katanya ada di teks halaman resmi yang kami ambil. Jika tidak ada kutipan yang lolos, temuannya menjadi "tidak ada temuan". Bukti, atau diam.
 
 Untuk negara lain, atau dokumen yang tidak diatur oleh satu negara tertentu, skenario tetap dijalankan dan laporan menyatakan bahwa perbandingan hukum dilewati.
 
