@@ -323,7 +323,14 @@ export type AnalysisStatus = z.infer<typeof AnalysisStatus>;
 export const Analysis = z.object({
   ownerUid: z.string(),
   status: AnalysisStatus,
-  stage: AnalysisStatus.optional(), // where a failed run stopped
+  // Where a failed run stopped: the reading, or a stage it can resume from.
+  stage: AnalysisStatus.extract([
+    'reading',
+    'extracting_rules',
+    'fuzzing',
+    'running',
+    'comparing',
+  ]).optional(),
   error: z.string().optional(),
   meta: AnalysisMeta.nullable(), // null until the document is read
   factSchema: FactSchema.optional(), // from the rules stage on

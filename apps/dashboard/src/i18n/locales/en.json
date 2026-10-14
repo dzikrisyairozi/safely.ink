@@ -147,7 +147,7 @@
         "title": "Reading did not finish",
         "description": "Something went wrong while reading the document. Nothing was lost on your side; please upload it again."
       },
-      "rules": {
+      "extracting_rules": {
         "title": "The rules could not be worked out",
         "description": "Something went wrong while we turned the clauses into rules. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
       },

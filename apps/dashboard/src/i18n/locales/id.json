@@ -147,7 +147,7 @@
         "title": "Pembacaan tidak selesai",
         "description": "Terjadi kesalahan saat membaca dokumen. Tidak ada yang hilang di sisi Anda; silakan unggah lagi."
       },
-      "rules": {
+      "extracting_rules": {
         "title": "Aturan tidak dapat disusun",
         "description": "Terjadi kesalahan saat kami mengubah klausul menjadi aturan. Proses ini tidak mengurangi batas harian Anda. Anda dapat menjalankan tahap ini lagi; hasil tahap sebelumnya tetap disimpan."
       },

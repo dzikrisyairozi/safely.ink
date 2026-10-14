@@ -15,9 +15,6 @@ const STAGES = [
   ['compare', 'comparing'],
 ] as const;
 
-export type RunningStatus =
-  'extracting_rules' | 'fuzzing' | 'running' | 'comparing';
-
 // The message of each running status, and the count it speaks of.
 const MESSAGE = {
   extracting_rules: { key: 'extractingRules', count: null },
@@ -25,6 +22,8 @@ const MESSAGE = {
   running: { key: 'running', count: 'scenarios' },
   comparing: { key: 'comparing', count: 'scenarios' },
 } as const;
+
+export type RunningStatus = keyof typeof MESSAGE;
 
 const COUNTS = ['clauses', 'rules', 'scenarios', 'traps'] as const;
 

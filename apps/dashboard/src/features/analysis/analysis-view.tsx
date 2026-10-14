@@ -6,7 +6,6 @@ import {
   Jurisdiction,
   type Analysis,
   type AnalysisMeta,
-  type AnalysisStatus,
   type ConfirmAnalysisRequest,
   type Clause,
   type Rule,
@@ -24,7 +23,7 @@ import { DocumentFields } from '../../components/document-fields';
 import { ApiError } from '../../lib/api';
 import { useCountryName } from '../../lib/country-name';
 import { ReportView } from '../report/report-view';
-import { RunTracker } from './run-tracker';
+import { RunTracker, type RunningStatus } from './run-tracker';
 
 function Message({
   title,
@@ -216,21 +215,11 @@ function ConfirmDetails({
   );
 }
 
-// The stage a failed run stopped in, as the key of its message.
-const FAILED_AT: Partial<
-  Record<AnalysisStatus, 'rules' | 'fuzzing' | 'running' | 'comparing'>
-> = {
-  extracting_rules: 'rules',
-  fuzzing: 'fuzzing',
-  running: 'running',
-  comparing: 'comparing',
-};
-
 function RetryStage({
   stage,
   onRetry,
 }: {
-  stage: 'rules' | 'fuzzing' | 'running' | 'comparing';
+  stage: RunningStatus; // where the failed run stopped
   onRetry: () => Promise<void>;
 }) {
   const { t } = useTranslation('dashboard');
@@ -325,9 +314,9 @@ export function AnalysisView({
         </Message>
       );
     case 'failed': {
-      const stage = analysis.stage && FAILED_AT[analysis.stage];
+      const { stage } = analysis;
       // A failed reading stored nothing to resume from: upload again.
-      if (!stage) {
+      if (!stage || stage === 'reading') {
         return (
           <Message
             title={t('analysis.failed.reading.title')}
