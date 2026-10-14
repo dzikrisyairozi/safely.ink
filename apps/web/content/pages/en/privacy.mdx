@@ -40,15 +40,15 @@ If you email us, we keep your message and address to answer you.
 - To find and fix errors.
 - If you agree to analytics, to understand how people use the landing site.
 
-We do not use your documents to train models.
+We do not use your documents to train models, and we use the paid tier of Google's Gemini API, under which Google does not use what we send it to improve its products.
 
 ## Where it is processed
 
 safely.ink runs on Google Cloud.
 
 - Our API runs on Cloud Run and our database on Firestore, both in Google Cloud's Jakarta region (asia-southeast2).
-- Uploaded files are kept in Cloud Storage for Firebase. [TBD: storage bucket region.]
-- To read your document and carry out the analysis, we send it, and text taken from it, to Google's Gemini API. Uploaded files are passed to the Gemini API for the reading step and deleted from it after that call. The Gemini API is not limited to the Jakarta region.
+- Uploaded files are kept in Cloud Storage for Firebase, in Google Cloud's us-east1 region (South Carolina, USA). So your document is stored outside Indonesia for up to 7 days.
+- To read your document and carry out the analysis, we send it, and text taken from it, to Google's Gemini API. Uploaded files are passed to the Gemini API for the reading step and deleted from it after that call. The Gemini API is not limited to the Jakarta region. Under its terms for paid use, Google keeps prompts and responses for a limited time to detect abuse, and does not train on them.
 - When we look up the law, only a one-line summary of a rule, the kind of document, your role and the country are sent to Gemini, which searches official sites with Google Search. Your document's text is never part of that search. The law pages we fetch are public pages from official government and regulator sites.
 
 Google acts as our infrastructure and model provider. [TBD: data processing terms with Google and any cross-border transfer basis.]

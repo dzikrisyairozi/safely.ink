@@ -40,15 +40,15 @@ Jika Anda mengirim email kepada kami, kami menyimpan pesan dan alamat Anda untuk
 - Untuk menemukan dan memperbaiki kesalahan.
 - Jika Anda menyetujui analitik, untuk memahami cara orang memakai situs utama kami.
 
-Kami tidak memakai dokumen Anda untuk melatih model.
+Kami tidak memakai dokumen Anda untuk melatih model, dan kami memakai tingkat berbayar Gemini API milik Google, yang ketentuannya tidak mengizinkan Google memakai apa yang kami kirim untuk meningkatkan produknya.
 
 ## Di mana data diproses
 
 safely.ink berjalan di Google Cloud.
 
 - API kami berjalan di Cloud Run dan basis data kami di Firestore, keduanya di region Jakarta milik Google Cloud (asia-southeast2).
-- File yang diunggah disimpan di Cloud Storage for Firebase. [TBD: region bucket penyimpanan.]
-- Untuk membaca dokumen dan menjalankan analisis, kami mengirim dokumen Anda, dan teks yang diambil darinya, ke Gemini API milik Google. File yang diunggah diteruskan ke Gemini API untuk tahap membaca dan dihapus dari sana setelah panggilan itu selesai. Gemini API tidak terbatas pada region Jakarta.
+- File yang diunggah disimpan di Cloud Storage for Firebase, di region us-east1 milik Google Cloud (South Carolina, AS). Jadi dokumen Anda disimpan di luar Indonesia hingga 7 hari.
+- Untuk membaca dokumen dan menjalankan analisis, kami mengirim dokumen Anda, dan teks yang diambil darinya, ke Gemini API milik Google. File yang diunggah diteruskan ke Gemini API untuk tahap membaca dan dihapus dari sana setelah panggilan itu selesai. Gemini API tidak terbatas pada region Jakarta. Berdasarkan ketentuan penggunaan berbayarnya, Google menyimpan prompt dan respons untuk waktu terbatas guna mendeteksi penyalahgunaan, dan tidak melatih model dengannya.
 - Saat mencari hukum, yang dikirim ke Gemini hanyalah ringkasan satu baris dari sebuah aturan, jenis dokumen, peran Anda, dan negaranya, lalu Gemini mencari di situs resmi dengan Google Search. Teks dokumen Anda tidak pernah ikut dalam pencarian itu. Halaman hukum yang kami ambil adalah halaman publik dari situs resmi pemerintah dan regulator.
 
 Google berperan sebagai penyedia infrastruktur dan model kami. [TBD: ketentuan pemrosesan data dengan Google dan dasar transfer data lintas negara.]
