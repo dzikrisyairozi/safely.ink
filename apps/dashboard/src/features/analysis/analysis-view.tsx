@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type JSX, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from '@repo/i18n';
 import {
@@ -235,7 +235,7 @@ export function AnalysisView({
   id: string;
   analysis: Analysis;
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
-}) {
+}): JSX.Element {
   const { t } = useTranslation('dashboard');
 
   if (analysis.status === 'awaiting_confirmation' && analysis.meta) {
@@ -251,6 +251,7 @@ export function AnalysisView({
   switch (analysis.status) {
     case 'uploaded':
     case 'reading':
+    case 'awaiting_confirmation': // the details are not stored yet
       return (
         <Message title={t('analysis.reading.title')}>
           {t('analysis.reading.description')}
@@ -307,7 +308,7 @@ export function AnalysisView({
           })}
         </Message>
       );
-    default: {
+    case 'done': {
       // The report comes with the run screen; until then the result in words.
       const traps = analysis.counts?.traps ?? 0;
       return (
