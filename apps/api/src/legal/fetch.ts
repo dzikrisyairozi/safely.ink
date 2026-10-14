@@ -80,10 +80,8 @@ async function readCapped(response: Response, signal: AbortSignal) {
   let size = 0;
   for await (const chunk of response.body ?? []) {
     size += chunk.byteLength;
-    if (size > limit || signal.aborted) {
-      await response.body?.cancel();
-      return null;
-    }
+    // Leaving the loop cancels the rest of the body.
+    if (size > limit || signal.aborted) return null;
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
