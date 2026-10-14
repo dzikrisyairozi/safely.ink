@@ -42,11 +42,6 @@ export const metadata: Metadata = {
     description:
       'Stress-test any policy or contract before you sign. safely.ink finds the scenarios where the fine print leaves you worse off.',
   },
-  icons: {
-    icon: '/favicon/favicon.ico',
-    apple: '/favicon/apple-icon-180x180.png',
-  },
-  manifest: '/favicon/manifest.json',
 };
 
 export default async function RootLayout({

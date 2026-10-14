@@ -28,7 +28,8 @@
   "scripts": {
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "brand:icons": "node scripts/brand-icons.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -91,6 +92,7 @@
     "jsdom": "^30.1.2",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "sharp": "0.35.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3"
