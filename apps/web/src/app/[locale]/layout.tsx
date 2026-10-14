@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Newsreader } from 'next/font/google';
-import { cookies } from 'next/headers';
-import './globals.css';
+import { notFound } from 'next/navigation';
+import '../globals.css';
 import { WebI18nProvider } from '@/i18n/client';
+import { LOCALES, isLocale } from '@/lib/site';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
 
@@ -44,13 +45,21 @@ export const metadata: Metadata = {
   },
 };
 
+export function generateStaticParams() {
+  return LOCALES.map((locale) => ({ locale }));
+}
+
+export const dynamicParams = false;
+
 export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }>) {
-  const cookieStore = await cookies();
-  const locale = cookieStore.get('NEXT_LOCALE')?.value === 'id' ? 'id' : 'en';
+  const { locale } = await params;
+  if (!isLocale(locale)) notFound();
 
   return (
     <html lang={locale} className="dark" suppressHydrationWarning>

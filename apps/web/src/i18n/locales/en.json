@@ -12,5 +12,10 @@
   },
   "footer": {
     "disclaimer": "An information tool, not legal advice"
+  },
+  "notFound": {
+    "title": "This page is not in the contract",
+    "body": "The address may be mistyped, or the page has moved.",
+    "home": "Back to the home page"
   }
 }

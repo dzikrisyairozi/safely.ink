@@ -1,4 +1,4 @@
-import { createI18n, type SupportedLanguage } from '@repo/i18n/config';
+import { createI18n, type SupportedLanguage } from '@repo/i18n/core';
 import en from './locales/en.json';
 import id from './locales/id.json';
 

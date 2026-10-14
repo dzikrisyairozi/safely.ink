@@ -12,5 +12,10 @@
   },
   "footer": {
     "disclaimer": "Alat informasi, bukan nasihat hukum"
+  },
+  "notFound": {
+    "title": "Halaman ini tidak ada dalam kontrak",
+    "body": "Alamatnya mungkin salah ketik, atau halamannya sudah dipindahkan.",
+    "home": "Kembali ke beranda"
   }
 }
