@@ -2,19 +2,21 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@repo/ui/components/ui/button';
 import { getT } from '@/i18n/translate';
 import { APP_URL, type Locale } from '@/lib/site';
+import { HeroCanvas } from './hero-canvas';
 import { HeroVisual } from './hero-visual';
 
 export function Hero({ locale }: { locale: Locale }) {
   const t = getT(locale);
 
   return (
-    <section className="relative overflow-hidden">
+    <section className="group/hero relative overflow-hidden">
       {/* Ruled paper, fading out towards the bottom */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_31px,var(--border)_31px,var(--border)_32px)] opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
       />
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-14 md:grid-cols-[1.2fr_0.8fr] md:px-6 md:pb-28 md:pt-20">
+      <HeroCanvas />
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-14 md:grid-cols-[1.2fr_0.8fr] md:px-6 md:pb-28 md:pt-20">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
             § 1 · {t('hero.kicker')}

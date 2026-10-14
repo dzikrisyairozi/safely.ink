@@ -1,37 +1,134 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const RADIUS = 1.55;
-// Reused every frame instead of allocating 260 matrices 60 times a second.
-const scratch = { matrix: new THREE.Matrix4(), offset: new THREE.Vector3() };
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+// A pangolin rolled up in defence (volvation), made of document pages. The
+// curled back is a ball: pages lie on it in rows across the spine, like scales,
+// each with its far edge lifted towards the tail. The tail wraps over the
+// outside as a raised band that tapers to a tip, hiding the tucked-in head.
+const R = 1.55;
+const FOV = 36;
+const CAMERA_Z = 9;
 
-/** One scale: a shield with its tip along +y, centred on the origin. */
-function scaleGeometry(width: number, length: number) {
-  const s = new THREE.Shape();
-  s.moveTo(-width / 2, 0);
-  s.quadraticCurveTo(-width / 2, length * 0.75, 0, length);
-  s.quadraticCurveTo(width / 2, length * 0.75, width / 2, 0);
-  s.quadraticCurveTo(0, -length * 0.25, -width / 2, 0);
-  const geometry = new THREE.ShapeGeometry(s, 6);
-  geometry.translate(0, -length / 2, 0);
-  return geometry;
+// Reused every frame instead of allocating hundreds of objects 60 times a second.
+const scratch = {
+  matrix: new THREE.Matrix4(),
+  position: new THREE.Vector3(),
+  quaternion: new THREE.Quaternion(),
+  flutter: new THREE.Quaternion(),
+  scale: new THREE.Vector3(),
+  axis: new THREE.Vector3(1, 0, 0),
+};
+
+type Page = {
+  target: THREE.Vector3;
+  turn: THREE.Quaternion;
+  from: THREE.Vector3;
+  fromTurn: THREE.Quaternion;
+  /** Seconds after mount at which this page starts flying in. */
+  delay: number;
+  drift: number;
+  phase: number;
+};
+
+/** A stable pseudo-random number in [0, 1) for page i, channel k. */
+const rand = (i: number, k: number) => {
+  const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+/**
+ * Adds a page at (u, v) on a ball of radius `r`: u runs along the curled
+ * spine, v across it. The long side follows the spine, tip towards the tail.
+ */
+function place(pages: Page[], u: number, v: number, r: number, lift: number) {
+  const normal = new THREE.Vector3(
+    Math.cos(v) * Math.cos(u),
+    Math.cos(v) * Math.sin(u),
+    Math.sin(v),
+  );
+  const along = new THREE.Vector3(-Math.sin(u), Math.cos(u), 0);
+  const across = new THREE.Vector3().crossVectors(along, normal);
+  const turn = new THREE.Quaternion()
+    .setFromRotationMatrix(new THREE.Matrix4().makeBasis(across, along, normal))
+    .multiply(new THREE.Quaternion().setFromAxisAngle(scratch.axis, lift));
+  const i = pages.length;
+  // Before assembling, each page is somewhere in a loose cloud around the ball.
+  const cloud = new THREE.Vector3(
+    rand(i, 1) - 0.5,
+    rand(i, 2) - 0.5,
+    rand(i, 3) - 0.5,
+  )
+    .normalize()
+    .multiplyScalar(R * (1.6 + rand(i, 11) * 1.4));
+  pages.push({
+    target: normal.clone().multiplyScalar(r),
+    turn,
+    from: cloud,
+    fromTurn: new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(rand(i, 4) * 6, rand(i, 5) * 6, rand(i, 6) * 6),
+    ),
+    delay: (u / (Math.PI * 2)) * 1.1 + rand(i, 7) * 0.6,
+    drift: 0.8 + rand(i, 8) * 2,
+    phase: rand(i, 9) * Math.PI * 2,
+  });
 }
 
-/** Faint ruled lines, so each scale reads as a scrap of a page. */
-function clauseTexture() {
+function layPages(size: { w: number; l: number }): Page[] {
+  const pages: Page[] = [];
+  // The back: rows across the spine all the way round the ball. Towards the
+  // flanks the rows crowd together, so some are left out there.
+  const du = (size.l * 0.62) / R;
+  const dv = (size.w * 0.7) / R;
+  const rows = Math.round((Math.PI * 2) / du);
+  for (let row = 0; row < rows; row++) {
+    const u = (row / rows) * Math.PI * 2;
+    for (let v = -Math.PI / 2 + dv; v < Math.PI / 2 - dv / 2; v += dv) {
+      const vv = v + (row % 2) * (dv / 2);
+      const keepEvery = Math.max(
+        1,
+        Math.round(1 / Math.max(Math.cos(vv), 0.2)),
+      );
+      if (row % keepEvery) continue;
+      place(pages, u, vv, R + row * 0.0004, 0.34);
+    }
+  }
+  // The tail: a band over the outside along the spine, narrowing to a tip.
+  const start = 0.2 * Math.PI;
+  const span = 0.95 * Math.PI;
+  const tailRows = Math.round(span / (du * 1.05));
+  for (let row = 0; row <= tailRows; row++) {
+    const k = row / tailRows;
+    const half = (0.42 - 0.34 * k) * R;
+    const count = Math.max(1, Math.round((2 * half) / (size.w * 0.8)));
+    for (let c = 0; c < count; c++) {
+      const offset = count === 1 ? 0 : -half + (c / (count - 1)) * 2 * half;
+      place(pages, start + k * span, offset / R, R * 1.17 + row * 0.0006, 0.4);
+    }
+  }
+  return pages;
+}
+
+/** A page: paper, a darker edge, a heading bar and lines of text. */
+function pageTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 128;
+  canvas.width = 96;
+  canvas.height = 128;
   const ctx = canvas.getContext('2d')!;
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, 128, 128);
-  ctx.fillStyle = '#b8b8b8';
-  for (let y = 30; y < 110; y += 16) ctx.fillRect(26, y, 76 - (y % 3) * 8, 3);
+  ctx.fillRect(0, 0, 96, 128);
+  ctx.strokeStyle = '#9095a5';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(1.5, 1.5, 93, 125);
+  ctx.fillStyle = '#7d8292';
+  ctx.fillRect(12, 14, 46, 7);
+  ctx.fillStyle = '#c3c6cf';
+  for (let y = 32; y < 116; y += 9) ctx.fillRect(12, y, 72 - ((y * 7) % 22), 3);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
   return texture;
 }
 
@@ -42,78 +139,95 @@ function cssColor(name: string) {
   return new THREE.Color(value || '#14182b');
 }
 
-type Placement = { dir: THREE.Vector3; basis: THREE.Matrix4; drift: number };
+const easeOut = (x: number) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
 
-/** Scales spread evenly over a sphere, tips pointing down towards the tail. */
-function placements(count: number): Placement[] {
-  const down = new THREE.Vector3(0, -1, 0);
-  return Array.from({ length: count }, (_, i) => {
-    const y = 1 - (2 * (i + 0.5)) / count;
-    const r = Math.sqrt(1 - y * y);
-    const dir = new THREE.Vector3(
-      Math.cos(i * GOLDEN_ANGLE) * r,
-      y,
-      Math.sin(i * GOLDEN_ANGLE) * r,
-    );
-    const tangent = down.clone().sub(dir.clone().multiplyScalar(down.dot(dir)));
-    if (tangent.lengthSq() < 1e-4) tangent.set(1, 0, 0);
-    tangent.normalize();
-    const x = new THREE.Vector3().crossVectors(tangent, dir);
-    const basis = new THREE.Matrix4()
-      .makeBasis(x, tangent, dir)
-      // Lift the tip off the surface, like a pine cone.
-      .multiply(new THREE.Matrix4().makeRotationX(-0.38));
-    return { dir, basis, drift: 0.15 + ((i * 7919) % 100) / 180 };
-  });
+const SIZES = {
+  mobile: { w: 0.4, l: 0.5 },
+  desktop: { w: 0.3, l: 0.38 },
+};
+
+/**
+ * Centres and sizes the ball on the flat mark's box in the hero
+ * (`[data-hero-anchor]`), so it sits in the layout like any other element.
+ */
+function useAnchor(group: React.RefObject<THREE.Group>) {
+  const { size } = useThree();
+  useEffect(() => {
+    const mark = document.querySelector('[data-hero-anchor]');
+    const host = mark?.closest('section');
+    if (!mark || !host || !group.current) return;
+    const fit = () => {
+      const box = mark.getBoundingClientRect();
+      const frame = host.getBoundingClientRect();
+      const height = 2 * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * CAMERA_Z;
+      const width = height * (frame.width / frame.height);
+      const cx = (box.left + box.width / 2 - frame.left) / frame.width;
+      const cy = (box.top + box.height / 2 - frame.top) / frame.height;
+      group.current?.position.set((cx - 0.5) * width, (0.5 - cy) * height, 0);
+      group.current?.scale.setScalar(
+        ((box.width / frame.width) * width) / (2 * R * 1.35),
+      );
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [group, size]);
 }
 
-function Ball({
-  count,
+function RolledPangolin({
+  mobile,
   progress,
 }: {
-  count: number;
+  mobile: boolean;
   progress: React.RefObject<number>;
 }) {
-  const mesh = useRef<THREE.InstancedMesh>(null);
-  const group = useRef<THREE.Group>(null);
+  const pagesMesh = useRef<THREE.InstancedMesh>(null);
+  const anchor = useRef<THREE.Group>(null);
+  const tilt = useRef<THREE.Group>(null);
+  const roll = useRef<THREE.Group>(null);
   const pointer = useRef({ x: 0, y: 0 });
-  const items = useMemo(() => placements(count), [count]);
-  const geometry = useMemo(() => scaleGeometry(0.5, 0.58), []);
-  const texture = useMemo(() => clauseTexture(), []);
+  const size = SIZES[mobile ? 'mobile' : 'desktop'];
+  const pages = useMemo(() => layPages(size), [size]);
+  const geometry = useMemo(
+    () => new THREE.PlaneGeometry(size.w, size.l),
+    [size],
+  );
   const material = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        map: texture,
-        roughness: 0.65,
-        metalness: 0.05,
+        map: pageTexture(),
+        roughness: 0.92,
+        metalness: 0,
         side: THREE.DoubleSide,
-        transparent: true,
       }),
-    [texture],
+    [],
   );
-  // The trap: the scale that faces the viewer, in the reviewer's red.
+  // The trap: one page on the side facing the viewer, in the reviewer's red.
   const trap = useMemo(() => {
-    const view = new THREE.Vector3(0.35, 0.2, 1).normalize();
-    return items.reduce(
-      (best, item, i) =>
-        item.dir.dot(view) > items[best]!.dir.dot(view) ? i : best,
+    const view = new THREE.Vector3(0.9, 0.3, 0.5).normalize();
+    const score = (p: Page) => p.target.clone().normalize().dot(view);
+    return pages.reduce(
+      (best, p, i) => (score(p) > score(pages[best]!) ? i : best),
       0,
     );
-  }, [items]);
+  }, [pages]);
+
+  useAnchor(anchor);
 
   useEffect(() => {
     const paint = () => {
-      const ink = cssColor('--foreground');
-      const faded = cssColor('--muted-foreground');
-      const red = cssColor('--destructive');
+      const dark = document.documentElement.classList.contains('dark');
+      // Pages are always paper: the light background, or the dark foreground.
+      const paper = cssColor(dark ? '--foreground' : '--background');
+      const red = paper.clone().lerp(cssColor('--destructive'), 0.85);
       const color = new THREE.Color();
-      for (let i = 0; i < count; i++) {
-        // Each scale a little lighter or darker, so the tiles separate.
-        color.copy(ink).lerp(faded, ((i * 37) % 100) / 260);
-        mesh.current?.setColorAt(i, i === trap ? red : color);
-      }
-      if (mesh.current?.instanceColor) {
-        mesh.current.instanceColor.needsUpdate = true;
+      pages.forEach((_, i) => {
+        color.copy(paper).multiplyScalar(0.88 + rand(i, 10) * 0.14);
+        pagesMesh.current?.setColorAt(i, i === trap ? red : color);
+      });
+      if (pagesMesh.current?.instanceColor) {
+        pagesMesh.current.instanceColor.needsUpdate = true;
       }
     };
     paint();
@@ -129,36 +243,65 @@ function Ball({
       observer.disconnect();
       window.removeEventListener('pointermove', move);
     };
-  }, [count, trap]);
+  }, [pages, trap]);
 
-  useFrame((_, delta) => {
-    if (!mesh.current || !group.current) return;
-    const p = progress.current ?? 0;
-    const g = group.current;
-    g.rotation.y += delta * (0.12 + pointer.current.x * 0.4);
-    g.rotation.x = THREE.MathUtils.lerp(
-      g.rotation.x,
-      pointer.current.y * 0.25 + p * 0.6,
+  useFrame(({ clock }, delta) => {
+    const mesh = pagesMesh.current;
+    if (!mesh || !tilt.current || !roll.current) return;
+    const time = clock.getElapsedTime();
+    const scatter = progress.current ?? 0;
+
+    // The ball rolls slowly along its spine and leans towards the pointer.
+    roll.current.rotation.z -= delta * 0.12;
+    tilt.current.rotation.y = THREE.MathUtils.lerp(
+      tilt.current.rotation.y,
+      -1.4 + pointer.current.x * 0.35,
       0.05,
     );
-    for (let i = 0; i < items.length; i++) {
-      const { dir, basis, drift } = items[i]!;
-      // Scrolling unrolls the ball: scales lift away, each at its own pace.
-      scratch.offset.copy(dir).multiplyScalar(RADIUS + p * drift);
-      scratch.matrix.copy(basis).setPosition(scratch.offset);
-      mesh.current.setMatrixAt(i, scratch.matrix);
+    tilt.current.rotation.x = THREE.MathUtils.lerp(
+      tilt.current.rotation.x,
+      0.3 + pointer.current.y * 0.15,
+      0.05,
+    );
+
+    for (let i = 0; i < pages.length; i++) {
+      const p = pages[i]!;
+      const arrive = easeOut((time - p.delay) / 1.3);
+      // Scrolling the hero away blows the pages loose again.
+      const leave = easeOut(scatter * p.drift);
+      const settle = arrive * (1 - leave);
+      scratch.position.lerpVectors(p.from, p.target, settle);
+      scratch.quaternion.slerpQuaternions(p.fromTurn, p.turn, settle);
+      // Settled pages breathe a little, like paper in a draught.
+      scratch.flutter.setFromAxisAngle(
+        scratch.axis,
+        Math.sin(time * 1.6 + p.phase) * 0.06 * settle,
+      );
+      scratch.quaternion.multiply(scratch.flutter);
+      // Pages grow as they arrive and shrink away as they leave, so none
+      // reaches the edge of the section.
+      scratch.scale.setScalar((0.3 + 0.7 * arrive) * (1 - leave) + 1e-4);
+      scratch.matrix.compose(
+        scratch.position,
+        scratch.quaternion,
+        scratch.scale,
+      );
+      mesh.setMatrixAt(i, scratch.matrix);
     }
-    mesh.current.instanceMatrix.needsUpdate = true;
-    (mesh.current.material as THREE.Material).opacity = 1 - p * 0.7;
+    mesh.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <group ref={group} rotation={[0.25, 0, 0.1]}>
-      <instancedMesh
-        ref={mesh}
-        args={[geometry, material, count]}
-        frustumCulled={false}
-      />
+    <group ref={anchor}>
+      <group ref={tilt}>
+        <group ref={roll}>
+          <instancedMesh
+            ref={pagesMesh}
+            args={[geometry, material, pages.length]}
+            frustumCulled={false}
+          />
+        </group>
+      </group>
     </group>
   );
 }
@@ -176,10 +319,15 @@ export default function HeroScene({ onReady }: { onReady: () => void }) {
   useEffect(() => {
     const el = wrapper.current;
     if (!el) return;
+    // Pages start to blow away only once the ball's own box scrolls past
+    // the top of the screen, so on a phone, where it sits below the text,
+    // scrolling down to it does not break it up.
+    const mark = el.closest('section')?.querySelector('[data-hero-anchor]');
     const onScroll = () => {
-      const hero = el.closest('section');
-      const height = hero?.offsetHeight ?? window.innerHeight;
-      progress.current = Math.min(Math.max(window.scrollY / height, 0), 1);
+      const box = mark?.getBoundingClientRect();
+      progress.current = box
+        ? Math.min(Math.max(-box.top / box.height, 0), 1)
+        : 0;
     };
     const io = new IntersectionObserver(([entry]) => {
       setInView(entry?.isIntersecting ?? true);
@@ -194,18 +342,18 @@ export default function HeroScene({ onReady }: { onReady: () => void }) {
   }, []);
 
   return (
-    <div ref={wrapper} className="pointer-events-none absolute inset-0">
+    <div ref={wrapper} className="absolute inset-0">
       <Canvas
         dpr={[1, mobile ? 1.5 : 2]}
-        camera={{ position: [0, 0, 6], fov: 40 }}
+        camera={{ position: [0, 0, CAMERA_Z], fov: FOV }}
         gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
         onCreated={() => onReady()}
         frameloop={inView ? 'always' : 'never'}
       >
-        <ambientLight intensity={1.2} />
-        <directionalLight position={[3, 4, 5]} intensity={3.2} />
-        <directionalLight position={[-4, -2, -3]} intensity={0.6} />
-        <Ball count={mobile ? 140 : 260} progress={progress} />
+        <ambientLight intensity={1.4} />
+        <directionalLight position={[3, 5, 6]} intensity={2.4} />
+        <directionalLight position={[-5, -1, -3]} intensity={0.5} />
+        <RolledPangolin mobile={mobile} progress={progress} />
       </Canvas>
     </div>
   );

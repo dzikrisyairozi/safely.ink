@@ -1,66 +1,20 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import { usePrefersReducedMotion } from '@repo/ui/hooks/use-prefers-reduced-motion';
 import { Pangolin } from '@repo/ui/components/brand/pangolin';
-import { cn } from '@repo/ui/lib/utils';
 
-const HeroScene = dynamic(() => import('./hero-scene'), { ssr: false });
-
-function hasWebGL() {
-  try {
-    return !!document.createElement('canvas').getContext('webgl2');
-  } catch {
-    return false;
-  }
-}
-
-/** The SVG ball first; the 3D ball replaces it when the browser can afford it. */
+/**
+ * The rolled pangolin as a flat mark. It also marks where the 3D one goes:
+ * the hero canvas covers the whole section and centres its ball on this box,
+ * then hides the mark once its first frame is up (`data-hero-3d="ready"`).
+ */
 export function HeroVisual() {
-  const reduce = usePrefersReducedMotion();
-  const [load, setLoad] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  // three.js is large: it waits for the first sign of a person (pointer,
-  // scroll, key) or a few quiet seconds, so it never competes with first paint.
-  useEffect(() => {
-    if (reduce || !hasWebGL()) return;
-    const events = ['pointermove', 'pointerdown', 'scroll', 'keydown'];
-    const start = () => {
-      clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, start));
-      setLoad(true);
-    };
-    const timer = setTimeout(start, 6000);
-    events.forEach((e) =>
-      window.addEventListener(e, start, { once: true, passive: true }),
-    );
-    return () => {
-      clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, start));
-    };
-  }, [reduce]);
-
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-sm md:max-w-none">
+    <div
+      data-hero-anchor
+      className="relative mx-auto aspect-square w-full max-w-sm md:max-w-none"
+    >
       <Pangolin
         variant="ball"
-        className={cn(
-          'absolute inset-[12%] text-foreground transition-opacity duration-700',
-          ready && 'opacity-0',
-        )}
+        className="absolute inset-[12%] text-foreground transition-opacity duration-700 group-data-[hero-3d=ready]/hero:opacity-0"
       />
-      {load && (
-        <div
-          className={cn(
-            'absolute -inset-[10%] transition-opacity duration-700',
-            ready ? 'opacity-100' : 'opacity-0',
-          )}
-        >
-          <HeroScene onReady={() => setReady(true)} />
-        </div>
-      )}
     </div>
   );
 }
