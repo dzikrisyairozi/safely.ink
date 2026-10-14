@@ -27,7 +27,7 @@ export function DeleteAnalysis({
   // until it is opened again.
   const [now] = useState(Date.now);
   // The same rule the API applies, so the button never offers a 409.
-  const running = !isDeletable(analysis, now);
+  const locked = !isDeletable(analysis, now);
 
   const remove = async () => {
     setError(null);
@@ -36,6 +36,12 @@ export function DeleteAnalysis({
       await api(`/v1/analyses/${id}`, { method: 'DELETE' });
       onDeleted?.();
     } catch (err) {
+      // Already gone, from another tab or a try that failed halfway: that is
+      // what was asked for.
+      if (err instanceof ApiError && err.code === 'not_found') {
+        onDeleted?.();
+        return;
+      }
       setIsDeleting(false);
       // The run may have started between the screen and the click.
       setError(
@@ -52,8 +58,8 @@ export function DeleteAnalysis({
         variant="ghost"
         size="icon"
         aria-label={t('history.delete.action')}
-        title={running ? t('history.delete.running') : undefined}
-        disabled={running || isDeleting}
+        title={locked ? t('history.delete.running') : undefined}
+        disabled={locked || isDeleting}
         onClick={() => setOpen(true)}
       >
         <Trash2 />

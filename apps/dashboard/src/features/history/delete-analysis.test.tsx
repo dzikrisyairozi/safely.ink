@@ -92,6 +92,22 @@ test('a delete that fails says so and can be tried again', async () => {
   ).toBe(false);
 });
 
+test('an analysis that is already gone counts as deleted', async () => {
+  vi.mocked(api).mockRejectedValueOnce(
+    new ApiError(404, 'not_found', 'No such analysis.'),
+  );
+  const onDeleted = vi.fn();
+  render(
+    <DeleteAnalysis id="analysis-1" analysis={done} onDeleted={onDeleted} />,
+  );
+
+  openDialog();
+  fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }));
+
+  await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
 test('a run that started meanwhile is named as the reason', async () => {
   vi.mocked(api).mockRejectedValueOnce(
     new ApiError(409, 'conflict', 'This analysis is still running.'),
