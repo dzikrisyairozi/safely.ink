@@ -150,12 +150,11 @@ const SIZES = {
  * Centres and sizes the ball on the flat mark's box in the hero
  * (`[data-hero-anchor]`), so it sits in the layout like any other element.
  */
-function useAnchor(group: React.RefObject<THREE.Group>) {
+function useAnchor(group: React.RefObject<THREE.Group>, mark: Element) {
   const { size } = useThree();
   useEffect(() => {
-    const mark = document.querySelector('[data-hero-anchor]');
-    const host = mark?.closest('section');
-    if (!mark || !host || !group.current) return;
+    const host = mark.closest('section');
+    if (!host || !group.current) return;
     const fit = () => {
       const box = mark.getBoundingClientRect();
       const frame = host.getBoundingClientRect();
@@ -172,13 +171,15 @@ function useAnchor(group: React.RefObject<THREE.Group>) {
     const observer = new ResizeObserver(fit);
     observer.observe(host);
     return () => observer.disconnect();
-  }, [group, size]);
+  }, [group, mark, size]);
 }
 
 function RolledPangolin({
+  mark,
   mobile,
   progress,
 }: {
+  mark: Element;
   mobile: boolean;
   progress: React.RefObject<number>;
 }) {
@@ -187,6 +188,9 @@ function RolledPangolin({
   const tilt = useRef<THREE.Group>(null);
   const roll = useRef<THREE.Group>(null);
   const pointer = useRef({ x: 0, y: 0 });
+  // Our own clock: R3F resets its clock whenever the frameloop restarts, which
+  // would replay the pages flying in each time the hero scrolls back into view.
+  const elapsed = useRef(0);
   const size = SIZES[mobile ? 'mobile' : 'desktop'];
   const pages = useMemo(() => layPages(size), [size]);
   const geometry = useMemo(
@@ -203,6 +207,15 @@ function RolledPangolin({
       }),
     [],
   );
+  // R3F only disposes what it creates itself, not objects passed in as args.
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      material.map?.dispose();
+      material.dispose();
+    },
+    [geometry, material],
+  );
   // The trap: one page on the side facing the viewer, in the reviewer's red.
   const trap = useMemo(() => {
     const view = new THREE.Vector3(0.9, 0.3, 0.5).normalize();
@@ -213,7 +226,7 @@ function RolledPangolin({
     );
   }, [pages]);
 
-  useAnchor(anchor);
+  useAnchor(anchor, mark);
 
   useEffect(() => {
     const paint = () => {
@@ -245,10 +258,12 @@ function RolledPangolin({
     };
   }, [pages, trap]);
 
-  useFrame(({ clock }, delta) => {
+  useFrame((_, frameDelta) => {
     const mesh = pagesMesh.current;
     if (!mesh || !tilt.current || !roll.current) return;
-    const time = clock.getElapsedTime();
+    // Capped, so the first frame after a hidden tab does not jump.
+    const delta = Math.min(frameDelta, 0.25);
+    const time = (elapsed.current += delta);
     const scatter = progress.current ?? 0;
 
     // The ball rolls slowly along its spine and leans towards the pointer.
@@ -315,22 +330,26 @@ export default function HeroScene({ onReady }: { onReady: () => void }) {
     () => window.matchMedia('(max-width: 767px)').matches,
     [],
   );
+  // The flat mark the ball sits on. Without it there is nowhere to put the
+  // ball, so nothing renders and the mark stays.
+  const mark = useMemo(() => document.querySelector('[data-hero-anchor]'), []);
 
   useEffect(() => {
     const el = wrapper.current;
-    if (!el) return;
+    if (!el || !mark) return;
+    let visible = true;
     // Pages start to blow away only once the ball's own box scrolls past
     // the top of the screen, so on a phone, where it sits below the text,
     // scrolling down to it does not break it up.
-    const mark = el.closest('section')?.querySelector('[data-hero-anchor]');
     const onScroll = () => {
-      const box = mark?.getBoundingClientRect();
-      progress.current = box
-        ? Math.min(Math.max(-box.top / box.height, 0), 1)
-        : 0;
+      if (!visible) return;
+      const box = mark.getBoundingClientRect();
+      progress.current = Math.min(Math.max(-box.top / box.height, 0), 1);
     };
     const io = new IntersectionObserver(([entry]) => {
-      setInView(entry?.isIntersecting ?? true);
+      visible = entry?.isIntersecting ?? true;
+      setInView(visible);
+      onScroll();
     });
     io.observe(el);
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -339,7 +358,9 @@ export default function HeroScene({ onReady }: { onReady: () => void }) {
       io.disconnect();
       window.removeEventListener('scroll', onScroll);
     };
-  }, []);
+  }, [mark]);
+
+  if (!mark) return null;
 
   return (
     <div ref={wrapper} className="absolute inset-0">
@@ -353,7 +374,7 @@ export default function HeroScene({ onReady }: { onReady: () => void }) {
         <ambientLight intensity={1.4} />
         <directionalLight position={[3, 5, 6]} intensity={2.4} />
         <directionalLight position={[-5, -1, -3]} intensity={0.5} />
-        <RolledPangolin mobile={mobile} progress={progress} />
+        <RolledPangolin mark={mark} mobile={mobile} progress={progress} />
       </Canvas>
     </div>
   );

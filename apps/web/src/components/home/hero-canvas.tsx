@@ -10,7 +10,10 @@ const HeroScene = dynamic(() => import('./hero-scene'), { ssr: false });
 
 function hasWebGL() {
   try {
-    return !!document.createElement('canvas').getContext('webgl2');
+    const gl = document.createElement('canvas').getContext('webgl2');
+    // Browsers cap live contexts; the scene opens its own right after.
+    gl?.getExtension('WEBGL_lose_context')?.loseContext();
+    return !!gl;
   } catch {
     return false;
   }
@@ -25,6 +28,9 @@ export function HeroCanvas() {
   const box = useRef<HTMLDivElement>(null);
   const [load, setLoad] = useState(false);
   const [ready, setReady] = useState(false);
+  // Turning on reduced motion after load stops the scene and brings back
+  // the flat mark.
+  const shown = ready && !reduce;
 
   // three.js is large: it waits for the first sign of a person (pointer,
   // scroll, key) or a few quiet seconds, so it never competes with first paint.
@@ -49,8 +55,9 @@ export function HeroCanvas() {
   // Lets the flat mark in the section fade out (see HeroVisual).
   useEffect(() => {
     const section = box.current?.closest('section');
-    if (section && ready) section.setAttribute('data-hero-3d', 'ready');
-  }, [ready]);
+    if (shown) section?.setAttribute('data-hero-3d', 'ready');
+    else section?.removeAttribute('data-hero-3d');
+  }, [shown]);
 
   return (
     <div
@@ -58,10 +65,10 @@ export function HeroCanvas() {
       aria-hidden
       className={cn(
         'pointer-events-none absolute inset-0 transition-opacity duration-700',
-        ready ? 'opacity-100' : 'opacity-0',
+        shown ? 'opacity-100' : 'opacity-0',
       )}
     >
-      {load && (
+      {load && !reduce && (
         <Island>
           <HeroScene onReady={() => setReady(true)} />
         </Island>
