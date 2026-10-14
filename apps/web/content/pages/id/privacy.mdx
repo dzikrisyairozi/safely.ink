@@ -26,7 +26,7 @@ Untuk menjaga batas 10 analisis per orang per hari, kami menyimpan, untuk setiap
 
 ### Log teknis
 
-Server kami mencatat log agar layanan tetap berjalan dan masalah bisa diperbaiki. Log mencatat hal-hal seperti ID analisis, tahapan, lama prosesnya, model yang dipakai, dan jumlah token yang digunakan. Kami merancang log agar tidak memuat teks dokumen Anda maupun klausulnya.
+Server kami mencatat log agar layanan tetap berjalan dan masalah bisa diperbaiki. Google Cloud mencatat setiap permintaan ke server kami: alamat yang dipanggil (yang bisa memuat ID analisis), waktu, status, lama prosesnya, alamat IP Anda, dan user agent browser Anda. Kode kami sendiri menambahkan peringatan yang menyebut aturan, skenario, dan jebakan dengan ID-nya, situs hukum resmi yang gagal kami ambil, serta pesan galat dan stack trace saat terjadi kesalahan. Kami tidak menulis teks dokumen Anda maupun klausulnya ke log, tetapi galat yang dilaporkan oleh layanan model atau penyimpanan sesekali bisa memuat potongan dari apa yang dikirim ke atau diterima dari layanan itu.
 
 ### Pesan yang Anda kirim
 

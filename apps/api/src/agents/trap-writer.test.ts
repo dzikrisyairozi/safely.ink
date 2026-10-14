@@ -109,6 +109,18 @@ test('a text with a number the model made up is left out, and the other one stay
   expect(told).toEqual({ ...trap, title: null, action: words.action });
 });
 
+test('a text left out is logged by trap and field, never by its words', () => {
+  // The words are written from the user's document; logs must not hold them.
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  wordedFor([{ ...words, title: 'A scam on day 29' }]);
+
+  expect(warn).toHaveBeenCalledWith(
+    'Trap trap-r-002: title not neutral or not in the brief, left out',
+  );
+  expect(JSON.stringify(warn.mock.calls)).not.toContain('scam');
+  warn.mockRestore();
+});
+
 test('only the words come from the answer, never the numbers', () => {
   const answer = {
     ...words,

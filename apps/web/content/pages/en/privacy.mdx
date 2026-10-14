@@ -26,7 +26,7 @@ To keep the limit of 10 analyses per person per day, we store, for each day you 
 
 ### Technical logs
 
-Our server writes logs so we can keep the service running and fix problems. They record things like the analysis ID, the stage, how long it took, which model was used and how many tokens it used. We design our logs not to contain the text of your document or its clauses.
+Our server writes logs so we can keep the service running and fix problems. Google Cloud records each request to our server: the address called (which can include an analysis ID), the time, the status, how long it took, your IP address and your browser's user agent. Our own code adds warnings that name rules, scenarios and traps by their IDs, the official law sites we could not fetch, and the error messages and stack traces when something fails. We do not write the text of your document or its clauses to the logs, but an error reported by a model or storage service can occasionally include a fragment of what was sent to it or received from it.
 
 ### Messages you send us
 

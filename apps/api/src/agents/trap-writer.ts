@@ -120,12 +120,16 @@ export function worded(
     const known = numbers(
       JSON.stringify(briefs.find((brief) => brief.id === trap.id) ?? {}),
     );
-    const fit = (text: string) => {
+    // Logged by trap and field only: the words come from the user's document.
+    const fit = (field: 'title' | 'action') => {
+      const text = words[field];
       const ok = neutral(text) && numbers(text).every((n) => known.includes(n));
       if (!ok)
-        console.warn(`Not neutral or not in the brief, left out: ${text}`);
+        console.warn(
+          `Trap ${trap.id}: ${field} not neutral or not in the brief, left out`,
+        );
       return ok ? text : null;
     };
-    return { ...trap, title: fit(words.title), action: fit(words.action) };
+    return { ...trap, title: fit('title'), action: fit('action') };
   });
 }
