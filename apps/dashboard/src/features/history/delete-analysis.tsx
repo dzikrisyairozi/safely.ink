@@ -23,8 +23,11 @@ export function DeleteAnalysis({
   const [open, setOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Read once: a run that goes stale while the screen is open stays locked
+  // until it is opened again.
+  const [now] = useState(Date.now);
   // The same rule the API applies, so the button never offers a 409.
-  const running = !isDeletable(analysis, Date.now());
+  const running = !isDeletable(analysis, now);
 
   const remove = async () => {
     setError(null);
