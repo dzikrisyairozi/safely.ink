@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
 import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
+import { LOCALE_HEADER } from '@/lib/site';
 import { config, proxy } from './proxy';
 
 const origin = 'https://safely.test';
@@ -39,9 +40,13 @@ describe('proxy', () => {
     expect(run('/en/blog/x/opengraph-image-1a2b')).toBeUndefined();
   });
 
-  it('leaves other languages alone', () => {
-    expect(run('/id')).toBeUndefined();
-    expect(run('/id/blog/x')).toBeUndefined();
+  it('leaves other languages where they are', () => {
+    for (const path of ['/id', '/id/blog/x']) {
+      const response = run(path);
+      expect(response?.status).toBe(200);
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(response?.headers.get('location')).toBeNull();
+    }
   });
 
   it('sends / to the language picked with the switcher, and nothing else', () => {
@@ -52,6 +57,15 @@ describe('proxy', () => {
     expect(rewrittenTo('/blog', 'NEXT_LOCALE=id')).toBe(`${origin}/en/blog`);
     expect(rewrittenTo('/', 'NEXT_LOCALE=en')).toBe(`${origin}/en`);
     expect(rewrittenTo('/', 'NEXT_LOCALE=fr')).toBe(`${origin}/en`);
+  });
+
+  it('tells the page which language the URL is in, for the 404 page', () => {
+    const locale = (path: string) =>
+      run(path)?.headers.get(`x-middleware-request-${LOCALE_HEADER}`);
+
+    expect(locale('/no-such-page')).toBe('en');
+    expect(locale('/id/no-such-page')).toBe('id');
+    expect(locale('/id')).toBe('id');
   });
 
   it('does not run for files or Next internals', () => {

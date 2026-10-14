@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { DEFAULT_LOCALE, isLocale } from '@/lib/site';
+import {
+  DEFAULT_LOCALE,
+  LOCALE_HEADER,
+  isLocale,
+  type Locale,
+} from '@/lib/site';
 
 // English lives at unprefixed URLs and every other language under /<locale>.
 // Pages are built under app/[locale], so unprefixed paths are rewritten to the
@@ -8,6 +13,12 @@ import { DEFAULT_LOCALE, isLocale } from '@/lib/site';
 // Only a language the visitor picked with the switcher sends `/` elsewhere.
 
 export const LOCALE_COOKIE = 'NEXT_LOCALE';
+
+function withLocale(request: NextRequest, locale: Locale) {
+  const headers = new Headers(request.headers);
+  headers.set(LOCALE_HEADER, locale);
+  return { request: { headers } };
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -21,7 +32,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  if (isLocale(first)) return;
+  if (isLocale(first)) return NextResponse.next(withLocale(request, first));
 
   const saved = request.cookies.get(LOCALE_COOKIE)?.value;
   if (pathname === '/' && isLocale(saved) && saved !== DEFAULT_LOCALE) {
@@ -32,7 +43,7 @@ export function proxy(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   url.pathname = `/${DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;
-  return NextResponse.rewrite(url);
+  return NextResponse.rewrite(url, withLocale(request, DEFAULT_LOCALE));
 }
 
 export const config = {

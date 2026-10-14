@@ -1,36 +1,16 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Newsreader } from 'next/font/google';
 import { notFound } from 'next/navigation';
-import '../globals.css';
-import { Analytics } from '@/components/site/analytics';
-import { Footer } from '@/components/site/footer';
-import { Header } from '@/components/site/header';
-import { Providers } from '@/i18n/client';
+import { Document } from '@/components/site/document';
 import { getT } from '@/i18n/translate';
 import { JsonLd, organizationLd, websiteLd } from '@/lib/seo';
 import {
   DEFAULT_LOCALE,
-  GA_ID,
   GSC_VERIFICATION,
   LOCALES,
   SITE_NAME,
   SITE_URL,
   isLocale,
 } from '@/lib/site';
-
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
-
-// Small labels only; not worth delaying first paint for.
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-geist-mono',
-  preload: false,
-});
-
-const newsreader = Newsreader({
-  subsets: ['latin'],
-  variable: '--font-newsreader',
-});
 
 // Defaults for every page; each page adds its own canonical and alternates
 // through pageMetadata().
@@ -69,19 +49,10 @@ export default async function RootLayout({
   if (!isLocale(locale)) notFound();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body
-        className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} font-sans antialiased bg-background text-foreground`}
-      >
-        <JsonLd data={organizationLd()} />
-        <JsonLd data={websiteLd(locale, getT(locale)('meta.description'))} />
-        <Providers locale={locale}>
-          <Header locale={locale} />
-          {children}
-          <Footer locale={locale} />
-          {GA_ID && <Analytics gaId={GA_ID} />}
-        </Providers>
-      </body>
-    </html>
+    <Document locale={locale}>
+      <JsonLd data={organizationLd()} />
+      <JsonLd data={websiteLd(locale, getT(locale)('meta.description'))} />
+      {children}
+    </Document>
   );
 }

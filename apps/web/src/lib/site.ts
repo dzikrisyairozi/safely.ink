@@ -19,6 +19,10 @@ export const APP_URL =
 export const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 export const GSC_VERIFICATION = process.env.NEXT_PUBLIC_GSC_VERIFICATION;
 
+// The 404 page sits outside app/[locale] and gets no params, so the proxy
+// passes the URL's language to it in this request header.
+export const LOCALE_HEADER = 'x-locale';
+
 export const SITE_NAME = 'safely.ink';
 export const CONTACT_EMAIL = 'contact@safely.ink';
 
