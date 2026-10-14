@@ -160,7 +160,7 @@ const clauses = [
 const show = (
   changes: Partial<AnalysisMeta> = {},
   findings: StoredFinding[] = [],
-  onRetry = vi.fn(async () => {}),
+  onRetry: () => Promise<void> = vi.fn(async () => {}),
 ) =>
   render(
     <ReportView
