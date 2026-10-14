@@ -5,8 +5,10 @@ import {
   FactSchema,
   Rule,
   Scenario,
+  StoredScenario,
   WrittenStrategy,
   type AnalysisStatus,
+  type Expectation,
   type Outcome,
 } from '@repo/api-types';
 import {
@@ -14,9 +16,12 @@ import {
   proposeRules,
   repairRules,
 } from './agents/rule-extractor';
+import { Judged, judge, judgeInput } from './agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
+import { trapBriefs, worded, writeTraps } from './agents/trap-writer';
 import { config } from './config';
 import { evaluate } from './engine/evaluate';
+import { score } from './engine/score';
 import { validateScenarios } from './engine/validate';
 import { db } from './firebase';
 import { packFor } from './packs';
@@ -128,12 +133,16 @@ async function fuzz(
     (await analysis.get()).data()!.factSchema,
   );
   const pack = packFor(meta.docType);
-  // What the earlier calls left of the request, within the limits of a call.
-  const { fuzz: least, fuzzMost: most } = config.limits.modelCallSeconds;
-  const seconds = Math.min(
-    most,
-    Math.max(least, Math.floor((deadline - Date.now()) / 1000)),
-  );
+  // What the earlier calls left of the request once the comparing has its
+  // time, within the limits of a call.
+  const {
+    fuzz: least,
+    fuzzMost: most,
+    judge,
+    wording,
+  } = config.limits.modelCallSeconds;
+  const left = Math.floor((deadline - Date.now()) / 1000) - judge - wording;
+  const seconds = Math.min(most, Math.max(least, left));
 
   // Side by side, and one call that fails does not cost the others.
   const calls = [
@@ -218,6 +227,106 @@ async function runScenarios(analysis: DocumentReference) {
   });
 }
 
+// Scenarios in one call of the judge. With 20, one of two calls did not answer
+// in its 90 s on the demo policy (2026-10-13); another time it took 29 s.
+// All batches run at once, so a higher scenariosPerAnalysis means more calls
+// side by side, up to the rate limit of the model.
+const JUDGED_AT_ONCE = 10;
+
+// The model says what a person would expect; which gap is a trap, how bad it
+// is and the grade are worked out by score() (F-TRAP-1 to F-TRAP-5). The
+// law is not looked up yet, so no finding reaches it.
+async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
+  const rules = await storedRules(analysis);
+  const scenarios = (await analysis.collection('scenarios').get()).docs.map(
+    (doc) => StoredScenario.parse(doc.data()),
+  );
+  const pack = packFor(meta.docType);
+
+  const batches: StoredScenario[][] = [];
+  for (let from = 0; from < scenarios.length; from += JUDGED_AT_ONCE) {
+    batches.push(scenarios.slice(from, from + JUDGED_AT_ONCE));
+  }
+  // Side by side, and one batch that fails does not cost the others.
+  const answers = await Promise.allSettled(
+    batches.map((batch) =>
+      judge(
+        judgeInput(meta, pack, rules, batch),
+        config.limits.modelCallSeconds.judge,
+      ),
+    ),
+  );
+
+  const expectations: Record<string, Expectation> = {};
+  for (const [n, answer] of answers.entries()) {
+    if (answer.status === 'rejected') {
+      console.error(answer.reason);
+      continue;
+    }
+    const asked = new Set(batches[n]!.map((scenario) => scenario.id));
+    for (const entry of answer.value) {
+      const told = Judged.safeParse(entry);
+      if (!told.success || !asked.has(told.data.id)) continue;
+      const { id, ...expectation } = told.data;
+      expectations[id] = expectation;
+    }
+  }
+  const judged = Object.entries(expectations);
+  // Without an expectation nothing can be a trap, and a report that found
+  // none would say the document is fine.
+  if (judged.length === 0) throw new Error('No scenario was judged.');
+  const missed = scenarios.length - judged.length;
+  if (missed > 0) console.warn(`${missed} scenarios not judged.`);
+  await saveAll(
+    analysis,
+    'scenarios',
+    judged.map(([id, expectation]) => ({ id, expectation })),
+    true,
+  );
+
+  const { traps, grade, confidence } = score(
+    {
+      scenarios,
+      outcomes: scenarios.flatMap(({ outcome }) => outcome ?? []),
+      expectations,
+      findings: {},
+      meta,
+    },
+    config.scoring,
+  );
+  await saveAll(analysis, 'traps', traps);
+  await analysis.update({
+    grade,
+    // A scenario that was not judged cannot be a trap, so the grade may be
+    // too good, and the analysis does not claim to be sure of it.
+    confidence: missed > 0 && confidence === 'high' ? 'medium' : confidence,
+    'counts.judged': judged.length,
+    'counts.traps': traps.length,
+    updatedAt: updatedAt(),
+  });
+  if (traps.length === 0) return;
+
+  // The traps are complete without their words (TSD 5.7), so a model that
+  // fails here costs the title and the questions, not the analysis.
+  const briefs = trapBriefs(
+    traps,
+    rules,
+    scenarios.map((scenario) => ({
+      ...scenario,
+      expectation: expectations[scenario.id],
+    })),
+  );
+  const words = await writeTraps(
+    briefs,
+    meta,
+    config.limits.modelCallSeconds.wording,
+  ).catch((err) => {
+    console.error(err);
+    return [];
+  });
+  await saveAll(analysis, 'traps', worded(traps, words, briefs));
+}
+
 type Stage = {
   status: AnalysisStatus;
   run: (
@@ -226,8 +335,7 @@ type Stage = {
     // When the request must be done, in ms since the epoch.
     deadline: number,
   ) => Promise<void>;
-  // The status when the stage is done: the next stage, or where the
-  // analysis waits for a stage that is not built yet.
+  // The status when the stage is done.
   next: AnalysisStatus;
 };
 
@@ -236,6 +344,7 @@ const STAGES: Stage[] = [
   { status: 'extracting_rules', run: extractRules, next: 'fuzzing' },
   { status: 'fuzzing', run: fuzz, next: 'running' },
   { status: 'running', run: runScenarios, next: 'comparing' },
+  { status: 'comparing', run: compare, next: 'done' },
 ];
 
 /**

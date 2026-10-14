@@ -10,6 +10,7 @@ import { app } from '../app';
 import { bucket, db } from '../firebase';
 import { readDocument } from '../agents/reader';
 import { proposeFacts, proposeRules } from '../agents/rule-extractor';
+import { judge } from '../agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from '../agents/scenario-fuzzer';
 
 // Run through `pnpm test`: Firestore and Storage are the emulators. Only the
@@ -21,6 +22,14 @@ vi.mock('../firebase', async (original) => ({
 vi.mock('../agents/reader');
 vi.mock('../agents/rule-extractor');
 vi.mock('../agents/scenario-fuzzer');
+vi.mock('../agents/trap-writer', async (original) => ({
+  ...(await original<typeof import('../agents/trap-writer')>()),
+  writeTraps: vi.fn(async () => []),
+}));
+vi.mock('../agents/expectation-judge', async (original) => ({
+  ...(await original<typeof import('../agents/expectation-judge')>()),
+  judge: vi.fn(),
+}));
 
 const reader = vi.mocked(readDocument);
 const ruleWriter = vi.mocked(proposeRules);
@@ -61,6 +70,9 @@ beforeEach(async () => {
   ruleWriter.mockResolvedValue(proposedRules.rules);
   vi.mocked(proposeScenarios).mockResolvedValue(proposedScenarios.scenarios);
   vi.mocked(tellBoundaries).mockResolvedValue([]);
+  vi.mocked(judge).mockResolvedValue([
+    { id: 's-002', result: 'fine', reason: 'An illness is covered.' },
+  ]);
   await upload('alice', 'analysis-1', '0-page.jpg');
 });
 
@@ -278,10 +290,10 @@ test('the owner confirms the details and the rules are derived', async () => {
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({
     analysisId: 'analysis-1',
-    status: 'comparing',
+    status: 'done',
   });
   expect(await stored('analysis-1')).toMatchObject({
-    status: 'comparing',
+    status: 'done',
     counts: { clauses: 3, rules: 3, scenarios: 3, fine: 1, bad: 1 },
     meta: {
       docType: 'loan',

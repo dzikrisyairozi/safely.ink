@@ -146,6 +146,10 @@
       "running": {
         "title": "Aturan tidak dapat diuji",
         "description": "Terjadi kesalahan saat kami menjalankan situasi melalui aturan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
+      },
+      "comparing": {
+        "title": "Hasil tidak dapat dibandingkan",
+        "description": "Terjadi kesalahan saat kami membandingkan hasil dengan apa yang wajar diharapkan. Proses ini tidak mengurangi batas harian Anda; silakan unggah dokumen lagi."
       }
     },
     "extractingRules": {
@@ -162,10 +166,22 @@
       "description_one": "Kami sedang menjalankan {{count}} situasi melalui aturan dokumen Anda. Ini hanya sebentar.",
       "description_other": "Kami sedang menjalankan {{count}} situasi melalui aturan dokumen Anda. Ini hanya sebentar."
     },
-    "tested": {
-      "title": "Kami telah menguji dokumen Anda",
-      "description_one": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Langkah berikutnya adalah membandingkan hasilnya dengan apa yang wajar diharapkan dan dengan hukum, dan itu belum tersedia.",
-      "description_other": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Langkah berikutnya adalah membandingkan hasilnya dengan apa yang wajar diharapkan dan dengan hukum, dan itu belum tersedia."
+    "comparing": {
+      "title": "Membandingkan dengan yang Anda harapkan",
+      "description_one": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Sekarang kami membandingkan hasilnya dengan apa yang wajar diharapkan orang di posisi Anda.",
+      "description_other": "Kami menjalankan {{count}} situasi nyata melalui aturannya. Sekarang kami membandingkan setiap hasil dengan apa yang wajar diharapkan orang di posisi Anda."
+    },
+    "done": {
+      "title": "Nilai {{grade}}",
+      "noTraps": "Tidak ada situasi yang berakhir lebih buruk daripada yang wajar diharapkan.",
+      "traps_one": "{{count}} jebakan ditemukan: bagian di mana dokumen memberi Anda kurang dari yang wajar diharapkan.",
+      "traps_other": "{{count}} jebakan ditemukan: bagian di mana dokumen memberi Anda kurang dari yang wajar diharapkan.",
+      "confidence": {
+        "high": "Keyakinan atas nilai ini: tinggi.",
+        "medium": "Keyakinan atas nilai ini: sedang.",
+        "low": "Keyakinan atas nilai ini: rendah."
+      },
+      "next": "Hukum belum dibandingkan, dan laporan lengkap adalah langkah berikutnya."
     },
     "rulesLink": "Cara kami membaca dokumen Anda"
   },

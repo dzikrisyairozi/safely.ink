@@ -161,18 +161,23 @@ export const Outcome = z.object({
 });
 export type Outcome = z.infer<typeof Outcome>;
 
-// The Firestore document analyses/{id}/scenarios/{id}. The outcome is there
-// once the scenario was run.
-export const StoredScenario = Scenario.extend({ outcome: Outcome.optional() });
-export type StoredScenario = z.infer<typeof StoredScenario>;
-
 // What a reasonable person in the user's role would expect, judged without
 // the fine print.
 export const Expectation = z.object({
   result: z.enum(['fine', 'partly_bad', 'bad']),
-  reason: z.string(),
+  // From the model: one short sentence. It goes through the neutral check of
+  // agents/trap-writer.ts before the report shows it.
+  reason: z.string().max(300),
 });
 export type Expectation = z.infer<typeof Expectation>;
+
+// The Firestore document analyses/{id}/scenarios/{id}. The outcome is there
+// once the scenario was run, the expectation once it was compared.
+export const StoredScenario = Scenario.extend({
+  outcome: Outcome.optional(),
+  expectation: Expectation.optional(),
+});
+export type StoredScenario = z.infer<typeof StoredScenario>;
 
 export const Citation = z.object({
   instrument: z.string(), // "Insurance Act 1966"
@@ -293,9 +298,16 @@ export const Analysis = z.object({
       partlyBad: z.number().int(),
       bad: z.number().int(),
       undetermined: z.number().int(),
+      // Scenarios with an expectation. Fewer than `scenarios` when a call of
+      // the judge failed.
+      judged: z.number().int(),
+      traps: z.number().int(),
     })
     .partial()
     .optional(),
+  // From code, once the scenarios are compared (TSD 5.7).
+  grade: Grade.optional(),
+  confidence: Confidence.optional(),
 });
 export type Analysis = z.infer<typeof Analysis>;
 

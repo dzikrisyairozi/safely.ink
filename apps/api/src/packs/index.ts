@@ -11,6 +11,9 @@ export type Pack = {
   // Situations worth trying, per strategy (F-FUZZ-4). Boundary scenarios
   // are built in code from the rules and need none.
   seeds: Record<WrittenStrategy, string[]>;
+  // What people in the user's role take for granted, and what they know
+  // they do not get (F-CMP-1). For the judge, who sees no fine print.
+  hints: string[];
 };
 
 const packs: Partial<Record<DocType, Pack>> = { insurance, terms };

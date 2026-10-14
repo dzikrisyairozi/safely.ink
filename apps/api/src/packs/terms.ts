@@ -40,4 +40,14 @@ export const terms: Pack = {
       'the customer loses data and the cap on liability is less than what was paid',
     ],
   },
+  hints: [
+    'a customer can stop a subscription and is not charged for a new period after that',
+    'a renewal is announced before the money is taken',
+    'a price or a term does not change in the middle of a period already paid for',
+    'money paid for a service that was not delivered comes back',
+    'prepaid credit is not lost when an account is closed',
+    'an account is not closed without a reason and a chance to answer',
+    'people accept that a period already used is not refunded',
+    'people accept that an account is suspended for clear abuse or for not paying',
+  ],
 };

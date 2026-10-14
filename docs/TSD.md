@@ -57,7 +57,7 @@ Three deployables, all on Google Cloud, all scale to zero.
 | Auth             | Firebase Auth, Google provider only                                         | F-AUTH-1.                                                                                                                     |
 | Live progress    | Firestore `onSnapshot` from the browser                                     | No SSE or WebSocket code. The API only writes documents.                                                                      |
 | Shared types     | Zod schemas in `@repo/api-types`                                            | One source of truth for API, agents' structured output, Firestore documents and UI.                                           |
-| Long request     | The confirm request stays open for the run (Cloud Run timeout 600 s)        | Avoids a queue for the hackathon. Ceiling: one run per request; move to Cloud Tasks when runs outgrow a request.              |
+| Long request     | The confirm request stays open for the run (Cloud Run timeout 900 s)        | Avoids a queue for the hackathon. Ceiling: one run per request; move to Cloud Tasks when runs outgrow a request.              |
 
 ### Models
 
@@ -142,8 +142,9 @@ language is derived from the document, not hard-coded per document type:
    repaired once, then demoted (rule → `unmodeled`) or dropped (scenario).
 
 Packs (`apps/api/src/packs/*.ts`) add prompt content only. A pack holds the facts worth
-looking for and, per strategy, situations worth trying (the scenario seeds). Expectation
-hints arrive with the judge. `insurance` and `terms` have their own pack. Every other type uses the general
+looking for, per strategy the situations worth trying (the scenario seeds), and what
+people in that role take for granted (the expectation hints, read only by the judge).
+`insurance` and `terms` have their own pack. Every other type uses the general
 pack (termination, auto-renewal, fees, unilateral change, liability, dispute venue) until
 its own is written.
 
@@ -190,13 +191,13 @@ Storage: `uploads/{uid}/{analysisId}/{n}-{filename}`.
 
 All routes require `Authorization: Bearer <Firebase ID token>`, verified with the Admin SDK.
 
-| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| -------- | -------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read**, sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                               |
-| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `comparing` while the later stages are not built, or `failed`. A failed stage is that status with 200, not an HTTP error. |
-| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                                                                                                                                                                                                                                                                     |
-| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                                                                    |
+| Method   | Path                       | Body                                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                        |
+| -------- | -------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/health`                  | —                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                       |
+| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[] }`     | Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read**, sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.    |
+| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }` | Owner only; anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error. |
+| `POST`   | `/v1/analyses/:id/retry`   | —                                     | Owner only. Resumes from the failed stage using stored sub-collections.                                                                                                                                                                                                                                                                                                          |
+| `DELETE` | `/v1/analyses/:id`         | —                                     | Owner only. Recursive delete of the document tree and the upload folder.                                                                                                                                                                                                                                                                                                         |
 
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
@@ -213,10 +214,12 @@ analysis document after each step, and writes sub-collection documents as soon a
 exist (so the UI updates live). A stage that throws sets `failed` with the stage name and
 gives back the daily slot of the day it was taken on (`reservedAt`).
 
-Built so far: `extracting_rules`, `fuzzing`, `running`. Each stage names the status that
-follows it, and the run starts at the stage that matches the status of the analysis. A
-stage reads its input from Firestore, not from the stage before it, so what is evaluated
-is what is stored. After `running` the analysis waits at `comparing`.
+Built so far: `extracting_rules`, `fuzzing`, `running`, `comparing`. Each stage names the
+status that follows it, and the run starts at the stage that matches the status of the
+analysis. A stage reads its input from Firestore, not from the stage before it, so what is
+evaluated is what is stored. After `comparing` the analysis is `done`. The legal lookup
+(5.6) is not built: `comparing` gives `score()` no findings, so a trap comes only from an
+outcome worse than the expectation.
 
 ### 5.1 Reader (agent, Pro)
 
@@ -252,7 +255,7 @@ is what is stored. After `running` the analysis waits at `comparing`.
   checked on its own, so one entry that does not fit does not cost the others. A fact key
   must be a camelCase name, and at most 35 proposed facts are kept.
 - Time limits per call: facts 100 s, rules 240 s, repair 120 s. The stages of the
-  confirm request must end within 550 s; the fuzzer gets what these calls leave of it
+  confirm request must end within 850 s; the fuzzer gets what these calls leave of it
   (5.3).
 - An `unmodeled` rule lists in `touches` only facts about that clause alone, and none
   when there is no such fact: stage 4 of `evaluate()` answers `undetermined` as soon as
@@ -281,7 +284,8 @@ is what is stored. After `running` the analysis waits at `comparing`.
   `neutral`. The step is 1 for every unit, and at most 5 thresholds are used, rules
   against the user first. The sixth call gets these situations in words and returns only
   the story, the frequency and the stake.
-- A call may take what is left of the 550 s of the request when the stage starts, at
+- A call may take what is left of the 850 s of the request when the stage starts, less
+  the 150 s kept for the judge and the wording (5.5, 5.7), at
   least 90 s and at most 240 s. The earlier calls seldom use their whole limit, and at a
   fixed 90 s the baseline call did not answer in 1 live run of 3. A call that fails or
   does not answer in time is logged and the stage goes on with the others.
@@ -338,7 +342,21 @@ comparison on a non-number, throws instead of quietly evaluating to false.
   summaries, and the scenario story. It does not see exclusions, conditions, charges or
   the outcome (F-CMP-1). This independence is the point: it stands in for the person who
   did not read the fine print.
-- Output: `{ result, reason }` per scenario, batched.
+- Output: `{ result, reason }` per scenario, batched. `reason` is at most 300 characters,
+  and the report runs it through the neutral check (5.7) before showing it.
+- The input is built by one function, `judgeInput()` in `agents/expectation-judge.ts`,
+  and a test fails when it holds anything else. The description of the document is made by
+  code from the document type and the country; the title and the names of the parties are
+  not passed, because they can say more than the kind of document does.
+- Batches of 10 scenarios run side by side, 90 s each (with 20, a call did not always
+  answer in time). An answer is kept if it parses and
+  is for a scenario of its batch. A batch that fails is logged, and its scenarios have no
+  expectation, so they are not traps by expectation. If no scenario at all has one, the
+  stage fails: a report without traps would say the document is fine.
+- `counts.judged` is the number of scenarios with an expectation. When it is below
+  `counts.scenarios` the grade may be too good, so the stage stores a confidence of
+  `medium` at best. The cap is in the stage and not in `score()`, which sees only what
+  was judged.
 
 ### 5.6 LegalResearcher (agent, Pro, with Google Search)
 
@@ -393,8 +411,18 @@ scenario ID), legal findings (by rule ID) and the analysis meta.
 - Confidence: `high` if undetermined share < 10% and no unreadable pages, `medium` < 25%,
   else `low`. The general pack caps confidence at `medium`. A run with no outcomes is
   `low`: nothing tested is not the same as nothing found.
-- Trap titles and "what you can do" text are written by one final Flash call from the
-  structured trap data; the numbers above are never produced by the model.
+- Trap titles and "what you can do" text are written by one final Flash call (60 s) from
+  the structured trap data: the deciding rule and up to two example scenarios per trap.
+  The numbers above are never produced by the model; only `title` and `action` are read
+  from its answer. `action` is questions to ask the other party; where to get help comes
+  with the legal comparison.
+- The traps, the grade and the confidence are stored before that call. If it fails, the
+  analysis is still `done` and `title` and `action` stay null; the report shows the rule's
+  summary instead.
+- Neutral wording (F-REP-7) is asked for in the instruction and checked by code: a title
+  or an action with an accusing word (`ACCUSING` in `agents/trap-writer.ts`) is stored as
+  null. So is one with a number that is not in what the model was told about that trap:
+  the numbers of a trap come from code, never from the model.
 
 The weights are a first guess and are kept in `config.ts` (`config.scoring`) for tuning
 against real documents. The pipeline passes them to `score()`; the engine does not import
@@ -467,7 +495,7 @@ Region: `asia-southeast2` (Jakarta) for Cloud Run and Firestore.
 ```bash
 # API: build the image from apps/api/Dockerfile with the repo root as context, then
 gcloud run deploy api --image <IMAGE> --region asia-southeast2 \
-  --timeout 600 --memory 1Gi --concurrency 4 --min-instances 0 --max-instances 5 \
+  --timeout 900 --memory 1Gi --concurrency 4 --min-instances 0 --max-instances 5 \
   --set-secrets GEMINI_API_KEY=gemini-api-key:latest --allow-unauthenticated
 # Dashboard + rules
 pnpm build:dashboard && firebase deploy --only hosting,firestore,storage
@@ -537,7 +565,7 @@ the analysis document for the eval report.
 
 | Shortcut                          | Ceiling                                                         | Upgrade path                                                 |
 | --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ |
-| Run inside the HTTP request       | One run per request, 600 s                                      | Cloud Tasks + worker service                                 |
+| Run inside the HTTP request       | One run per request, 900 s                                      | Cloud Tasks + worker service                                 |
 | AI Studio key                     | Lower rate limits, key management                               | Vertex AI with service-account auth                          |
 | Fact schema invented per document | Two analyses of similar documents are not directly comparable   | Canonical fact library per pack, mapped from derived schemas |
 | Flat condition language           | Discretion, vagueness and multi-step procedures are `unmodeled` | Richer rule language; LLM adjudicator for unmodeled rules    |

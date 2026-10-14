@@ -149,7 +149,7 @@ Each requirement has an ID used by the TSD and by tests.
 | F-REP-1 | The report header shows title, other party, document type, the user's role, jurisdiction, date, grade, confidence, and counts: scenarios tested, fine, partly bad, bad, unclear, traps.       |
 | F-REP-2 | Traps are listed by severity. Each row shows a plain-English title, the severity, and "You'd expect: … / The document says: …".                                                               |
 | F-REP-3 | Opening a trap shows: example scenario(s), outcome and amounts, expectation and reason, the rule trace, the verbatim clause with page number, and the legal finding with citations and links. |
-| F-REP-4 | Critical and high traps show a "what you can do" note: questions to ask the other party before signing, and where to get help in that jurisdiction.                                           |
+| F-REP-4 | Critical and high traps show a "what you can do" note: questions to ask the other party before signing. Where to get help in that jurisdiction is added with the legal comparison.            |
 | F-REP-5 | A "What works in your favour" section lists the baseline scenarios that came out `fine`.                                                                                                      |
 | F-REP-6 | The disclaimer is visible on the report without scrolling to the end.                                                                                                                         |
 | F-REP-7 | Wording is neutral. The report describes what the wording does; it does not accuse the other party.                                                                                           |
