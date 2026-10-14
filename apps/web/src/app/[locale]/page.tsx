@@ -7,6 +7,7 @@ import { Faq, faqItems } from '@/components/home/faq';
 import { Hero } from '@/components/home/hero';
 import { Intro } from '@/components/home/intro';
 import { SampleTrap } from '@/components/home/sample-trap';
+import { Showreel } from '@/components/home/showreel';
 import { Steps } from '@/components/home/steps';
 import { getT } from '@/i18n/translate';
 import {
@@ -49,6 +50,7 @@ export default async function Home({ params }: Props) {
       <Hero locale={locale} />
       <Steps locale={locale} />
       <SampleTrap locale={locale} />
+      <Showreel locale={locale} />
       <Descent />
       <Coverage locale={locale} />
       <Comparison locale={locale} />

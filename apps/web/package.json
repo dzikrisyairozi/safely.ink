@@ -12,7 +12,7 @@
     "test": "vitest run",
     "reel:studio": "remotion studio src/remotion/index.ts",
     "reel:render": "remotion render src/remotion/index.ts reel-wide public/reel/showreel-en.mp4 --props=src/remotion/props/en.json --crf=30 && remotion render src/remotion/index.ts reel-wide public/reel/showreel-id.mp4 --props=src/remotion/props/id.json --crf=30",
-    "reel:stills": "remotion still src/remotion/index.ts reel-wide public/reel/poster-en-wide.webp --frame=1170 --image-format=webp --props=src/remotion/props/en.json && remotion still src/remotion/index.ts reel-tall public/reel/poster-en-tall.webp --frame=1170 --image-format=webp --props=src/remotion/props/en.json && remotion still src/remotion/index.ts reel-wide public/reel/poster-id-wide.webp --frame=1170 --image-format=webp --props=src/remotion/props/id.json && remotion still src/remotion/index.ts reel-tall public/reel/poster-id-tall.webp --frame=1170 --image-format=webp --props=src/remotion/props/id.json"
+    "reel:stills": "remotion still src/remotion/index.ts reel-wide public/reel/poster-en-wide.jpg --frame=925 --image-format=jpeg --jpeg-quality=82 --props=src/remotion/props/en.json && remotion still src/remotion/index.ts reel-tall public/reel/poster-en-tall.jpg --frame=925 --image-format=jpeg --jpeg-quality=82 --props=src/remotion/props/en.json && remotion still src/remotion/index.ts reel-wide public/reel/poster-id-wide.jpg --frame=925 --image-format=jpeg --jpeg-quality=82 --props=src/remotion/props/id.json && remotion still src/remotion/index.ts reel-tall public/reel/poster-id-tall.jpg --frame=925 --image-format=jpeg --jpeg-quality=82 --props=src/remotion/props/id.json"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
