@@ -1,5 +1,10 @@
 import { expect, test, vi } from 'vitest';
-import type { AnalysisMeta, Rule, StoredScenario } from '@repo/api-types';
+import {
+  NO_COUNTRY,
+  type AnalysisMeta,
+  type Rule,
+  type StoredScenario,
+} from '@repo/api-types';
 import { config } from '../config';
 import type { Pack } from '../packs';
 import { judge, judgeInput } from './expectation-judge';
@@ -105,6 +110,14 @@ test('the judge is given the kind of document, the role, the hints, the benefits
     benefits: ['The insurer pays inpatient costs.'],
     scenarios: [{ id: 's-001', story: scenario.story }],
   });
+});
+
+test('without a known country, the judge is told only the kind of document', () => {
+  const input = judgeInput({ ...meta, jurisdiction: NO_COUNTRY }, pack, rules, [
+    scenario,
+  ]);
+
+  expect(input.document).toBe('an insurance policy');
 });
 
 // F-CMP-1. This fails when a field of a rule, a scenario or the document is

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   Expectation,
+  NO_COUNTRY,
   type AnalysisMeta,
   type DocType,
   type Rule,
@@ -58,7 +59,10 @@ export const judgeInput = (
   rules: Rule[],
   scenarios: Scenario[],
 ) => ({
-  document: `${KIND[meta.docType]}, country: ${meta.jurisdiction}`,
+  document:
+    meta.jurisdiction === NO_COUNTRY
+      ? KIND[meta.docType]
+      : `${KIND[meta.docType]}, country: ${meta.jurisdiction}`,
   userRole: meta.userRole,
   hints: pack.hints,
   benefits: rules
