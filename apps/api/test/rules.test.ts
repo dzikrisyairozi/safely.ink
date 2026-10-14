@@ -11,6 +11,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  orderBy,
   query,
   setDoc,
   setLogLevel,
@@ -85,6 +86,19 @@ describe('firestore: analyses', () => {
     );
     expect(own.size).toBe(1);
     await assertFails(getDocs(analyses));
+  });
+
+  test('the history query passes for the owner only', async () => {
+    // The exact query of the history screen (F-HIST-1).
+    const history = (uid: string) =>
+      query(
+        collection(env.authenticatedContext(uid).firestore(), 'analyses'),
+        where('ownerUid', '==', 'alice'),
+        orderBy('createdAt', 'desc'),
+      );
+
+    await assertSucceeds(getDocs(history('alice')));
+    await assertFails(getDocs(history('bob')));
   });
 
   test('another user cannot read the analysis or its sub-collections', async () => {
