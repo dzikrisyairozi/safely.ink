@@ -46,11 +46,13 @@ gcloud artifacts repositories create api --repository-format=docker \
   --location=asia-southeast2
 gcloud auth configure-docker asia-southeast2-docker.pkg.dev
 
-# Uploaded documents are deleted after 7 days (F-HIST-3).
-echo '{"rule":[{"action":{"type":"Delete"},"condition":{"age":7,"matchesPrefix":["uploads/"]}}]}' > lifecycle.json
+# Uploaded documents are deleted after 7 days (F-HIST-3). The Firebase CLI does
+# not deploy lifecycle rules, so the committed file is applied with gcloud.
 gcloud storage buckets update gs://policy-police-96af6.firebasestorage.app \
-  --lifecycle-file=lifecycle.json
-rm lifecycle.json
+  --lifecycle-file=storage-lifecycle.json
+# Check: the rule is listed.
+gcloud storage buckets describe gs://policy-police-96af6.firebasestorage.app \
+  --format="default(lifecycle_config)"
 ```
 
 Set a budget alert on the billing account (Billing → Budgets & alerts).
