@@ -26,7 +26,7 @@
     "answer": "safely.ink attacks your document with tricky, realistic scenarios first, and shows every case where you end up worse off than you would expect, or than the law allows."
   },
   "steps": {
-    "heading": "Four steps, about two minutes",
+    "heading": "Four steps, a few minutes",
     "lead": "The same technique software testers use to break code, aimed at a contract.",
     "read": {
       "title": "Read",
@@ -132,7 +132,7 @@
       },
       "time": {
         "q": "How long does a check take?",
-        "a": "About two minutes for a typical document. You can watch each stage, from reading to comparing, while it runs."
+        "a": "A few minutes for a typical document. You can watch each stage, from reading to comparing, while it runs."
       },
       "decides": {
         "q": "Who decides whether something is a trap: a model or code?",
@@ -154,7 +154,7 @@
   },
   "closing": {
     "heading": "Find out where it breaks while you can still say no",
-    "body": "Upload the policy or contract in front of you. In about two minutes you will see the scenarios where it leaves you worse off."
+    "body": "Upload the policy or contract in front of you. In a few minutes you will see the scenarios where it leaves you worse off."
   },
   "footer": {
     "tagline": "A policy fuzzer: it attacks the fine print with tricky scenarios before the fine print gets the chance to attack you.",
@@ -250,7 +250,7 @@
     "related": "Keep reading",
     "all": "All articles",
     "home": "Home",
-    "checkBody": "Upload the policy or contract in front of you and see where it leaves you worse off, in about two minutes.",
+    "checkBody": "Upload the policy or contract in front of you and see where it leaves you worse off, in a few minutes.",
     "feed": "RSS feed",
     "tags": {
       "guides": "Guides",

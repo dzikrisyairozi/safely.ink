@@ -26,7 +26,7 @@
     "answer": "safely.ink lebih dulu menguji dokumen Anda dengan skenario yang sulit namun realistis, lalu menunjukkan setiap kasus di mana posisi Anda lebih buruk dari yang Anda kira, atau dari yang diizinkan hukum."
   },
   "steps": {
-    "heading": "Empat langkah, sekitar dua menit",
+    "heading": "Empat langkah, beberapa menit",
     "lead": "Teknik yang dipakai penguji perangkat lunak untuk membongkar kode, kini diarahkan ke kontrak.",
     "read": {
       "title": "Baca",
@@ -132,7 +132,7 @@
       },
       "time": {
         "q": "Berapa lama satu pemeriksaan?",
-        "a": "Sekitar dua menit untuk dokumen pada umumnya. Anda bisa melihat setiap tahapnya, dari membaca hingga membandingkan, selama proses berjalan."
+        "a": "Beberapa menit untuk dokumen pada umumnya. Anda bisa melihat setiap tahapnya, dari membaca hingga membandingkan, selama proses berjalan."
       },
       "decides": {
         "q": "Siapa yang memutuskan sesuatu adalah jebakan: model atau kode?",
@@ -154,7 +154,7 @@
   },
   "closing": {
     "heading": "Ketahui di mana kontrak itu bermasalah selagi Anda masih bisa menolak",
-    "body": "Unggah polis atau kontrak yang ada di depan Anda. Dalam sekitar dua menit Anda akan melihat skenario yang merugikan Anda."
+    "body": "Unggah polis atau kontrak yang ada di depan Anda. Dalam beberapa menit Anda akan melihat skenario yang merugikan Anda."
   },
   "footer": {
     "tagline": "Policy fuzzer: menguji ketentuan dengan skenario sulit sebelum ketentuan itu merugikan Anda.",
@@ -250,7 +250,7 @@
     "related": "Baca juga",
     "all": "Semua artikel",
     "home": "Beranda",
-    "checkBody": "Unggah polis atau kontrak yang ada di depan Anda dan lihat di mana posisi Anda dirugikan, dalam sekitar dua menit.",
+    "checkBody": "Unggah polis atau kontrak yang ada di depan Anda dan lihat di mana posisi Anda dirugikan, dalam beberapa menit.",
     "feed": "Umpan RSS",
     "tags": {
       "guides": "Panduan",
