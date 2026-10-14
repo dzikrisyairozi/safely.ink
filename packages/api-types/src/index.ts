@@ -165,7 +165,9 @@ export type Outcome = z.infer<typeof Outcome>;
 // the fine print.
 export const Expectation = z.object({
   result: z.enum(['fine', 'partly_bad', 'bad']),
-  reason: z.string(),
+  // From the model: one short sentence. It goes through the neutral check of
+  // agents/trap-writer.ts before the report shows it.
+  reason: z.string().max(300),
 });
 export type Expectation = z.infer<typeof Expectation>;
 

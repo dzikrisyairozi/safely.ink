@@ -114,6 +114,12 @@ test('an expectation is never undetermined', () => {
   ).toBe(false);
 });
 
+test('the reason of an expectation is one short sentence', () => {
+  const long = { result: 'fine', reason: 'Because. '.repeat(40) };
+
+  expect(Expectation.safeParse(long).success).toBe(false);
+});
+
 test('a legal finding needs a citation unless it found nothing', () => {
   const finding = {
     status: 'conflicts',

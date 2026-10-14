@@ -342,7 +342,8 @@ comparison on a non-number, throws instead of quietly evaluating to false.
   summaries, and the scenario story. It does not see exclusions, conditions, charges or
   the outcome (F-CMP-1). This independence is the point: it stands in for the person who
   did not read the fine print.
-- Output: `{ result, reason }` per scenario, batched.
+- Output: `{ result, reason }` per scenario, batched. `reason` is at most 300 characters,
+  and the report runs it through the neutral check (5.7) before showing it.
 - The input is built by one function, `judgeInput()` in `agents/expectation-judge.ts`,
   and a test fails when it holds anything else. The description of the document is made by
   code from the document type and the country; the title and the names of the parties are
