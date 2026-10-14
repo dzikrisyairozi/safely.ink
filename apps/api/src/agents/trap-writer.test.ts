@@ -46,6 +46,10 @@ const words = {
   action: 'Does the waiting period also apply to an emergency?',
 };
 
+// The trap with its brief, as the stage passes them.
+const wordedFor = (answers: unknown[]) =>
+  worded([trap], answers, trapBriefs([trap], [rule], [scenario('s-001')]));
+
 test.each([
   'This clause is a scam',
   'The insurer tricks you out of your claim',
@@ -62,13 +66,13 @@ test('a plain description of what the document does is neutral', () => {
 });
 
 test('a trap gets the title and the questions written for it', () => {
-  expect(worded([trap], [words])).toEqual([
+  expect(wordedFor([words])).toEqual([
     { ...trap, title: words.title, action: words.action },
   ]);
 });
 
 test('a text that accuses is left out, and the other one stays', () => {
-  const [told] = worded([trap], [{ ...words, title: 'A scam on day 29' }]);
+  const [told] = wordedFor([{ ...words, title: 'A scam on day 29' }]);
 
   expect(told).toEqual({ ...trap, title: null, action: words.action });
 });
@@ -82,7 +86,22 @@ test.each([
   ],
   ['that is not an object', 'trap-r-002'],
 ])('an answer %s changes nothing', (_, answer) => {
-  expect(worded([trap], [answer])).toEqual([trap]);
+  expect(wordedFor([answer])).toEqual([trap]);
+});
+
+test.each([
+  ['the rule', 'An illness in the first 30 days is not paid'],
+  ['an example, as written for people', 'Rp 5.000.000 lost in the first days'],
+])('a number from %s may be in the words', (_, title) => {
+  expect(wordedFor([{ ...words, title }])[0]!.title).toBe(title);
+});
+
+test('a text with a number the model made up is left out, and the other one stays', () => {
+  const [told] = wordedFor([
+    { ...words, title: 'An illness in the first 90 days is not paid' },
+  ]);
+
+  expect(told).toEqual({ ...trap, title: null, action: words.action });
 });
 
 test('only the words come from the answer, never the numbers', () => {
@@ -93,7 +112,7 @@ test('only the words come from the answer, never the numbers', () => {
     scenarioIds: [],
   };
 
-  expect(worded([trap], [answer])[0]).toMatchObject({
+  expect(wordedFor([answer])[0]).toMatchObject({
     severity: 'high',
     ruleId: 'r-002',
     scenarioIds: trap.scenarioIds,

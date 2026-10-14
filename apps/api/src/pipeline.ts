@@ -322,7 +322,7 @@ async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
     console.error(err);
     return [];
   });
-  await saveAll(analysis, 'traps', worded(traps, words));
+  await saveAll(analysis, 'traps', worded(traps, words, briefs));
 }
 
 type Stage = {

@@ -420,7 +420,8 @@ scenario ID), legal findings (by rule ID) and the analysis meta.
   summary instead.
 - Neutral wording (F-REP-7) is asked for in the instruction and checked by code: a title
   or an action with an accusing word (`ACCUSING` in `agents/trap-writer.ts`) is stored as
-  null.
+  null. So is one with a number that is not in what the model was told about that trap:
+  the numbers of a trap come from code, never from the model.
 
 The weights are a first guess and are kept in `config.ts` (`config.scoring`) for tuning
 against real documents. The pipeline passes them to `score()`; the engine does not import

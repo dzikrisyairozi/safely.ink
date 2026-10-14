@@ -89,12 +89,23 @@ const ACCUSING =
   /\b(scam|fraud|cheat|illegal|unlawful|dishonest|decepti|deceiv|trick|steal|theft|rip-?off)/i;
 export const neutral = (text: string) => !ACCUSING.test(text);
 
+// The numbers in a text, with the separators of thousands and decimals
+// dropped, so "5.000.000" and 5000000 are the same number.
+// ponytail: numbers in words ("thirty") are not caught.
+const numbers = (text: string): string[] =>
+  text.replace(/(\d)[.,](?=\d)/g, '$1').match(/\d+/g) ?? [];
+
 /**
  * The traps with the words the model gave them. Only title and action come
- * from the answer, each on its own: one that accuses is left out, and the
+ * from the answer, each on its own: one that accuses, or has a number that
+ * is not in what the model was told about the trap, is left out, and the
  * report shows the rule's summary in its place.
  */
-export function worded(traps: Trap[], answers: unknown[]): Trap[] {
+export function worded(
+  traps: Trap[],
+  answers: unknown[],
+  briefs: ReturnType<typeof trapBriefs>,
+): Trap[] {
   const told = new Map(
     answers.flatMap((answer) => {
       const parsed = Worded.safeParse(answer);
@@ -104,13 +115,15 @@ export function worded(traps: Trap[], answers: unknown[]): Trap[] {
   return traps.map((trap) => {
     const words = told.get(trap.id);
     if (!words) return trap;
-    for (const text of [words.title, words.action]) {
-      if (!neutral(text)) console.warn(`Not neutral, left out: ${text}`);
-    }
-    return {
-      ...trap,
-      title: neutral(words.title) ? words.title : null,
-      action: neutral(words.action) ? words.action : null,
+    const known = numbers(
+      JSON.stringify(briefs.find((brief) => brief.id === trap.id) ?? {}),
+    );
+    const fit = (text: string) => {
+      const ok = neutral(text) && numbers(text).every((n) => known.includes(n));
+      if (!ok)
+        console.warn(`Not neutral or not in the brief, left out: ${text}`);
+      return ok ? text : null;
     };
+    return { ...trap, title: fit(words.title), action: fit(words.action) };
   });
 }
