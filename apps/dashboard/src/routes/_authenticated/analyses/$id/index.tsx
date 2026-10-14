@@ -24,6 +24,14 @@ function AnalysisPage() {
   if (failed) return <GeneralError />;
   // Missing, or someone else's.
   if (analysis === null) return <NotFoundError />;
+  if (
+    traps === null ||
+    rules === null ||
+    scenarios === null ||
+    clauses === null
+  ) {
+    return <GeneralError />;
+  }
 
   return (
     <>
@@ -33,10 +41,10 @@ function AnalysisPage() {
           <AnalysisView
             id={id}
             analysis={analysis}
-            traps={traps ?? []}
-            rules={rules ?? []}
-            scenarios={scenarios ?? []}
-            clauses={clauses ?? []}
+            traps={traps}
+            rules={rules}
+            scenarios={scenarios}
+            clauses={clauses}
             onConfirm={async (details) => {
               await api(`/v1/analyses/${id}/confirm`, {
                 method: 'POST',

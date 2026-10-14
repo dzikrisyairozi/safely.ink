@@ -294,15 +294,15 @@ export function AnalysisView({
 }: {
   id: string;
   analysis: Analysis;
-  // Live from their sub-collections; empty until the listeners answer.
-  traps: Trap[];
-  rules: Rule[];
-  scenarios: StoredScenario[];
-  clauses: Clause[];
+  // Live from their sub-collections; undefined until the listeners answer.
+  traps: Trap[] | undefined;
+  rules: Rule[] | undefined;
+  scenarios: StoredScenario[] | undefined;
+  clauses: Clause[] | undefined;
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
   // Resolves when the run it starts has ended; the screen follows the status.
   onRetry: () => Promise<void>;
-}): JSX.Element {
+}): JSX.Element | null {
   const { t } = useTranslation('dashboard');
 
   if (analysis.status === 'awaiting_confirmation' && analysis.meta) {
@@ -351,11 +351,13 @@ export function AnalysisView({
           id={id}
           analysis={analysis}
           status={analysis.status}
-          traps={traps}
-          rules={rules}
+          traps={traps ?? []}
+          rules={rules ?? []}
         />
       );
     case 'done':
+      // A report without its traps would say there are none.
+      if (!traps || !rules || !scenarios || !clauses) return null;
       // Done always has its details; without them there is nothing to show.
       return analysis.meta ? (
         <ReportView

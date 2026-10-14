@@ -379,3 +379,31 @@ test('a retry that does not go through can be tried again', async () => {
     /Could not start again/,
   );
 });
+
+test('a finished report waits for its traps instead of saying there are none', () => {
+  const done = analysis({
+    status: 'done',
+    grade: 'D',
+    meta: { ...meta, userRole: 'insured' },
+  });
+  const report = (traps: [] | undefined) => (
+    <AnalysisView
+      id="analysis-1"
+      analysis={done}
+      traps={traps}
+      rules={[]}
+      scenarios={[]}
+      clauses={[]}
+      onConfirm={vi.fn(async () => {})}
+      onRetry={vi.fn(async () => {})}
+    />
+  );
+  const { rerender } = render(report(undefined));
+
+  expect(screen.queryByText(/No situation ended worse/)).toBeNull();
+  expect(screen.queryByText('D')).toBeNull();
+
+  rerender(report([]));
+
+  expect(screen.getByText(/No situation ended worse/)).toBeTruthy();
+});
