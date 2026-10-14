@@ -1,4 +1,6 @@
 import en from '@/i18n/locales/en.json';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { listPosts, plainText, postSource } from '@/lib/blog';
 import { absoluteUrl } from '@/lib/seo';
 import { CONTACT_EMAIL, SITE_NAME, localePath } from '@/lib/site';
@@ -30,6 +32,7 @@ export function llmsTxt() {
     '',
     `- [Home](${absoluteUrl(localePath('en'))}): what safely.ink does, the four steps, a sample trap, coverage and FAQ`,
     `- [Beranda](${absoluteUrl(localePath('id'))}): the same page in Indonesian`,
+    `- [How it works](${absoluteUrl(localePath('en', '/how-it-works'))}): the pipeline, why code decides outcomes, and how citations are verified`,
     `- [Blog](${absoluteUrl(localePath('en', '/blog'))}): plain-language guides to contract clauses`,
     `- [Full text](${absoluteUrl('/llms-full.txt')}): this site's pages and articles as plain text`,
     '',
@@ -71,6 +74,15 @@ export function llmsFullTxt() {
     '## FAQ',
     '',
     faq(),
+    '',
+    `# ${en.pages.howItWorks.title}`,
+    '',
+    plainText(
+      readFileSync(
+        join(process.cwd(), 'content/pages/en/how-it-works.mdx'),
+        'utf8',
+      ),
+    ),
     '',
     ...articles.flatMap((a) => [a, '']),
   ].join('\n');

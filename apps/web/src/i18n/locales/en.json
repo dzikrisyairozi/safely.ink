@@ -11,7 +11,8 @@
     "home": "safely.ink home",
     "language": "Language",
     "theme": "Switch between light and dark",
-    "blog": "Blog"
+    "blog": "Blog",
+    "howItWorks": "How it works"
   },
   "cta": {
     "check": "Check a document",
@@ -157,7 +158,8 @@
   },
   "footer": {
     "tagline": "A policy fuzzer: it attacks the fine print with tricky scenarios before the fine print gets the chance to attack you.",
-    "contact": "Questions, or found something we got wrong?"
+    "contact": "Questions, or found something we got wrong?",
+    "nav": "Site"
   },
   "notFound": {
     "title": "This page is not in the contract",
@@ -261,5 +263,25 @@
       "law": "Law"
     },
     "latest": "From the blog"
+  },
+  "consent": {
+    "label": "Analytics consent",
+    "text": "May we count visits with Google Analytics? It helps us see which pages are useful. Nothing is sent unless you accept.",
+    "accept": "Accept",
+    "decline": "No thanks"
+  },
+  "pages": {
+    "howItWorks": {
+      "title": "How safely.ink works",
+      "description": "From upload to report: how safely.ink reads a contract, turns clauses into rules, tests scenarios with code and checks the law."
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "description": "What safely.ink collects, where it is processed on Google Cloud, how long it is kept, and how you can see or delete it."
+    },
+    "terms": {
+      "title": "Terms of use",
+      "description": "The rules for using safely.ink: an information tool, not legal advice, with limits on accuracy, uploads and liability."
+    }
   }
 }

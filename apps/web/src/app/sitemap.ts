@@ -6,7 +6,10 @@ import { LOCALES, localePath } from '@/lib/site';
 // Paths without the language prefix; every one exists in every language.
 const PAGES: { path: string; lastModified?: string }[] = [
   { path: '/' },
+  { path: '/how-it-works' },
   { path: '/blog' },
+  { path: '/privacy' },
+  { path: '/terms' },
   ...POSTS.map((post) => ({
     path: `/blog/${post.slug}`,
     lastModified: post.updated,

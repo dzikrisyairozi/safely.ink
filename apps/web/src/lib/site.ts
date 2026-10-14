@@ -15,6 +15,10 @@ export const SITE_URL =
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5174';
 
+// Optional: analytics stays off, and no banner shows, without an ID.
+export const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+export const GSC_VERIFICATION = process.env.NEXT_PUBLIC_GSC_VERIFICATION;
+
 export const SITE_NAME = 'safely.ink';
 export const CONTACT_EMAIL = 'contact@safely.ink';
 

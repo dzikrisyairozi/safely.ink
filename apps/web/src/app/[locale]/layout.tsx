@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Newsreader } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import '../globals.css';
+import { Analytics } from '@/components/site/analytics';
 import { Footer } from '@/components/site/footer';
 import { Header } from '@/components/site/header';
 import { Providers } from '@/i18n/client';
@@ -9,6 +10,8 @@ import { getT } from '@/i18n/translate';
 import { JsonLd, organizationLd, websiteLd } from '@/lib/seo';
 import {
   DEFAULT_LOCALE,
+  GA_ID,
+  GSC_VERIFICATION,
   LOCALES,
   SITE_NAME,
   SITE_URL,
@@ -44,6 +47,7 @@ export async function generateMetadata({
     description: t('meta.description'),
     openGraph: { siteName: SITE_NAME, type: 'website' },
     twitter: { card: 'summary_large_image' },
+    ...(GSC_VERIFICATION && { verification: { google: GSC_VERIFICATION } }),
   };
 }
 
@@ -74,6 +78,7 @@ export default async function RootLayout({
           <Header locale={locale} />
           {children}
           <Footer locale={locale} />
+          {GA_ID && <Analytics gaId={GA_ID} />}
         </Providers>
       </body>
     </html>

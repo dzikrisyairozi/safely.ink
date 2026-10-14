@@ -1,0 +1,98 @@
+> Draft, not yet legally reviewed. Operator and governing law: [TBD].
+
+This policy explains what safely.ink collects, why, where it goes, how long it stays and what you can do about it. We have tried to keep it short and plain. If something is unclear, write to us at contact@safely.ink.
+
+## Who runs safely.ink
+
+safely.ink is run by [TBD operator]. In this policy, "we" means that operator.
+
+## What we collect
+
+### Your account
+
+You sign in with Google, through Firebase Authentication. Google gives us your Google user ID, your name, your email address and your profile photo, as they are set in your Google account. We use them to sign you in and to show who is signed in. Your analyses are linked to your user ID only.
+
+### The documents you upload
+
+When you start an analysis, you upload a policy or contract: one PDF, or photos of its pages. Documents often contain personal details, such as names, addresses, account numbers or salaries. Please upload only documents you have the right to share.
+
+### What we produce from them
+
+An analysis stores what the service works out from your document: its title, the parties and their roles, the document type, the country, the language, the page count, the clauses with their exact wording and page numbers, and the rules, scenarios, outcomes, expectations, legal findings, traps and grade. Because the report quotes clauses word for word, it contains parts of your document's text.
+
+### A daily usage counter
+
+To keep the limit of 10 analyses per person per day, we store, for each day you use the service, how many analyses you started and how many times you tried.
+
+### Technical logs
+
+Our server writes logs so we can keep the service running and fix problems. They record things like the analysis ID, the stage, how long it took, which model was used and how many tokens it used. We design our logs not to contain the text of your document or its clauses.
+
+### Messages you send us
+
+If you email us, we keep your message and address to answer you.
+
+## Why we use it
+
+- To read your document, run the analysis and show you the report.
+- To keep your reports in your history until you delete them.
+- To enforce the daily limit and protect the service from abuse.
+- To find and fix errors.
+- If you agree to analytics, to understand how people use the landing site.
+
+We do not use your documents to train models.
+
+## Where it is processed
+
+safely.ink runs on Google Cloud.
+
+- Our API runs on Cloud Run and our database on Firestore, both in Google Cloud's Jakarta region (asia-southeast2).
+- Uploaded files are kept in Cloud Storage for Firebase. [TBD: storage bucket region.]
+- To read your document and carry out the analysis, we send it, and text taken from it, to Google's Gemini API. Uploaded files are passed to the Gemini API for the reading step and deleted from it after that call. The Gemini API is not limited to the Jakarta region.
+- When we look up the law, only a one-line summary of a rule, the kind of document, your role and the country are sent to Gemini, which searches official sites with Google Search. Your document's text is never part of that search. The law pages we fetch are public pages from official government and regulator sites.
+
+Google acts as our infrastructure and model provider. [TBD: data processing terms with Google and any cross-border transfer basis.]
+
+## How long we keep it
+
+- **Uploaded files** are deleted automatically 7 days after upload.
+- **Reports**, including the clause quotes inside them, stay until you delete them.
+- **Deleting an analysis** from your history removes the report, its rules, scenarios and findings, and the uploaded file if it is still there. An analysis can be deleted once its run is no longer going.
+- **The daily usage counter** stays after you delete an analysis, so deleting does not give back a daily slot. [TBD: how long counters are kept.]
+- **Your account** stays in Firebase Authentication until you ask us to delete it. [TBD: deletion process.]
+- **Logs** are kept for [TBD].
+
+## Who can see your data
+
+Only you. Our security rules let a signed-in user read only their own analyses and their own uploaded files. Nobody else can open your report or your document by its link, and there are no public share links. Browsers cannot write to the database at all: only our server writes, and it acts on your behalf. [TBD: which operator staff may access stored data, and when.]
+
+## Cookies and browser storage
+
+- **Language**: the landing site sets a cookie called `NEXT_LOCALE` when you pick a language, so it remembers your choice. It lasts one year.
+- **Theme**: your light or dark preference is stored in your browser.
+- **Sign-in**: Firebase keeps your sign-in session in your browser.
+- **Analytics**: if analytics is enabled on the landing site, it uses Google Analytics, and only after you choose "Accept" on the consent banner. Before that, no Google Analytics script runs and nothing is sent. Advertising signals stay off either way. Your choice is stored in your browser, and clearing your browser's site data brings the banner back.
+
+## Your rights
+
+- **See your data**: your reports, the rules read from your document and the scenarios tested are all shown to you in the app.
+- **Delete**: you can delete any analysis from your history at any time.
+- **Delete your account** or ask any other question about your data: write to contact@safely.ink.
+
+Depending on where you live, you may have further rights, such as correcting your data or objecting to how it is used. [TBD: rights under the governing law and how to complain to a regulator.]
+
+## Children
+
+safely.ink is not intended for anyone under 18. [TBD: confirm age limit.] If you believe a child has used the service, contact us and we will delete their data.
+
+## Security
+
+Data is sent over encrypted connections, access is limited by the rules above, and our secrets, such as the model API key, are kept in Google Secret Manager. No system is perfectly secure. [TBD: breach notification.]
+
+## Changes to this policy
+
+We may update this policy as the service changes. The current version is always on this page. [TBD: how important changes are announced.]
+
+## Contact
+
+contact@safely.ink

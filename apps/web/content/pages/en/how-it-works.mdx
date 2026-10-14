@@ -1,0 +1,87 @@
+safely.ink is a policy fuzzer. You upload a policy or contract, and it turns the wording into rules a computer can run, invents tricky but realistic situations, runs each one through those rules, and shows you every case where you end up worse off than a reasonable person expects, or worse off than the law allows.
+
+The idea comes from software testing. A fuzzer does not read code and describe it. It throws edge cases at the code until something breaks. We do the same to a contract. Models do the reading and the inventing; plain code decides every outcome.
+
+## 1. Read and confirm
+
+Before you upload, you say what kind of document it is and which country it is from. Six types are tuned: insurance policy, loan or credit agreement, employment contract, NDA, rental lease, and terms and conditions. Any other policy or contract still works, and its report is labelled "general analysis".
+
+You upload one PDF, text or scanned, or photos of the pages. The model splits the document into clauses, each with its number, heading, exact wording and page, and finds the title, the parties and the language. It also makes its own guess at the document type and the country.
+
+Then you confirm three things: the document type, the country, and **which party you are**. The same NDA reads very differently for the side that shares a secret and the side that keeps it, so everything after this point is judged from your side. If the model's guess differs from yours, the screen tells you and lets you switch in one click.
+
+If the upload is not a policy or contract at all, such as a receipt, the run stops and does not count against your daily limit. If some pages cannot be read, the report says which ones.
+
+## 2. Turn the wording into rules
+
+First the system works out the facts that matter for this document: how many days since the policy started, how much notice you gave, whether your paperwork was complete. A few basic facts are always included; the rest come from the document itself.
+
+Then each clause that affects you becomes a typed rule written in those facts. A rule has a kind:
+
+- **benefit**: something you get or may do
+- **exclusion**: a situation where a benefit does not apply
+- **condition**: something you must have done
+- **deadline**: a time limit on you
+- **limit**: a cap or deduction on what you get
+- **charge**: money you must pay when something happens
+- **unmodeled**: a clause that matters but cannot be turned into a clear test, such as "as determined by us"
+
+Every rule must point to at least one clause that really exists in your document, and code checks this. A rule that names no real clause is thrown away. A rule that does not fit the facts is sent back once for repair, and if it still does not fit, it is kept as unmodeled rather than silently dropped. "How we read your document" shows every rule, grouped by kind, each linked to its clause.
+
+## 3. Invent the scenarios
+
+Now the fuzzing starts. The system aims for 20 to 40 scenarios, each a short story told from your side, with a value for every fact. They come from several families:
+
+- **Baseline**: ordinary situations where nothing should go wrong, so the report can also show what works in your favour.
+- **Boundary**: just inside and just outside a number or a date, such as day 29, 30 and 31 of a 30-day waiting period. Code builds these straight from the rules.
+- **Overlap**: an allowed situation with a disallowed contributing cause.
+- **Definition**: a situation at the edge of a defined term.
+- **Procedure**: late notice, missing paperwork.
+- **Combination**: several of these at once, which is where contracts tend to break.
+
+Scenarios must be things that happen to ordinary people in your role. No fraud by you, no absurd events. Code drops any scenario that does not fit the rules and facts.
+
+## 4. Run every scenario through the rules
+
+This is what makes safely.ink different from asking a chatbot. Each outcome is decided by a small, plain piece of code with no model in it. Given the same rules and the same scenario, it always gives the same answer and the same amounts.
+
+It checks, in a fixed order, whether a benefit you were counting on applies, whether a condition or deadline was missed, whether an exclusion was triggered, and then works out the money: caps, deductions and charges. Each scenario ends as **fine**, **partly bad**, **bad** or **undetermined**, with the amount at stake and the amount you lose where money is involved. Each outcome carries a trace: which rules applied, and which fact triggered each one.
+
+When an unmodeled rule could decide the case, the engine does not guess. The outcome is undetermined, and the report lists it under "Unclear, read these clauses yourself".
+
+## 5. Compare with what you would expect
+
+A separate model plays the person who did not read the fine print. It sees only the kind of document, your role, what the document promises you, and the scenario story. It never sees the exclusions, conditions, charges or the outcome. For each scenario it says what a reasonable person would expect, and why, in one sentence.
+
+## 6. Compare with the law
+
+For documents from Indonesia, Singapore or Australia, every rule that decides a bad or partly bad outcome is checked against that country's law. The search is limited to a list of official sources, such as legislation sites and financial and employment regulators. Only the rule's one-line summary goes into the search, never your document's text.
+
+Our own code fetches the pages found. A model reads them and says whether the rule **conflicts** with the law, is **restricted** (allowed only under conditions the document may not meet), is **permitted**, or that there is **no finding**. Then code checks every quote: a citation is shown only if its quoted words appear in the text of the official page we fetched. If no quote survives, the finding becomes "no finding". Evidence or silence.
+
+For other countries, or a document no single country governs, the scenarios still run and the report says the legal comparison was skipped.
+
+## 7. Grade and severity
+
+A scenario becomes a **trap** when its outcome is worse than a reasonable person would expect, or when the rule that decided it conflicts with the law or is restricted by it. Traps caused by the same rule are merged into one, with several example scenarios.
+
+Each trap gets a severity, critical, high, medium or low, from how much of the stake you lose, how common the situation is, and the legal finding. The document gets a grade from A to F from a fixed formula, and the report shows you the formula. A confidence level drops when many scenarios are undetermined or pages were unreadable. All of these numbers come from code. A model only writes the trap titles and the suggested questions, and code rejects any wording that accuses the other party.
+
+## 8. The report
+
+You can watch the stages and the traps appear while the run is going. The finished report shows the grade, the confidence, and how many scenarios came out fine, partly bad, bad or unclear. Traps are ranked by severity, each with "You'd expect … / The document says …".
+
+Open a trap to see the example scenarios, the outcome and amounts, the expectation and its reason, the rule trace, the exact clause with its page number, and the legal finding with links to the official source. Critical and high traps also suggest questions to ask the other party before you sign, and where to get help.
+
+## Built on Google
+
+The models are Google Gemini, run through Google's Agent Development Kit. The service runs on Google Cloud: the API on Cloud Run, with Firebase for sign-in, file storage, the database and hosting.
+
+## What it does not do
+
+- It does not give legal advice. It is an information tool, and serious traps point you to a professional or the relevant regulator.
+- It does not draft, rewrite or negotiate documents, and it does not contact the other party or file claims for you.
+- It never calls a company dishonest. The report describes what the wording does, in a neutral voice.
+- It does not guess. A rule without a real clause, or a citation without a verified quote, is left out.
+
+_safely.ink is an information tool, not legal advice._

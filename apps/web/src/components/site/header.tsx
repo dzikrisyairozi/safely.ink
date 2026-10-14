@@ -26,6 +26,12 @@ export function Header({ locale }: { locale: Locale }) {
           <Logo />
         </a>
         <a
+          href={localePath(locale, '/how-it-works')}
+          className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
+        >
+          {t('nav.howItWorks')}
+        </a>
+        <a
           href={localePath(locale, '/blog')}
           className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
         >

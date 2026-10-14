@@ -1,0 +1,98 @@
+> Draf, belum ditinjau secara hukum. Operator dan hukum yang berlaku: [TBD].
+
+Kebijakan ini menjelaskan data apa yang dikumpulkan safely.ink, untuk apa, ke mana data itu dikirim, berapa lama disimpan, dan apa yang bisa Anda lakukan. Kami berusaha membuatnya singkat dan mudah dipahami. Jika ada yang kurang jelas, kirim email ke contact@safely.ink.
+
+## Siapa yang menjalankan safely.ink
+
+safely.ink dijalankan oleh [TBD operator]. Dalam kebijakan ini, "kami" berarti operator tersebut.
+
+## Data yang kami kumpulkan
+
+### Akun Anda
+
+Anda masuk dengan akun Google melalui Firebase Authentication. Google memberikan kepada kami ID pengguna Google, nama, alamat email, dan foto profil Anda, sesuai yang tercantum di akun Google Anda. Kami memakainya untuk memasukkan Anda ke layanan dan menampilkan siapa yang sedang masuk. Analisis Anda hanya dikaitkan dengan ID pengguna Anda.
+
+### Dokumen yang Anda unggah
+
+Saat memulai analisis, Anda mengunggah polis atau kontrak: satu PDF, atau foto halaman-halamannya. Dokumen sering memuat data pribadi, seperti nama, alamat, nomor rekening, atau gaji. Unggahlah hanya dokumen yang memang berhak Anda bagikan.
+
+### Hasil yang kami buat dari dokumen itu
+
+Sebuah analisis menyimpan apa yang disimpulkan layanan dari dokumen Anda: judulnya, para pihak dan perannya, jenis dokumen, negara, bahasa, jumlah halaman, klausul-klausul beserta kata-kata aslinya dan nomor halamannya, serta aturan, skenario, hasil, harapan, temuan hukum, jebakan, dan nilainya. Karena laporan mengutip klausul kata demi kata, laporan memuat sebagian teks dokumen Anda.
+
+### Penghitung pemakaian harian
+
+Untuk menjaga batas 10 analisis per orang per hari, kami menyimpan, untuk setiap hari Anda memakai layanan, berapa analisis yang Anda mulai dan berapa kali Anda mencoba.
+
+### Log teknis
+
+Server kami mencatat log agar layanan tetap berjalan dan masalah bisa diperbaiki. Log mencatat hal-hal seperti ID analisis, tahapan, lama prosesnya, model yang dipakai, dan jumlah token yang digunakan. Kami merancang log agar tidak memuat teks dokumen Anda maupun klausulnya.
+
+### Pesan yang Anda kirim
+
+Jika Anda mengirim email kepada kami, kami menyimpan pesan dan alamat Anda untuk membalasnya.
+
+## Untuk apa kami memakainya
+
+- Untuk membaca dokumen Anda, menjalankan analisis, dan menampilkan laporannya.
+- Untuk menyimpan laporan di riwayat Anda sampai Anda menghapusnya.
+- Untuk menerapkan batas harian dan melindungi layanan dari penyalahgunaan.
+- Untuk menemukan dan memperbaiki kesalahan.
+- Jika Anda menyetujui analitik, untuk memahami cara orang memakai situs utama kami.
+
+Kami tidak memakai dokumen Anda untuk melatih model.
+
+## Di mana data diproses
+
+safely.ink berjalan di Google Cloud.
+
+- API kami berjalan di Cloud Run dan basis data kami di Firestore, keduanya di region Jakarta milik Google Cloud (asia-southeast2).
+- File yang diunggah disimpan di Cloud Storage for Firebase. [TBD: region bucket penyimpanan.]
+- Untuk membaca dokumen dan menjalankan analisis, kami mengirim dokumen Anda, dan teks yang diambil darinya, ke Gemini API milik Google. File yang diunggah diteruskan ke Gemini API untuk tahap membaca dan dihapus dari sana setelah panggilan itu selesai. Gemini API tidak terbatas pada region Jakarta.
+- Saat mencari hukum, yang dikirim ke Gemini hanyalah ringkasan satu baris dari sebuah aturan, jenis dokumen, peran Anda, dan negaranya, lalu Gemini mencari di situs resmi dengan Google Search. Teks dokumen Anda tidak pernah ikut dalam pencarian itu. Halaman hukum yang kami ambil adalah halaman publik dari situs resmi pemerintah dan regulator.
+
+Google berperan sebagai penyedia infrastruktur dan model kami. [TBD: ketentuan pemrosesan data dengan Google dan dasar transfer data lintas negara.]
+
+## Berapa lama data disimpan
+
+- **File yang diunggah** dihapus otomatis 7 hari setelah diunggah.
+- **Laporan**, termasuk kutipan klausul di dalamnya, disimpan sampai Anda menghapusnya.
+- **Menghapus analisis** dari riwayat akan menghapus laporan, aturan, skenario, dan temuannya, serta file yang diunggah jika masih ada. Analisis bisa dihapus setelah prosesnya tidak lagi berjalan.
+- **Penghitung pemakaian harian** tetap ada setelah Anda menghapus analisis, jadi menghapus tidak mengembalikan jatah harian. [TBD: berapa lama penghitung disimpan.]
+- **Akun Anda** tetap ada di Firebase Authentication sampai Anda meminta kami menghapusnya. [TBD: proses penghapusan.]
+- **Log** disimpan selama [TBD].
+
+## Siapa yang bisa melihat data Anda
+
+Hanya Anda. Aturan keamanan kami hanya mengizinkan pengguna yang sudah masuk membaca analisis dan file unggahannya sendiri. Orang lain tidak bisa membuka laporan atau dokumen Anda lewat tautannya, dan tidak ada tautan berbagi publik. Browser sama sekali tidak bisa menulis ke basis data: hanya server kami yang menulis, atas nama Anda. [TBD: staf operator mana yang boleh mengakses data tersimpan, dan kapan.]
+
+## Cookie dan penyimpanan browser
+
+- **Bahasa**: situs utama memasang cookie bernama `NEXT_LOCALE` saat Anda memilih bahasa, supaya pilihan Anda diingat. Cookie ini berlaku satu tahun.
+- **Tema**: pilihan tampilan terang atau gelap Anda disimpan di browser.
+- **Sesi masuk**: Firebase menyimpan sesi masuk Anda di browser.
+- **Analitik**: jika analitik diaktifkan di situs utama, kami memakai Google Analytics, dan hanya setelah Anda memilih "Setuju" pada banner persetujuan. Sebelum itu, tidak ada skrip Google Analytics yang berjalan dan tidak ada data yang dikirim. Sinyal iklan tetap nonaktif dalam kedua pilihan. Pilihan Anda disimpan di browser, dan menghapus data situs di browser akan memunculkan banner itu lagi.
+
+## Hak Anda
+
+- **Melihat data Anda**: laporan, aturan yang dibaca dari dokumen Anda, dan skenario yang diuji semuanya ditampilkan kepada Anda di aplikasi.
+- **Menghapus**: Anda bisa menghapus analisis mana pun dari riwayat kapan saja.
+- **Menghapus akun** atau mengajukan pertanyaan lain tentang data Anda: kirim email ke contact@safely.ink.
+
+Tergantung tempat tinggal Anda, Anda mungkin punya hak lain, seperti memperbaiki data atau keberatan atas cara data dipakai. [TBD: hak menurut hukum yang berlaku dan cara mengadu ke regulator.]
+
+## Anak-anak
+
+safely.ink tidak ditujukan untuk siapa pun yang berusia di bawah 18 tahun. [TBD: konfirmasi batas usia.] Jika Anda yakin seorang anak telah memakai layanan ini, hubungi kami dan kami akan menghapus datanya.
+
+## Keamanan
+
+Data dikirim melalui koneksi terenkripsi, akses dibatasi oleh aturan di atas, dan rahasia kami, seperti kunci API model, disimpan di Google Secret Manager. Tidak ada sistem yang sepenuhnya aman. [TBD: pemberitahuan kebocoran data.]
+
+## Perubahan kebijakan ini
+
+Kami dapat memperbarui kebijakan ini seiring perubahan layanan. Versi terbaru selalu ada di halaman ini. [TBD: cara mengumumkan perubahan penting.]
+
+## Kontak
+
+contact@safely.ink

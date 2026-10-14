@@ -11,7 +11,8 @@
     "home": "Beranda safely.ink",
     "language": "Bahasa",
     "theme": "Ganti mode terang dan gelap",
-    "blog": "Blog"
+    "blog": "Blog",
+    "howItWorks": "Cara kerja"
   },
   "cta": {
     "check": "Periksa dokumen",
@@ -157,7 +158,8 @@
   },
   "footer": {
     "tagline": "Policy fuzzer: menguji ketentuan dengan skenario sulit sebelum ketentuan itu merugikan Anda.",
-    "contact": "Ada pertanyaan, atau menemukan kesalahan kami?"
+    "contact": "Ada pertanyaan, atau menemukan kesalahan kami?",
+    "nav": "Situs"
   },
   "notFound": {
     "title": "Halaman ini tidak ada dalam kontrak",
@@ -261,5 +263,25 @@
       "law": "Hukum"
     },
     "latest": "Dari blog"
+  },
+  "consent": {
+    "label": "Persetujuan analitik",
+    "text": "Bolehkah kami menghitung kunjungan dengan Google Analytics? Ini membantu kami melihat halaman mana yang berguna. Tidak ada data yang dikirim kecuali Anda setuju.",
+    "accept": "Setuju",
+    "decline": "Tidak, terima kasih"
+  },
+  "pages": {
+    "howItWorks": {
+      "title": "Cara kerja safely.ink",
+      "description": "Dari unggahan sampai laporan: cara safely.ink membaca kontrak, mengubah klausul menjadi aturan, menguji skenario dengan kode, dan memeriksa hukum."
+    },
+    "privacy": {
+      "title": "Kebijakan privasi",
+      "description": "Data yang dikumpulkan safely.ink, tempat data diproses di Google Cloud, berapa lama disimpan, dan cara Anda melihat atau menghapusnya."
+    },
+    "terms": {
+      "title": "Syarat dan ketentuan",
+      "description": "Aturan memakai safely.ink: alat informasi, bukan nasihat hukum, beserta batasan akurasi, unggahan, dan tanggung jawab."
+    }
   }
 }
