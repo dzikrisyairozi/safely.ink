@@ -7,7 +7,6 @@
 // Core config and factory
 export {
   initI18n,
-  createI18n,
   resetI18n,
   i18n,
   SUPPORTED_LANGUAGES,

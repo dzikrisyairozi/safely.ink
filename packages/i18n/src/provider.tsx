@@ -15,7 +15,7 @@ import type { ReactNode } from 'react';
 
 interface I18nProviderProps extends InitI18nOptions {
   children: ReactNode;
-  /** An instance from `createI18n`; the shared one from `initI18n` otherwise. */
+  /** An instance from `createI18n` in `@repo/i18n/core`; the shared one from `initI18n` otherwise. */
   instance?: I18n;
 }
 

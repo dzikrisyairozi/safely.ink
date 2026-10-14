@@ -17,7 +17,6 @@ export {
   SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE,
   LANGUAGE_LABELS,
-  createI18n,
   type SupportedLanguage,
 } from './core';
 
