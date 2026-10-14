@@ -22,6 +22,8 @@ type Call<Schema extends z.ZodObject, Accept extends z.ZodType> = {
   accept?: Accept;
   parts: Part[];
   seconds: number; // how long to wait for the answer
+  // Unbounded at the model's default, so set where the time must be bounded.
+  thinkingLevel?: ThinkingLevel;
 };
 
 /**
@@ -39,6 +41,7 @@ export async function runAgent<
   accept,
   parts,
   seconds,
+  thinkingLevel,
 }: Call<Schema, Accept>): Promise<z.infer<Accept>> {
   const apiKey = config.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set.');
@@ -48,7 +51,11 @@ export async function runAgent<
     model: new Gemini({ model, apiKey }),
     instruction,
     outputSchema: schema,
-    generateContentConfig: { temperature: 0, maxOutputTokens: 65536 },
+    generateContentConfig: {
+      temperature: 0,
+      maxOutputTokens: 65536,
+      ...(thinkingLevel && { thinkingConfig: { thinkingLevel } }),
+    },
   });
   const runner = new InMemoryRunner({ agent, appName: name });
 
@@ -165,6 +172,7 @@ export async function askForList(
   entry: z.ZodType,
   message: object,
   seconds: number,
+  thinkingLevel?: ThinkingLevel,
 ): Promise<unknown[]> {
   const answer = await runAgent({
     name,
@@ -174,6 +182,7 @@ export async function askForList(
     accept: z.object({ [list]: z.array(z.unknown()) }),
     parts: [{ text: JSON.stringify(message) }],
     seconds,
+    thinkingLevel,
   });
   return answer[list]!;
 }

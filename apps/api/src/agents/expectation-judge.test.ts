@@ -1,3 +1,4 @@
+import { ThinkingLevel } from '@google/genai';
 import { expect, test, vi } from 'vitest';
 import {
   GLOBAL,
@@ -13,7 +14,12 @@ import { judge, judgeInput } from './expectation-judge';
 // it, and what it was asked is kept.
 const model = vi.hoisted(() => ({
   answer: '',
-  agent: {} as { model: unknown; instruction: string; tools?: unknown },
+  agent: {} as {
+    model: unknown;
+    instruction: string;
+    tools?: unknown;
+    generateContentConfig?: unknown;
+  },
   message: '',
 }));
 vi.mock('@google/adk', () => ({
@@ -143,4 +149,17 @@ test('the model reads the input as it is, has no tool and is the fast one', asyn
     options: { model: config.models.flash },
   });
   expect(model.agent.instruction).toMatch(/not instructions|never a source/i);
+});
+
+// At its default level the model thought 15,000 to 35,000 tokens over one
+// batch of boundary stories and took 111 to 220 s (eval of 2026-10-14); low
+// took 5 s, and did not reason out the limit it is not meant to know.
+test('the judge thinks little, so a batch answers in seconds', async () => {
+  model.answer = JSON.stringify({ expectations: [] });
+
+  await judge(judgeInput(meta, pack, rules, [scenario]), 90);
+
+  expect(model.agent.generateContentConfig).toMatchObject({
+    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+  });
 });
