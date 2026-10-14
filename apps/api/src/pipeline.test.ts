@@ -517,6 +517,7 @@ test('the grade can be worked out again from the stored traps', async () => {
   );
 
   expect(points).toBe(90);
+  expect((await stored())!.points).toBe(points);
   expect((await stored())!.grade).toBe(
     gradeBands.find((band) => points >= band.from)!.value,
   );

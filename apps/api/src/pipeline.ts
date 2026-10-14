@@ -284,7 +284,7 @@ async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
     true,
   );
 
-  const { traps, grade, confidence } = score(
+  const { traps, points, grade, confidence } = score(
     {
       scenarios,
       outcomes: scenarios.flatMap(({ outcome }) => outcome ?? []),
@@ -297,6 +297,7 @@ async function compare(analysis: DocumentReference, meta: AnalysisMeta) {
   await saveAll(analysis, 'traps', traps);
   await analysis.update({
     grade,
+    points,
     // A scenario that was not judged cannot be a trap, so the grade may be
     // too good, and the analysis does not claim to be sure of it.
     confidence: missed > 0 && confidence === 'high' ? 'medium' : confidence,

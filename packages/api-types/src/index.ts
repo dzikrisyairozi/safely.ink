@@ -346,6 +346,7 @@ export const Analysis = z.object({
     .optional(),
   // From code, once the scenarios are compared (TSD 5.7).
   grade: Grade.optional(),
+  points: z.number().int().optional(), // what the grade was read from
   confidence: Confidence.optional(),
   // A Firestore timestamp; only its seconds are read, so the Admin and the
   // web SDK's both fit.

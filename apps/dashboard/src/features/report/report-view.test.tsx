@@ -45,6 +45,7 @@ const analysis: Analysis = {
   status: 'done',
   meta,
   grade: 'B',
+  points: 88,
   confidence: 'medium',
   createdAt: { seconds: 1_760_400_000 },
   counts: {
@@ -230,6 +231,27 @@ test('the grade formula is there on request and adds up for this report', () => 
   expect(formula.tagName).toBe('DETAILS');
   expect(formula.textContent).toMatch(/Critical: 20 points/);
   expect(formula.textContent).toMatch(/This report: 88 points, grade B/);
+});
+
+test('the points of this report are the ones the API graded with', () => {
+  const report = (points: number | undefined) => (
+    <ReportView
+      id="analysis-1"
+      analysis={{ ...analysis, points }}
+      meta={meta}
+      traps={[]}
+      rules={rules}
+      scenarios={scenarios}
+      clauses={clauses}
+    />
+  );
+  const { rerender } = render(report(88));
+
+  expect(screen.getByText(/This report: 88 points/)).toBeTruthy();
+
+  rerender(report(undefined));
+
+  expect(screen.queryByText(/This report:/)).toBeNull();
 });
 
 test('a global general analysis says both', () => {

@@ -83,10 +83,6 @@ export function ReportView({
   const unclear = scenarios.filter(
     (scenario) => scenario.outcome?.result === 'undetermined',
   );
-  const score = traps.reduce(
-    (points, trap) => points - GRADE_FORMULA.penalty[trap.severity],
-    100,
-  );
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-10 py-8">
@@ -322,7 +318,14 @@ export function ReportView({
                 .join(', '),
             })}
           </p>
-          <p>{t('report.formula.this', { score, grade: analysis.grade })}</p>
+          {analysis.points !== undefined && (
+            <p>
+              {t('report.formula.this', {
+                score: analysis.points,
+                grade: analysis.grade,
+              })}
+            </p>
+          )}
         </div>
       </details>
     </div>
