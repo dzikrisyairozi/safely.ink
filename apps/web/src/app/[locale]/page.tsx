@@ -4,6 +4,7 @@ import { Comparison } from '@/components/home/comparison';
 import { Coverage } from '@/components/home/coverage';
 import { Faq, faqItems } from '@/components/home/faq';
 import { Hero } from '@/components/home/hero';
+import { Intro } from '@/components/home/intro';
 import { SampleTrap } from '@/components/home/sample-trap';
 import { Steps } from '@/components/home/steps';
 import { getT } from '@/i18n/translate';
@@ -43,6 +44,7 @@ export default async function Home({ params }: Props) {
     <main id="main">
       <JsonLd data={softwareApplicationLd(locale, t('meta.description'))} />
       <JsonLd data={faqPageLd(faqItems(locale))} />
+      <Intro />
       <Hero locale={locale} />
       <Steps locale={locale} />
       <SampleTrap locale={locale} />

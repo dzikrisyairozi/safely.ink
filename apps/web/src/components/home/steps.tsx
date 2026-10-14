@@ -1,5 +1,6 @@
 import { getT } from '@/i18n/translate';
 import type { Locale } from '@/lib/site';
+import { Glyph } from './glyphs';
 import { Section } from './section';
 
 const STEPS = ['read', 'rules', 'fuzz', 'compare'] as const;
@@ -17,9 +18,12 @@ export function Steps({ locale }: { locale: Locale }) {
       <ol className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((step, i) => (
           <li key={step} className="border-t border-foreground/80 pt-5">
-            <p className="font-mono text-sm text-muted-foreground">
-              {String(i + 1).padStart(2, '0')}
-            </p>
+            <div className="flex items-start justify-between">
+              <p className="font-mono text-sm text-muted-foreground">
+                {String(i + 1).padStart(2, '0')}
+              </p>
+              <Glyph name={step} />
+            </div>
             <h3 className="mt-2 font-serif text-2xl">
               {t(`steps.${step}.title`)}
             </h3>
