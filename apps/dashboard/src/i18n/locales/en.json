@@ -324,5 +324,28 @@
       "bands": "Then the grade: {{bands}}.",
       "this": "This report: {{score}} points, grade {{grade}}."
     }
+  },
+  "trap": {
+    "back": "Back to the report",
+    "action": "What you can do",
+    "examples": "Example situations",
+    "outcome": "What the document gives",
+    "stake": "At stake",
+    "loss": "You lose",
+    "expected": "What you would expect",
+    "trace": "How the rules decided it",
+    "because": "Because of: {{fact}}",
+    "clause": "What the document says",
+    "frequency": {
+      "common": "Happens often",
+      "occasional": "Happens now and then",
+      "rare": "Happens rarely"
+    },
+    "result": {
+      "fine": "Fine",
+      "partly_bad": "Partly bad",
+      "bad": "Bad",
+      "undetermined": "Unclear"
+    }
   }
 }

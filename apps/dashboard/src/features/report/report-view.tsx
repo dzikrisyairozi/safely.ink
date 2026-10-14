@@ -202,9 +202,13 @@ export function ReportView({
                       key={trap.id}
                       className="space-y-2 rounded-md border bg-card p-4"
                     >
-                      <p className="font-medium">
+                      <Link
+                        to="/analyses/$id/traps/$trapId"
+                        params={{ id, trapId: trap.id }}
+                        className="font-medium underline-offset-4 hover:underline"
+                      >
                         {trap.title ?? rule?.summary}
-                      </p>
+                      </Link>
                       <dl className="grid gap-x-3 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
                         {expected && (
                           <>

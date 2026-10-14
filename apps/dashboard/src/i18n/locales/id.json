@@ -324,5 +324,28 @@
       "bands": "Lalu nilainya: {{bands}}.",
       "this": "Laporan ini: {{score}} poin, nilai {{grade}}."
     }
+  },
+  "trap": {
+    "back": "Kembali ke laporan",
+    "action": "Yang dapat Anda lakukan",
+    "examples": "Contoh situasi",
+    "outcome": "Yang diberikan dokumen",
+    "stake": "Yang dipertaruhkan",
+    "loss": "Yang Anda rugi",
+    "expected": "Yang akan Anda kira",
+    "trace": "Bagaimana aturan memutuskannya",
+    "because": "Karena: {{fact}}",
+    "clause": "Yang dinyatakan dokumen",
+    "frequency": {
+      "common": "Sering terjadi",
+      "occasional": "Kadang terjadi",
+      "rare": "Jarang terjadi"
+    },
+    "result": {
+      "fine": "Baik",
+      "partly_bad": "Sebagian buruk",
+      "bad": "Buruk",
+      "undetermined": "Tidak jelas"
+    }
   }
 }
