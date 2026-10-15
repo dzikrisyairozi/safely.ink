@@ -148,23 +148,29 @@ The dashboard is served at `https://safely-ink.web.app`. That domain and
 `localhost` are authorised for sign-in by default; a custom domain must be added under
 Authentication → Settings → Authorised domains.
 
-### Landing on App Hosting **(not yet run)**
+### Landing on App Hosting
 
 `apps/web` is a Next.js server (the locale proxy and the Open Graph images need one), so
 it runs on Firebase App Hosting rather than static Hosting. Its settings and the two
-`NEXT_PUBLIC_*` values are in `apps/web/apphosting.yaml`.
+`NEXT_PUBLIC_*` values are in `apps/web/apphosting.yaml`. The backend is `web` in
+`asia-southeast1`, served at `https://web--safely-ink.asia-southeast1.hosted.app`.
 
 ```bash
-# Once: create the backend. Root directory apps/web; live branch main; region closest
-# to Jakarta that App Hosting offers (the CLI lists them).
-pnpm exec firebase apphosting:backends:create --project safely-ink
-
-# Later deploys build from the connected GitHub branch on push, or by hand:
-pnpm exec firebase apphosting:rollouts:create <backend-id> --project safely-ink --git-branch main
+# Done once. The interactive prompts need a terminal, so the flags are given.
+pnpm exec firebase apphosting:backends:create --project safely-ink --non-interactive \
+  --backend web --primary-region asia-southeast1 --root-dir apps/web
 ```
 
-Check on the `*.hosted.app` URL it prints: `/` and `/id` load, `/en` answers 308 to `/`,
-`/robots.txt`, `/sitemap.xml` and `/opengraph-image` load.
+Then connect GitHub once in the Firebase console: App Hosting → `web` → Settings →
+Deployment: repository `dzikrisyairozi/safely.ink`, root directory `apps/web`, live
+branch `main`, automatic rollouts on. Every push to `main` then rolls out. By hand:
+
+```bash
+pnpm exec firebase apphosting:rollouts:create web --project safely-ink --git-branch main
+```
+
+Check: `/` and `/id` load, `/en` answers 308 to `/`, `/robots.txt`, `/sitemap.xml` and
+`/opengraph-image` load.
 
 If App Hosting cannot build the pnpm workspace (TSD 13.3), the fallback is a container:
 `output: 'standalone'` in `apps/web/next.config.ts`, a Dockerfile like the API's, and a
@@ -173,6 +179,8 @@ Cloud Run service `web` in `asia-southeast2`.
 ### Custom domains **(not yet run)**
 
 The landing page is served from `safely.ink` and the dashboard from `app.safely.ink`.
+Until then, `apps/web/apphosting.yaml` points at the Firebase URLs; switch its two values
+to `https://safely.ink` and `https://app.safely.ink` once both domains work.
 
 1. Firebase console → App Hosting → the web backend → Settings → Domains: add
    `safely.ink` (and `www.safely.ink`, redirecting to it). Add the DNS records it shows
