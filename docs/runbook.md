@@ -161,9 +161,10 @@ pnpm exec firebase apphosting:backends:create --project safely-ink --non-interac
   --backend web --primary-region asia-southeast1 --root-dir apps/web
 ```
 
-Then connect GitHub once in the Firebase console: App Hosting → `web` → Settings →
-Deployment: repository `dzikrisyairozi/safely.ink`, root directory `apps/web`, live
-branch `main`, automatic rollouts on. Every push to `main` then rolls out. By hand:
+Then connect GitHub once in the Firebase console: App Hosting → `web` → Settings → Git:
+repository `dzikrisyairozi/safely.ink`, root directory `apps/web`, live branch `main`.
+Automatic rollouts are off, so a push to `main` does not deploy; a release tag does
+(see "Releases"). By hand:
 
 ```bash
 pnpm exec firebase apphosting:rollouts:create web --project safely-ink --git-branch main
@@ -225,10 +226,10 @@ git checkout main && git pull
 git tag v1.2.0 && git push origin v1.2.0
 ```
 
-`.github/workflows/release.yml` then deploys the API (image tagged with the version) and
-the dashboard with the Firestore and Storage rules. It refuses a tag that is not on
-`main`. The landing page does not wait for a tag; App Hosting rolls out every push to
-`main`. The manual steps above still work as a fallback.
+`.github/workflows/release.yml` then deploys the API (image tagged with the version),
+the dashboard with the Firestore and Storage rules, and the landing page (an App Hosting
+rollout of the tagged commit). It refuses a tag that is not on `main`. The manual steps
+above still work as a fallback.
 
 One-time setup: the workflow signs in to Google Cloud through Workload Identity
 Federation, so no key is stored in GitHub. Only tag pushes from this repository can
@@ -251,9 +252,9 @@ gcloud iam service-accounts add-iam-policy-binding $SA --project $PROJECT \
   --member "principalSet://iam.googleapis.com/projects/$NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/dzikrisyairozi/safely.ink"
 
 # What the deploy touches: the image registry, the Cloud Run service, Hosting,
-# rules and indexes, and the APIs firebase-tools checks.
+# rules and indexes, App Hosting, and the APIs firebase-tools checks.
 for ROLE in roles/artifactregistry.writer roles/run.developer roles/firebase.admin \
-  roles/serviceusage.serviceUsageConsumer; do
+  roles/firebaseapphosting.admin roles/serviceusage.serviceUsageConsumer; do
   gcloud projects add-iam-policy-binding $PROJECT --member "serviceAccount:$SA" \
     --role $ROLE --condition None
 done
@@ -261,6 +262,16 @@ done
 gcloud iam service-accounts add-iam-policy-binding \
   $NUMBER-compute@developer.gserviceaccount.com --project $PROJECT \
   --member "serviceAccount:$SA" --role roles/iam.serviceAccountUser
+# App Hosting builds and serves as its own account.
+gcloud iam service-accounts add-iam-policy-binding \
+  firebase-app-hosting-compute@$PROJECT.iam.gserviceaccount.com --project $PROJECT \
+  --member "serviceAccount:$SA" --role roles/iam.serviceAccountUser
+
+# Only release tags deploy the landing: turn off App Hosting's automatic rollouts.
+curl -X PATCH -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  "https://firebaseapphosting.googleapis.com/v1beta/projects/$PROJECT/locations/asia-southeast1/backends/web/traffic?updateMask=rolloutPolicy.disabled" \
+  -d '{"rolloutPolicy":{"codebaseBranch":"main","disabled":true}}'
 
 # The dashboard's public web config, read by the build.
 gh variable set --env-file apps/dashboard/.env.production.local
