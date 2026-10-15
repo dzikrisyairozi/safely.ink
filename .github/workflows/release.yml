@@ -1,0 +1,82 @@
+name: Release
+
+# Pushing a tag vX.Y.Z on main deploys the API to Cloud Run and the dashboard,
+# with the Firestore and Storage rules, to Firebase Hosting. The landing page is
+# not here: App Hosting rolls out every push to main by itself.
+# One-time Google Cloud setup: docs/runbook.md, "Releases".
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_VERSION: '24'
+  PNPM_VERSION: '9.0.0'
+  PROJECT: safely-ink
+  REGION: asia-southeast2
+  IMAGE: asia-southeast2-docker.pkg.dev/safely-ink/api/api:${{ github.ref_name }}
+  API_URL: https://api-774697783852.asia-southeast2.run.app
+
+jobs:
+  deploy:
+    name: Deploy API and dashboard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag is on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/774697783852/locations/global/workloadIdentityPools/github/providers/github
+          service_account: github-deploy@safely-ink.iam.gserviceaccount.com
+
+      # Only the image changes; env vars and the Gemini secret stay as they are.
+      - name: Deploy the API
+        run: |
+          gcloud auth configure-docker asia-southeast2-docker.pkg.dev --quiet
+          docker build -f apps/api/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+          gcloud run deploy api --image "$IMAGE" --region "$REGION" --project "$PROJECT" --quiet
+          curl -fsS "$API_URL/health"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The public Firebase web config lives in repository variables.
+      - name: Deploy the dashboard and rules
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          VITE_API_URL: ${{ env.API_URL }}
+        run: |
+          pnpm --filter dashboard build
+          pnpm exec firebase deploy --only hosting,firestore,storage --project "$PROJECT" --non-interactive
