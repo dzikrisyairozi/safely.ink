@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@repo/ui', '@repo/tailwind-config', '@repo/i18n'],
   // app/global-not-found.tsx: the root layout is under app/[locale].
   experimental: { globalNotFound: true },
+  // The Open Graph routes read public/fonts, so tracing puts a partial public/
+  // in the standalone output, and the App Hosting adapter then skips copying
+  // public/ because the folder exists. Tracing all of it keeps every file.
+  outputFileTracingIncludes: { '/*': ['./public/**/*'] },
 };
 
 // Articles are MDX files imported by the blog pages, never routes themselves.
