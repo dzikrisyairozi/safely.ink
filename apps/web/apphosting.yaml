@@ -7,14 +7,15 @@ runConfig:
 
 env:
   # Inlined into the client bundle at build time, and read by the server for
-  # metadata, so both stages need them.
+  # metadata, so both stages need them. These are the Firebase URLs until the
+  # safely.ink and app.safely.ink domains are connected (runbook, "Custom domains").
   - variable: NEXT_PUBLIC_SITE_URL
-    value: https://safely.ink
+    value: https://web--safely-ink.asia-southeast1.hosted.app
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
-    value: https://app.safely.ink
+    value: https://safely-ink.web.app
     availability:
       - BUILD
       - RUNTIME
