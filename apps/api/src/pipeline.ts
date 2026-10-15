@@ -190,7 +190,11 @@ async function fuzz(
     factSchema,
     config.limits.scenariosPerAnalysis,
   );
-  if (dropped.length > 0) console.warn('Scenarios dropped:', dropped);
+  // Ids only: the reasons quote fact values drawn from the user's document.
+  if (dropped.length > 0) {
+    const ids = dropped.map((reason) => reason.split(':')[0]);
+    console.warn(`Scenarios dropped: ${ids.join(', ')}`);
+  }
   if (uncovered.length > 0) {
     console.warn(`No scenario tries ${uncovered.join(', ')}.`);
   }

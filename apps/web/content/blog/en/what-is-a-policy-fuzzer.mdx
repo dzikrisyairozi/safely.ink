@@ -1,0 +1,94 @@
+## In short
+
+- A policy fuzzer tests a contract the way software testers test code: it throws many tricky but realistic situations at the wording and looks for the ones where you come off worse than you expected.
+- A summary tells you what a document says. It does not tell you what happens to you on a bad day, when two clauses meet or a deadline is missed by a few days.
+- In safely.ink, a language model reads the document and proposes rules and scenarios, but plain code decides every outcome, and a legal citation is shown only when its quoted words were found on the official page.
+
+## Where the word comes from
+
+In software testing, fuzzing means feeding a program a large number of unexpected inputs (odd lengths, empty fields, values just past a limit) and watching for the ones that make it crash or misbehave. A fuzzer does not read the code and describe it. It attacks the code with edge cases until something breaks, then shows which input did it.
+
+The idea works because most failures do not live on the normal path. They hide in the input nobody thought about, and the quickest way to find them is to go looking on purpose.
+
+Contracts behave the same way. An insurance policy pays an ordinary claim without fuss. A lease returns the deposit when nothing went wrong. The trouble sits at the edges: the claim made a week too early, the notice sent a few days late, the repair that is half wear and half damage. A policy fuzzer brings the tester's habit to your contract.
+
+## Why a summary is not enough
+
+Summaries are useful: they tell you the main promise of a document and who must do what. But a summary is a description, and a description is shaped by the happy path. It says "covers hospital stays" because that is what the policy is mostly about. It rarely says "except in the first month, unless it was an accident, and only if the insurer hears about it within a set number of days".
+
+The places where a contract breaks are almost never in one sentence. They appear when two or three clauses meet a real situation at the same time. A waiting period, a notice deadline and a sub-limit each sound reasonable on their own. Put all three on the same claim and the result can surprise a careful reader.
+
+|                  | Summary                         | Policy fuzzer                                            |
+| ---------------- | ------------------------------- | -------------------------------------------------------- |
+| What you get     | A description of the document   | Situations where the wording works against you           |
+| Who decides      | A model reads and writes prose  | Rules are run by code                                    |
+| Same input twice | Can give a different answer     | Gives the same outcome                                   |
+| How you check it | You trust the summary's wording | Each outcome points to the rule, the fact and the clause |
+
+A summary answers "what does this say?". A fuzzer answers "where does this leave me worse off than I would expect?".
+
+## The four steps
+
+safely.ink works through the same four steps for every document.
+
+**1. Read.** You upload a policy or contract as a PDF, a scan or photos of the pages. The document is read for its type, the parties, the country and the language, then split into numbered clauses. You confirm which party you are, because a clause that protects a landlord reads very differently from the tenant's side.
+
+**2. Turn the wording into rules.** The clauses become typed rules that a machine can check, for example "if the event happens within this many days of the start date, the claim is refused". Every rule must point to a clause that actually exists in your document. A rule with no clause behind it is thrown away.
+
+**3. Fuzz.** The tool generates 20 to 40 tricky but realistic scenarios for your document and runs each one through a deterministic rules engine. Most sit at the edges: definitions that almost apply, deadlines just missed, two clauses that pull in different directions.
+
+**4. Compare.** Each outcome is compared with what a reasonable person would expect. For documents from Indonesia, Singapore and Australia, it is also compared with the law, through a search of official sources. The result is an overall grade and a ranked list of traps, each one opening the clause it came from.
+
+All of this takes a few minutes per document. Six document types are tuned: insurance policies, loan and credit agreements, employment contracts, NDAs, rental leases, and terms and conditions. Anything else is still analysed, and the report says clearly that it is a general analysis.
+
+## A worked example
+
+Take an invented employment contract with a clause like: "If the employee leaves within 24 months of completing company-funded training, the employee shall repay the full cost of that training."
+
+A summary would say: "There is a training bond. If you leave early you may need to repay training costs." That is accurate, and it hides the edges.
+
+The fuzzer asks narrower questions. What if you resign 23 months after the training, one month before the bond ends? The rule taken from the clause says "full cost", so the engine returns the full amount, with nothing taken off for the 23 months you stayed. What if the employer ends your contract instead of you resigning? If the clause only says "leaves", the engine applies it in both cases, and the trace shows which word did it.
+
+A reasonable person would expect to repay less after nearly two years of service, and would not expect to repay anything when the employer chose to end the job. Both outcomes are flagged as traps. Each one shows the rule, the fact that triggered it and the clause, so you can read the wording yourself.
+
+## Why code decides the outcome
+
+Language models are very good at reading messy legal prose, at inventing awkward situations, and at searching for relevant law. They are less reliable as calculators. Ask a model the same question twice and the answer can shift. Ask it to apply a deadline and it may round, assume or forgive.
+
+So safely.ink keeps the model away from the verdict. The model proposes rules and scenarios. A deterministic engine, which is ordinary code with no model inside it, decides each outcome. The same rules and the same scenarios always give the same outcomes. And every outcome comes with a trace: which rule fired, on which fact, from which clause.
+
+That trace means you never have to take a result on trust. If you disagree with how a clause was turned into a rule, open the clause and judge for yourself.
+
+## Evidence or silence
+
+The same principle applies to the law. When a document comes from Indonesia, Singapore or Australia, the tool searches official sources for rules that bear on each trap. A legal citation is shown only if its quoted words were found on the fetched official page. If the quote cannot be found, the citation is dropped and the result says "no finding". It never shows a guess.
+
+This also means silence is not a clean bill of health. "No finding" says that nothing could be verified, not that the clause is fine. For documents from other countries the legal comparison is not run at all, while the comparison with a reasonable person's expectations still is.
+
+## Check yours
+
+If you have a policy or contract you have not fully read, you can upload it to safely.ink. In a few minutes it shows where the wording leaves you worse off than you would reasonably expect, with each trap linked to the clause it comes from.
+
+_safely.ink is an information tool, not legal advice._
+
+## Questions
+
+### Is a policy fuzzer the same as a contract summary?
+
+No. A summary describes what a document says. A policy fuzzer runs realistic edge cases through rules built from the wording and shows the cases where you end up worse off than expected.
+
+### Does an AI decide whether a clause is unfair?
+
+No. A language model reads the document and proposes rules and scenarios, but a deterministic engine made of ordinary code decides each outcome.
+
+### What does "no finding" mean in the legal comparison?
+
+It means no official source could be verified for that point. It does not say the clause is lawful; the tool would rather say nothing than show a citation it could not confirm.
+
+### What kinds of documents can I check?
+
+Six types are tuned: insurance policies, loan and credit agreements, employment contracts, NDAs, rental leases, and terms and conditions. Other policies and contracts are still analysed, and the report is labelled as a general analysis.
+
+### Will my document be used to train models?
+
+No. Reports are private to you, uploaded files are deleted automatically after 7 days, and you can delete reports yourself at any time.

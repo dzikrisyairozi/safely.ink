@@ -7,6 +7,10 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./core": {
+      "types": "./src/core.ts",
+      "import": "./src/core.ts"
+    },
     "./config": {
       "types": "./src/config.ts",
       "import": "./src/config.ts"
@@ -36,5 +40,8 @@
   },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
   }
 }

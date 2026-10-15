@@ -1,16 +1,288 @@
 {
-  "hero": {
-    "title": "Uji ketentuan yang tersembunyi",
-    "subtitle": "Unggah polis atau kontrak. safely.ink mengubahnya menjadi aturan, mengujinya dengan berbagai skenario sulit, lalu menunjukkan di mana posisi Anda lebih buruk daripada yang Anda harapkan atau yang diizinkan hukum.",
-    "cta": "Periksa dokumen"
+  "meta": {
+    "title": "safely.ink: uji polis atau kontrak sebelum Anda tanda tangan",
+    "description": "safely.ink adalah policy fuzzer. Unggah polis asuransi, perjanjian pinjaman, atau kontrak lain: safely.ink mengubah isinya menjadi aturan, menjalankan puluhan skenario sulit, lalu menunjukkan di mana posisi Anda lebih buruk dari yang Anda kira atau dari yang diizinkan hukum."
   },
-  "loading": {
-    "word1": "Baca",
-    "word2": "Uji",
-    "word3": "Bandingkan",
-    "label": "safely.ink"
+  "og": {
+    "kicker": "Policy fuzzer"
+  },
+  "nav": {
+    "skip": "Langsung ke konten",
+    "home": "Beranda safely.ink",
+    "language": "Bahasa",
+    "theme": "Ganti mode terang dan gelap",
+    "blog": "Blog",
+    "howItWorks": "Cara kerja"
+  },
+  "cta": {
+    "check": "Periksa dokumen",
+    "how": "Lihat cara kerjanya"
+  },
+  "notice": "Alat informasi, bukan nasihat hukum",
+  "hero": {
+    "kicker": "Policy fuzzer",
+    "title": "Uji ketentuan kecil sebelum Anda tanda tangan",
+    "problem": "Kebanyakan orang baru tahu isi sebenarnya sebuah polis di hari terburuk: klaim ditolak, denda dikenakan, uang jaminan tidak kembali.",
+    "answer": "safely.ink lebih dulu menguji dokumen Anda dengan skenario yang sulit namun realistis, lalu menunjukkan setiap kasus di mana posisi Anda lebih buruk dari yang Anda kira, atau dari yang diizinkan hukum."
+  },
+  "steps": {
+    "heading": "Empat langkah, beberapa menit",
+    "lead": "Teknik yang dipakai penguji perangkat lunak untuk membongkar kode, kini diarahkan ke kontrak.",
+    "read": {
+      "title": "Baca",
+      "body": "Dokumen dibaca, jenis, para pihak, dan negaranya dikenali, lalu teksnya dipecah menjadi klausul bernomor. Anda memastikan di pihak mana Anda berada."
+    },
+    "rules": {
+      "title": "Aturan",
+      "body": "Isi dokumen diubah menjadi aturan bertipe yang bisa diperiksa mesin. Setiap aturan merujuk ke klausul asalnya; jika tidak, aturan itu dibuang."
+    },
+    "fuzz": {
+      "title": "Uji",
+      "body": "20 sampai 40 kasus tepi, seperti pemberitahuan terlambat, klaim dalam masa tunggu, satu cicilan terlewat, atau keluar lebih awal, dijalankan oleh mesin deterministik. Kode yang memutuskan hasilnya, bukan model."
+    },
+    "compare": {
+      "title": "Bandingkan",
+      "body": "Setiap hasil dibandingkan dengan harapan orang pada umumnya dan, untuk Indonesia, Singapura, dan Australia, dengan hukum. Kutipan hukum hanya ditampilkan jika kata-katanya ditemukan di sumber resmi."
+    }
+  },
+  "trap": {
+    "heading": "Seperti inilah sebuah jebakan",
+    "lead": "Setiap jebakan dilengkapi skenarionya, selisih antara harapan dan hasil, serta klausul penyebabnya.",
+    "label": "Contoh · Asuransi kesehatan",
+    "severity": "Tinggi",
+    "scenarioLabel": "Skenario",
+    "scenario": "Anda dirawat di rumah sakit selama sepuluh hari. Polis meminta pemberitahuan dalam tujuh hari, sehingga perusahaan asuransi baru mengetahui klaim Anda pada hari kesebelas.",
+    "expectLabel": "Orang pada umumnya mengharapkan",
+    "expect": "Klaim dibayar. Anda sedang dirawat, dan keterlambatan itu tidak mengubah apa pun.",
+    "outcomeLabel": "Yang terjadi menurut isi polis",
+    "outcome": "Klaim ditolak.",
+    "clauseLabel": "Klausul 8.2",
+    "clause": "Pemberitahuan atas setiap klaim wajib disampaikan secara tertulis kepada Perusahaan dalam waktu tujuh (7) hari sejak kejadian. Pemberitahuan yang melewati jangka waktu tersebut membatalkan klaim.",
+    "trace": "Aturan R-14 berlaku: notice_days = 11 > 7 → klaim ditolak",
+    "note": "Contoh ilustrasi dengan kalimat rekaan. Laporan sungguhan mengutip dokumen Anda sendiri."
+  },
+  "coverage": {
+    "heading": "Disetel untuk dokumen yang paling sering ditandatangani",
+    "typesHeading": "Enam jenis dokumen yang disetel khusus",
+    "types": {
+      "insurance": "Polis asuransi",
+      "loan": "Perjanjian pinjaman atau kredit",
+      "employment": "Kontrak kerja",
+      "nda": "Perjanjian kerahasiaan (NDA)",
+      "lease": "Perjanjian sewa",
+      "terms": "Syarat dan ketentuan"
+    },
+    "general": "Polis atau kontrak lain tetap dianalisis secara umum, dan diberi label demikian.",
+    "countriesHeading": "Perbandingan hukum di tiga negara",
+    "countries": {
+      "id": "Indonesia",
+      "sg": "Singapura",
+      "au": "Australia"
+    },
+    "otherCountries": "Dokumen dari negara lain tetap dianalisis, tanpa perbandingan hukum.",
+    "notice": "safely.ink adalah alat informasi, bukan nasihat hukum. Untuk masalah serius, bicarakan dengan advokat atau regulator terkait."
+  },
+  "comparison": {
+    "heading": "Bukan sekadar mengobrol dengan PDF",
+    "lead": "Model dipakai untuk hal yang dikuasainya: membaca bahasa hukum yang rumit, menyusun skenario sulit, dan meneliti hukum. Model tidak dipakai untuk memutuskan hasil.",
+    "summariser": "Ringkasan atau chat",
+    "us": "safely.ink",
+    "rows": {
+      "output": {
+        "label": "Hasil",
+        "them": "Deskripsi dokumen",
+        "us": "Kasus uji yang gagal terhadap dokumen"
+      },
+      "method": {
+        "label": "Metode",
+        "them": "Satu kali dibaca model",
+        "us": "Ekstraksi oleh model, lalu aturan deterministik, lalu pemeriksaan terpisah"
+      },
+      "repeatable": {
+        "label": "Bisa diulang",
+        "them": "Tidak",
+        "us": "Ya: aturan dan skenario yang sama memberi hasil yang sama"
+      },
+      "explainable": {
+        "label": "Bisa dijelaskan",
+        "them": "“Kata modelnya begitu”",
+        "us": "Jejak: aturan mana yang berlaku, pada fakta apa, dari klausul mana"
+      },
+      "grounding": {
+        "label": "Hukum",
+        "them": "Ingatan model",
+        "us": "Diambil dari situs resmi, kutipannya diperiksa sebelum ditampilkan"
+      }
+    }
+  },
+  "faq": {
+    "heading": "Pertanyaan",
+    "items": {
+      "advice": {
+        "q": "Apakah safely.ink memberi nasihat hukum?",
+        "a": "Tidak. safely.ink adalah alat informasi. safely.ink menunjukkan bagaimana isi dokumen berlaku dalam skenario tertentu dan di mana hasilnya berbeda dari harapan orang atau dari hukum. Untuk keputusan dengan akibat serius, bicarakan dengan advokat atau regulator terkait."
+      },
+      "documents": {
+        "q": "Dokumen apa saja yang bisa saya periksa?",
+        "a": "Polis atau kontrak apa pun, dalam bentuk PDF (teks atau hasil pindai) atau foto halaman. Enam jenis disetel khusus: polis asuransi, perjanjian pinjaman dan kredit, kontrak kerja, NDA, perjanjian sewa, serta syarat dan ketentuan. Dokumen lain dianalisis secara umum dan diberi label demikian."
+      },
+      "countries": {
+        "q": "Negara mana saja yang tercakup dalam perbandingan hukum?",
+        "a": "Indonesia, Singapura, dan Australia. Dokumen dari negara lain tetap dianalisis terhadap harapan orang pada umumnya, tanpa perbandingan hukum."
+      },
+      "time": {
+        "q": "Berapa lama satu pemeriksaan?",
+        "a": "Beberapa menit untuk dokumen pada umumnya. Anda bisa melihat setiap tahapnya, dari membaca hingga membandingkan, selama proses berjalan."
+      },
+      "decides": {
+        "q": "Siapa yang memutuskan sesuatu adalah jebakan: model atau kode?",
+        "a": "Kode. Model membaca dokumen, mengusulkan aturan dan skenario, serta meneliti hukum. Mesin deterministik menjalankan setiap skenario terhadap aturan, sehingga dokumen yang sama selalu memberi hasil yang sama, masing-masing dengan jejak ke klausulnya."
+      },
+      "citations": {
+        "q": "Bagaimana saya tahu kutipan hukumnya nyata?",
+        "a": "Kutipan hanya ditampilkan jika kata-kata yang dikutip ditemukan di halaman sumber resmi yang diambil untuk pemeriksaan Anda, dan selalu ditautkan ke halaman itu. Jika tidak ada yang bisa diverifikasi, laporan menyatakan tidak ada temuan alih-alih menebak."
+      },
+      "privacy": {
+        "q": "Apakah dokumen saya bersifat pribadi?",
+        "a": "Hanya Anda yang bisa membuka laporan Anda. Berkas yang diunggah dihapus otomatis setelah tujuh hari, dan Anda bisa menghapus laporan mana pun beserta berkasnya kapan saja. Dokumen Anda tidak dipakai untuk melatih model."
+      },
+      "account": {
+        "q": "Apakah saya perlu akun?",
+        "a": "Ya, masuk dengan Google, agar laporan Anda hanya milik Anda dan bisa dibuka lagi di riwayat."
+      }
+    }
+  },
+  "closing": {
+    "heading": "Ketahui di mana kontrak itu bermasalah selagi Anda masih bisa menolak",
+    "body": "Unggah polis atau kontrak yang ada di depan Anda. Dalam beberapa menit Anda akan melihat skenario yang merugikan Anda."
   },
   "footer": {
-    "disclaimer": "Alat informasi, bukan nasihat hukum"
+    "tagline": "Policy fuzzer: menguji ketentuan dengan skenario sulit sebelum ketentuan itu merugikan Anda.",
+    "contact": "Ada pertanyaan, atau menemukan kesalahan kami?",
+    "nav": "Situs",
+    "analytics": "Pengaturan analitik"
+  },
+  "notFound": {
+    "title": "Halaman ini tidak ada dalam kontrak",
+    "body": "Alamatnya mungkin salah ketik, atau halamannya sudah dipindahkan.",
+    "home": "Kembali ke beranda"
+  },
+  "descent": {
+    "kicker": "Menyelam ke ketentuan kecil",
+    "heading": "Setiap kontrak punya halaman yang tak pernah dibaca",
+    "title": "Ketentuan Polis",
+    "subtitle": "Asuransi Kesehatan Perorangan · Lampiran A",
+    "clauses": {
+      "c1": "1.1 Selamat datang. Polis ini melindungi Anda dan keluarga saat paling dibutuhkan.",
+      "c2": "2.4 Rawat inap. Kami membayar perawatan rawat inap yang memenuhi syarat, sesuai batas dalam Lampiran.",
+      "c3": "3.2 Masa tunggu. Tidak ada manfaat untuk penyakit yang pertama kali timbul dalam 30 hari sejak tanggal mulai.",
+      "c4": "5.7 Pengecualian. Kami tidak membayar kerugian yang timbul langsung maupun tidak langsung dari kondisi yang sudah ada sebelumnya.",
+      "c5": "6.1 Klaim. Anda wajib menyerahkan semua dokumen pendukung dalam 30 hari sejak keluar dari rumah sakit.",
+      "c6": "7.3 Premi. Pertanggungan dihentikan sementara jika premi belum dibayar hingga akhir masa tenggang."
+    },
+    "smallPrint": "Tunduk pada syarat, ketentuan, batasan, dan pengecualian dalam polis ini. Perusahaan berhak mengubah ketentuan ini dengan pemberitahuan. Manfaat hanya dibayarkan apabila Tertanggung telah memenuhi setiap syarat yang ditentukan. Setiap keterlambatan pemberitahuan memberi hak kepada Perusahaan untuk menolak tanggung jawab. Kata yang dicetak tebal memiliki arti sebagaimana diatur dalam Bagian 12.",
+    "footnote": "8.2* Pemberitahuan yang melewati tujuh (7) hari sejak kejadian membatalkan klaim.",
+    "captions": {
+      "a": "Halaman pertama ditulis untuk Anda.",
+      "b": "Halaman kedua belas ditulis untuk pihak lain.",
+      "c": "Di ketentuan kecil, perlindungan diam-diam berakhir.",
+      "d": "safely.ink membaca setiap baris, dan melingkari baris yang merugikan Anda."
+    },
+    "note": "Teks polis rekaan, sebagai ilustrasi."
+  },
+  "reel": {
+    "label": "Showreel safely.ink",
+    "play": "Putar",
+    "pause": "Jeda",
+    "fullscreen": "Layar penuh",
+    "cold": {
+      "line1": "Empat puluh halaman.",
+      "line2": "Tak ada yang membacanya.",
+      "line3": "Sampai hari itu tiba."
+    },
+    "mark": {
+      "tagline": "Uji ketentuan kecil"
+    },
+    "read": {
+      "title": "Baca",
+      "caption": "Setiap klausul ditemukan dan diberi nomor."
+    },
+    "rules": {
+      "title": "Aturan",
+      "caption": "Isi dokumen menjadi aturan yang bisa diperiksa mesin."
+    },
+    "fuzz": {
+      "title": "Uji",
+      "caption": "Puluhan skenario sulit. Kode memutuskan setiap hasil."
+    },
+    "compare": {
+      "title": "Bandingkan",
+      "caption": "Harapan dibandingkan hasil. Hukum dikutip hanya jika terverifikasi.",
+      "expect": "Anda mengira",
+      "expectValue": "Dibayar",
+      "outcome": "Isi polis",
+      "outcomeValue": "Ditolak",
+      "citation": "Kutipan ditemukan di sumber resmi",
+      "illustrative": "Ilustrasi"
+    },
+    "report": {
+      "title": "Laporan",
+      "caption": "Sebuah nilai, dan setiap jebakan diurutkan beserta klausulnya.",
+      "grade": "Nilai",
+      "traps": {
+        "t1": "Pemberitahuan terlambat membatalkan seluruh klaim",
+        "t2": "Masa tunggu juga berlaku untuk kecelakaan",
+        "t3": "Kondisi yang sudah ada ditafsirkan sangat luas"
+      }
+    },
+    "end": {
+      "line": "Ketahui di mana kontrak bermasalah sebelum Anda tanda tangan."
+    }
+  },
+  "blog": {
+    "title": "Ketentuan kecil, dijelaskan",
+    "description": "Panduan dengan bahasa sederhana tentang klausul yang menentukan nasib Anda saat ada masalah: asuransi, pinjaman, kontrak kerja, NDA, sewa, dan syarat layanan.",
+    "kicker": "Blog",
+    "minutes": "{{count}} menit baca",
+    "published": "Terbit",
+    "updated": "Diperbarui",
+    "byline": "Oleh tim safely.ink",
+    "related": "Baca juga",
+    "all": "Semua artikel",
+    "home": "Beranda",
+    "checkBody": "Unggah polis atau kontrak yang ada di depan Anda dan lihat di mana posisi Anda dirugikan, dalam beberapa menit.",
+    "feed": "Umpan RSS",
+    "tags": {
+      "guides": "Panduan",
+      "how-it-works": "Cara kerja",
+      "insurance": "Asuransi",
+      "loans": "Pinjaman",
+      "employment": "Kerja",
+      "nda": "NDA",
+      "lease": "Sewa",
+      "terms": "Syarat layanan",
+      "law": "Hukum"
+    },
+    "latest": "Dari blog"
+  },
+  "consent": {
+    "label": "Persetujuan analitik",
+    "text": "Bolehkah kami menghitung kunjungan dengan Google Analytics? Ini membantu kami melihat halaman mana yang berguna. Tidak ada data yang dikirim kecuali Anda setuju.",
+    "accept": "Setuju",
+    "decline": "Tidak, terima kasih"
+  },
+  "pages": {
+    "howItWorks": {
+      "title": "Cara kerja safely.ink",
+      "description": "Dari unggahan sampai laporan: cara safely.ink membaca kontrak, mengubah klausul menjadi aturan, menguji skenario dengan kode, dan memeriksa hukum."
+    },
+    "privacy": {
+      "title": "Kebijakan privasi",
+      "description": "Data yang dikumpulkan safely.ink, tempat data diproses di Google Cloud, berapa lama disimpan, dan cara Anda melihat atau menghapusnya."
+    },
+    "terms": {
+      "title": "Syarat dan ketentuan",
+      "description": "Aturan memakai safely.ink: alat informasi, bukan nasihat hukum, beserta batasan akurasi, unggahan, dan tanggung jawab."
+    }
   }
 }

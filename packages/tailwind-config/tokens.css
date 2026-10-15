@@ -1,0 +1,75 @@
+/* Colour tokens, plain CSS so tools without Tailwind (the Remotion renderer) can
+   load them too. global.css imports this file. */
+
+/* Ink on paper. The red is the reviewer's pen: traps, errors and warnings
+   only, never buttons or links. */
+:root {
+  --background: #faf7f0;
+  --foreground: #14182b;
+  --card: #fffdf8;
+  --card-foreground: #14182b;
+  --popover: #fffdf8;
+  --popover-foreground: #14182b;
+  --primary: #14182b;
+  --primary-foreground: #faf7f0;
+  --secondary: #efeadd;
+  --secondary-foreground: #14182b;
+  --muted: #efeadd;
+  --muted-foreground: #5e6272;
+  --accent: #efeadd;
+  --accent-foreground: #14182b;
+  --destructive: #b92c17;
+  --destructive-foreground: #fffdf8;
+  --border: #e3ddcf;
+  --input: #e3ddcf;
+  --ring: #14182b;
+  --chart-1: #14182b;
+  --chart-2: #3d4566;
+  --chart-3: #7a82a3;
+  --chart-4: #b92c17;
+  --chart-5: #b8af9a;
+  --radius: 0.375rem;
+  --sidebar: #f4f0e6;
+  --sidebar-foreground: #14182b;
+  --sidebar-primary: #14182b;
+  --sidebar-primary-foreground: #faf7f0;
+  --sidebar-accent: #e9e3d4;
+  --sidebar-accent-foreground: #14182b;
+  --sidebar-border: #e3ddcf;
+  --sidebar-ring: #14182b;
+}
+
+.dark {
+  --background: #0e1120;
+  --foreground: #ede8dc;
+  --card: #161a2e;
+  --card-foreground: #ede8dc;
+  --popover: #161a2e;
+  --popover-foreground: #ede8dc;
+  --primary: #ede8dc;
+  --primary-foreground: #0e1120;
+  --secondary: #20253d;
+  --secondary-foreground: #ede8dc;
+  --muted: #20253d;
+  --muted-foreground: #a3a6b4;
+  --accent: #2a2f47;
+  --accent-foreground: #ede8dc;
+  --destructive: #f0654b;
+  --destructive-foreground: #0e1120;
+  --border: #2a2f47;
+  --input: #2a2f47;
+  --ring: #ede8dc;
+  --chart-1: #ede8dc;
+  --chart-2: #a3a6b4;
+  --chart-3: #5d6690;
+  --chart-4: #f0654b;
+  --chart-5: #6e6858;
+  --sidebar: #0b0e1a;
+  --sidebar-foreground: #ede8dc;
+  --sidebar-primary: #ede8dc;
+  --sidebar-primary-foreground: #0e1120;
+  --sidebar-accent: #20253d;
+  --sidebar-accent-foreground: #ede8dc;
+  --sidebar-border: #2a2f47;
+  --sidebar-ring: #ede8dc;
+}

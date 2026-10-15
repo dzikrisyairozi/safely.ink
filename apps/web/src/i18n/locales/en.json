@@ -1,16 +1,288 @@
 {
-  "hero": {
-    "title": "Stress-test the fine print",
-    "subtitle": "Upload a policy or contract. safely.ink turns it into rules, attacks it with tricky scenarios, and shows where you end up worse off than you expect or than the law allows.",
-    "cta": "Check a document"
+  "meta": {
+    "title": "safely.ink: stress-test a policy or contract before you sign",
+    "description": "safely.ink is a policy fuzzer. Upload an insurance policy, loan agreement or other contract: it turns the wording into rules, runs dozens of tricky scenarios through them, and shows where you end up worse off than you would expect or than the law allows."
   },
-  "loading": {
-    "word1": "Read",
-    "word2": "Fuzz",
-    "word3": "Compare",
-    "label": "safely.ink"
+  "og": {
+    "kicker": "Policy fuzzer"
+  },
+  "nav": {
+    "skip": "Skip to content",
+    "home": "safely.ink home",
+    "language": "Language",
+    "theme": "Switch between light and dark",
+    "blog": "Blog",
+    "howItWorks": "How it works"
+  },
+  "cta": {
+    "check": "Check a document",
+    "how": "See how it works"
+  },
+  "notice": "An information tool, not legal advice",
+  "hero": {
+    "kicker": "Policy fuzzer",
+    "title": "Stress-test the fine print before you sign",
+    "problem": "Most people learn what a policy really says on the worst possible day: a claim refused, a penalty charged, a deposit kept.",
+    "answer": "safely.ink attacks your document with tricky, realistic scenarios first, and shows every case where you end up worse off than you would expect, or than the law allows."
+  },
+  "steps": {
+    "heading": "Four steps, a few minutes",
+    "lead": "The same technique software testers use to break code, aimed at a contract.",
+    "read": {
+      "title": "Read",
+      "body": "The document is read, its type, parties and country found, and its text split into numbered clauses. You confirm which side you are on."
+    },
+    "rules": {
+      "title": "Rules",
+      "body": "The wording becomes typed, machine-checkable rules. Every rule points to the clause it comes from, or it is dropped."
+    },
+    "fuzz": {
+      "title": "Fuzz",
+      "body": "20 to 40 edge cases, such as late notice, a claim in the waiting period, one missed payment or an early exit, run through a deterministic engine. Code decides each outcome, not a model."
+    },
+    "compare": {
+      "title": "Compare",
+      "body": "Each outcome is set against what a reasonable person expects and, for Indonesia, Singapore and Australia, against the law. A legal citation appears only if its words were found in the official source."
+    }
+  },
+  "trap": {
+    "heading": "What a trap looks like",
+    "lead": "Every trap comes with the scenario, the gap between expectation and outcome, and the clause that causes it.",
+    "label": "Example · Health insurance",
+    "severity": "High",
+    "scenarioLabel": "Scenario",
+    "scenario": "You are in hospital for ten days. The policy asks for notice within seven days, so your insurer hears about the claim on day eleven.",
+    "expectLabel": "A reasonable person expects",
+    "expect": "The claim is paid. You were in hospital, and the delay changed nothing.",
+    "outcomeLabel": "What the wording does",
+    "outcome": "The claim is refused.",
+    "clauseLabel": "Clause 8.2",
+    "clause": "Notice of any claim must be given to the Company in writing within seven (7) days of the event. Failure to give notice within this period shall invalidate the claim.",
+    "trace": "Rule R-14 fired: notice_days = 11 > 7 → claim refused",
+    "note": "Illustrative example with invented wording. A real report quotes your own document."
+  },
+  "coverage": {
+    "heading": "Tuned for the documents people sign most",
+    "typesHeading": "Six tuned document types",
+    "types": {
+      "insurance": "Insurance policy",
+      "loan": "Loan or credit agreement",
+      "employment": "Employment contract",
+      "nda": "Non-disclosure agreement",
+      "lease": "Rental lease",
+      "terms": "Terms and conditions"
+    },
+    "general": "Any other policy or contract gets a general analysis, labelled as such.",
+    "countriesHeading": "Legal comparison in three countries",
+    "countries": {
+      "id": "Indonesia",
+      "sg": "Singapore",
+      "au": "Australia"
+    },
+    "otherCountries": "Documents from other countries are analysed too, without the legal comparison.",
+    "notice": "safely.ink is an information tool, not legal advice. For a serious problem, talk to a lawyer or the regulator."
+  },
+  "comparison": {
+    "heading": "Not a chat with your PDF",
+    "lead": "Models are used where they are strong: reading messy legal prose, inventing hard scenarios, researching law. They are kept away from deciding the outcome.",
+    "summariser": "Summary or chat",
+    "us": "safely.ink",
+    "rows": {
+      "output": {
+        "label": "Output",
+        "them": "A description of the document",
+        "us": "Failing test cases against the document"
+      },
+      "method": {
+        "label": "Method",
+        "them": "One model reading",
+        "us": "Model extraction, then deterministic rules, then independent checks"
+      },
+      "repeatable": {
+        "label": "Repeatable",
+        "them": "No",
+        "us": "Yes: the same rules and scenarios give the same outcomes"
+      },
+      "explainable": {
+        "label": "Explainable",
+        "them": "“The model said so”",
+        "us": "A trace: which rule fired, on which fact, from which clause"
+      },
+      "grounding": {
+        "label": "Law",
+        "them": "Model memory",
+        "us": "Fetched from official sites, quote-checked before it is shown"
+      }
+    }
+  },
+  "faq": {
+    "heading": "Questions",
+    "items": {
+      "advice": {
+        "q": "Is safely.ink legal advice?",
+        "a": "No. safely.ink is an information tool. It shows how the wording of a document plays out in specific scenarios and where that differs from what people expect or from the law. For a decision with serious consequences, talk to a lawyer or the relevant regulator."
+      },
+      "documents": {
+        "q": "Which documents can I check?",
+        "a": "Any policy or contract, as a PDF (text or scanned) or as photos of the pages. Six types are tuned: insurance policies, loan and credit agreements, employment contracts, NDAs, rental leases, and terms and conditions. Anything else gets a general analysis, labelled as such."
+      },
+      "countries": {
+        "q": "Which countries does the legal comparison cover?",
+        "a": "Indonesia, Singapore and Australia. Documents from other countries are still analysed against a reasonable person's expectations, without the legal comparison."
+      },
+      "time": {
+        "q": "How long does a check take?",
+        "a": "A few minutes for a typical document. You can watch each stage, from reading to comparing, while it runs."
+      },
+      "decides": {
+        "q": "Who decides whether something is a trap: a model or code?",
+        "a": "Code. Models read the document, propose rules and scenarios, and research the law. A deterministic engine runs every scenario against the rules, so the same document always gives the same outcomes, each with a trace back to its clause."
+      },
+      "citations": {
+        "q": "How do I know a legal citation is real?",
+        "a": "A citation is shown only if its quoted words were found on the official source page fetched for your check, and it links to that page. When nothing can be verified, the report says there is no finding instead of guessing."
+      },
+      "privacy": {
+        "q": "Is my document private?",
+        "a": "Only you can open your reports. The uploaded file is deleted automatically after seven days, and you can delete any report, with its file, at any time. Your documents are not used to train models."
+      },
+      "account": {
+        "q": "Do I need an account?",
+        "a": "Yes, a Google sign-in, so that your reports are yours alone and you can come back to them in your history."
+      }
+    }
+  },
+  "closing": {
+    "heading": "Find out where it breaks while you can still say no",
+    "body": "Upload the policy or contract in front of you. In a few minutes you will see the scenarios where it leaves you worse off."
   },
   "footer": {
-    "disclaimer": "An information tool, not legal advice"
+    "tagline": "A policy fuzzer: it attacks the fine print with tricky scenarios before the fine print gets the chance to attack you.",
+    "contact": "Questions, or found something we got wrong?",
+    "nav": "Site",
+    "analytics": "Analytics settings"
+  },
+  "notFound": {
+    "title": "This page is not in the contract",
+    "body": "The address may be mistyped, or the page has moved.",
+    "home": "Back to the home page"
+  },
+  "descent": {
+    "kicker": "Descent into the fine print",
+    "heading": "Every contract has a page nobody reads",
+    "title": "Policy Wording",
+    "subtitle": "Personal Health Cover · Schedule A",
+    "clauses": {
+      "c1": "1.1 Welcome. This policy protects you and your family when you need it most.",
+      "c2": "2.4 Hospital cover. We pay for eligible in-patient treatment, subject to the limits in the Schedule.",
+      "c3": "3.2 Waiting period. No benefit is payable for any illness first occurring within 30 days of the start date.",
+      "c4": "5.7 Exclusions. We do not pay for any loss arising directly or indirectly from a pre-existing condition.",
+      "c5": "6.1 Claims. You must submit all supporting documents within 30 days of discharge.",
+      "c6": "7.3 Premium. Cover is suspended if any premium remains unpaid at the end of the grace period."
+    },
+    "smallPrint": "Subject to the terms, conditions, limits and exclusions herein. The Company reserves the right to vary these terms on notice. Benefits are payable only where the Insured has complied with every condition precedent. Any delay in notification shall entitle the Company to decline liability. Words in bold have the meanings given in Section 12.",
+    "footnote": "8.2* Failure to give notice within seven (7) days of the event shall invalidate the claim.",
+    "captions": {
+      "a": "Page one is written for you.",
+      "b": "Page twelve is written for the other side.",
+      "c": "The small print is where cover quietly ends.",
+      "d": "safely.ink reads every line, and circles the one that costs you."
+    },
+    "note": "Invented policy text, for illustration."
+  },
+  "reel": {
+    "label": "safely.ink showreel",
+    "play": "Play",
+    "pause": "Pause",
+    "fullscreen": "Full screen",
+    "cold": {
+      "line1": "Forty pages.",
+      "line2": "Nobody reads them.",
+      "line3": "Until the day it matters."
+    },
+    "mark": {
+      "tagline": "Stress-test the fine print"
+    },
+    "read": {
+      "title": "Read",
+      "caption": "Every clause found and numbered."
+    },
+    "rules": {
+      "title": "Rules",
+      "caption": "The wording becomes rules a machine can check."
+    },
+    "fuzz": {
+      "title": "Fuzz",
+      "caption": "Dozens of tricky scenarios. Code decides every outcome."
+    },
+    "compare": {
+      "title": "Compare",
+      "caption": "Expectation against outcome. The law, quoted only when verified.",
+      "expect": "You expect",
+      "expectValue": "Paid",
+      "outcome": "The wording",
+      "outcomeValue": "Refused",
+      "citation": "Quote found in the official source",
+      "illustrative": "Illustration"
+    },
+    "report": {
+      "title": "Report",
+      "caption": "A grade, and every trap ranked with its clause.",
+      "grade": "Grade",
+      "traps": {
+        "t1": "Late notice voids the whole claim",
+        "t2": "Waiting period also applies to accidents",
+        "t3": "Pre-existing condition read very widely"
+      }
+    },
+    "end": {
+      "line": "Know where it breaks before you sign."
+    }
+  },
+  "blog": {
+    "title": "Fine print, explained",
+    "description": "Plain-language guides to the clauses that decide what happens when something goes wrong: insurance, loans, employment, NDAs, leases and terms.",
+    "kicker": "Blog",
+    "minutes": "{{count}} min read",
+    "published": "Published",
+    "updated": "Updated",
+    "byline": "By the safely.ink team",
+    "related": "Keep reading",
+    "all": "All articles",
+    "home": "Home",
+    "checkBody": "Upload the policy or contract in front of you and see where it leaves you worse off, in a few minutes.",
+    "feed": "RSS feed",
+    "tags": {
+      "guides": "Guides",
+      "how-it-works": "How it works",
+      "insurance": "Insurance",
+      "loans": "Loans",
+      "employment": "Employment",
+      "nda": "NDA",
+      "lease": "Leases",
+      "terms": "Terms",
+      "law": "Law"
+    },
+    "latest": "From the blog"
+  },
+  "consent": {
+    "label": "Analytics consent",
+    "text": "May we count visits with Google Analytics? It helps us see which pages are useful. Nothing is sent unless you accept.",
+    "accept": "Accept",
+    "decline": "No thanks"
+  },
+  "pages": {
+    "howItWorks": {
+      "title": "How safely.ink works",
+      "description": "From upload to report: how safely.ink reads a contract, turns clauses into rules, tests scenarios with code and checks the law."
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "description": "What safely.ink collects, where it is processed on Google Cloud, how long it is kept, and how you can see or delete it."
+    },
+    "terms": {
+      "title": "Terms of use",
+      "description": "The rules for using safely.ink: an information tool, not legal advice, with limits on accuracy, uploads and liability."
+    }
   }
 }

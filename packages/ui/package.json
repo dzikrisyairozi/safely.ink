@@ -8,6 +8,10 @@
       "types": "./src/lib/utils.ts",
       "import": "./src/lib/utils.ts"
     },
+    "./components/brand/shapes": {
+      "types": "./src/components/brand/shapes.ts",
+      "import": "./src/components/brand/shapes.ts"
+    },
     "./components/*": {
       "types": "./src/components/*.tsx",
       "import": "./src/components/*.tsx"
@@ -28,7 +32,9 @@
   "scripts": {
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "brand:icons": "node scripts/brand-icons.ts",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -91,6 +97,7 @@
     "jsdom": "^30.1.2",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "sharp": "0.35.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3"

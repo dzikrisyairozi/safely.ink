@@ -1,15 +1,90 @@
 @import '@repo/tailwind-config/global.css';
 
-/* Note: The following @source directives are new in Tailwind v4. 
-   IDE warnings about "Unknown at rule @source" are safe to ignore. */
-@source "../../../../packages/i18n/src";
-@source "../../../../packages/ui/src";
+/* Only the shared pieces this site uses; scanning all of @repo/ui would ship
+   the class names of every dashboard component. */
+@source "../../../../packages/ui/src/components/brand";
+@source "../../../../packages/ui/src/components/ui/button.tsx";
 
-@layer base {
-  :root {
-    --bg: #0a0a0a;
-    --text: #f5f5f5;
-    --muted: #888888;
-    --stroke: #1f1f1f;
+html {
+  scroll-behavior: smooth;
+}
+
+/* Intro: the rolled pangolin unrolls into the page, once per session. Content
+   is in the HTML underneath from the first byte, and clicks pass through. */
+.intro {
+  animation: intro-out 0.35s ease-in 0.55s forwards;
+}
+.intro svg {
+  animation: intro-ball 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+[data-intro-seen] .intro {
+  display: none;
+}
+@keyframes intro-ball {
+  from {
+    transform: rotate(-200deg) scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: rotate(0) scale(1);
+  }
+}
+@keyframes intro-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Step glyphs: thin ink lines drawn a few times, then left drawn. Stopping
+   halfway through the third cycle lands in the drawn part of the keyframes;
+   motion that never stops would need a pause control (WCAG 2.2.2). */
+.glyph path,
+.glyph line,
+.glyph circle {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: glyph-draw 3.2s ease-in-out 2.5 forwards;
+}
+.glyph :nth-child(2) {
+  animation-delay: 0.25s;
+}
+.glyph :nth-child(3) {
+  animation-delay: 0.5s;
+}
+.glyph :nth-child(4) {
+  animation-delay: 0.75s;
+}
+.glyph :nth-child(5) {
+  animation-delay: 1s;
+}
+@keyframes glyph-draw {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  40%,
+  75% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .intro {
+    display: none;
+  }
+  .glyph path,
+  .glyph line,
+  .glyph circle {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }

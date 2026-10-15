@@ -11,47 +11,14 @@ import i18n, { type InitOptions, type Resource } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-import commonEn from './locales/en/common.json';
-import commonId from './locales/id/common.json';
+import { DEFAULT_LANGUAGE, mergeResources } from './core';
 
-export const SUPPORTED_LANGUAGES = ['en', 'id'] as const;
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-
-export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
-
-export const LANGUAGE_LABELS: Record<
-  SupportedLanguage,
-  { label: string; flag: string }
-> = {
-  en: { label: 'English', flag: 'EN' },
-  id: { label: 'Bahasa Indonesia', flag: 'ID' },
-};
-
-/**
- * Deep-merge app resources with common translations.
- */
-function mergeResources(appResources?: Resource): Resource {
-  const base: Resource = {
-    en: { common: commonEn },
-    id: { common: commonId },
-  };
-
-  if (!appResources) return base;
-
-  for (const lang of Object.keys(appResources)) {
-    if (!base[lang]) {
-      base[lang] = {};
-    }
-    for (const ns of Object.keys(appResources[lang]!)) {
-      const resourceKey = appResources[lang]![ns];
-      if (resourceKey) {
-        base[lang]![ns] = resourceKey;
-      }
-    }
-  }
-
-  return base;
-}
+export {
+  SUPPORTED_LANGUAGES,
+  DEFAULT_LANGUAGE,
+  LANGUAGE_LABELS,
+  type SupportedLanguage,
+} from './core';
 
 export interface InitI18nOptions {
   /** Initial language (e.g., from server cookie). Overrides auto-detection. */
