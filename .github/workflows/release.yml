@@ -1,8 +1,8 @@
 name: Release
 
-# Pushing a tag vX.Y.Z on main deploys the API to Cloud Run and the dashboard,
-# with the Firestore and Storage rules, to Firebase Hosting. The landing page is
-# not here: App Hosting rolls out every push to main by itself.
+# Pushing a tag vX.Y.Z on main deploys the API to Cloud Run, the dashboard with
+# the Firestore and Storage rules to Firebase Hosting, and the landing page to
+# App Hosting (its automatic rollouts are off, so only a tag deploys it).
 # One-time Google Cloud setup: docs/runbook.md, "Releases".
 on:
   push:
@@ -26,7 +26,7 @@ env:
 
 jobs:
   deploy:
-    name: Deploy API and dashboard
+    name: Deploy API, dashboard and landing
     runs-on: ubuntu-latest
 
     steps:
@@ -80,3 +80,9 @@ jobs:
         run: |
           pnpm --filter dashboard build
           pnpm exec firebase deploy --only hosting,firestore,storage --project "$PROJECT" --non-interactive
+
+      # App Hosting builds the tagged commit from GitHub (backend web, root apps/web).
+      - name: Deploy the landing
+        run: |
+          pnpm exec firebase apphosting:rollouts:create web --project "$PROJECT" --git-commit "$(git rev-parse HEAD)" --force --non-interactive
+          curl -fsS -o /dev/null https://web--safely-ink.asia-southeast1.hosted.app/
