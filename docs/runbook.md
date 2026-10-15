@@ -216,6 +216,56 @@ The first deploy prints the service URL. Put it in
 `apps/dashboard/.env.production.local` as `VITE_API_URL`, then rebuild and redeploy the
 dashboard.
 
+### Releases
+
+After the release PR is merged, tag `main` and push the tag:
+
+```bash
+git checkout main && git pull
+git tag v1.2.0 && git push origin v1.2.0
+```
+
+`.github/workflows/release.yml` then deploys the API (image tagged with the version) and
+the dashboard with the Firestore and Storage rules. It refuses a tag that is not on
+`main`. The landing page does not wait for a tag; App Hosting rolls out every push to
+`main`. The manual steps above still work as a fallback.
+
+One-time setup: the workflow signs in to Google Cloud through Workload Identity
+Federation, so no key is stored in GitHub. Only tag pushes from this repository can
+use the service account.
+
+```bash
+PROJECT=safely-ink
+NUMBER=774697783852
+SA=github-deploy@$PROJECT.iam.gserviceaccount.com
+
+gcloud iam service-accounts create github-deploy --project $PROJECT
+gcloud iam workload-identity-pools create github --location global --project $PROJECT
+gcloud iam workload-identity-pools providers create-oidc github --project $PROJECT \
+  --location global --workload-identity-pool github \
+  --issuer-uri https://token.actions.githubusercontent.com \
+  --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" \
+  --attribute-condition "assertion.repository == 'dzikrisyairozi/safely.ink' && assertion.ref.startsWith('refs/tags/v')"
+gcloud iam service-accounts add-iam-policy-binding $SA --project $PROJECT \
+  --role roles/iam.workloadIdentityUser \
+  --member "principalSet://iam.googleapis.com/projects/$NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/dzikrisyairozi/safely.ink"
+
+# What the deploy touches: the image registry, the Cloud Run service, Hosting,
+# rules and indexes, and the APIs firebase-tools checks.
+for ROLE in roles/artifactregistry.writer roles/run.developer roles/firebase.admin \
+  roles/serviceusage.serviceUsageConsumer; do
+  gcloud projects add-iam-policy-binding $PROJECT --member "serviceAccount:$SA" \
+    --role $ROLE --condition None
+done
+# Cloud Run deploys as the service's runtime account.
+gcloud iam service-accounts add-iam-policy-binding \
+  $NUMBER-compute@developer.gserviceaccount.com --project $PROJECT \
+  --member "serviceAccount:$SA" --role roles/iam.serviceAccountUser
+
+# The dashboard's public web config, read by the build.
+gh variable set --env-file apps/dashboard/.env.production.local
+```
+
 ## 4. Check a deploy
 
 ```bash
