@@ -17,6 +17,10 @@ import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors500RouteImport } from './routes/(errors)/500'
 import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedAnalysesIdIndexRouteImport } from './routes/_authenticated/analyses/$id/index'
+import { Route as AuthenticatedAnalysesIdRulesRouteImport } from './routes/_authenticated/analyses/$id/rules'
+import { Route as AuthenticatedAnalysesIdTrapsTrapIdRouteImport } from './routes/_authenticated/analyses/$id/traps/$trapId'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -57,6 +61,29 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAnalysesIdIndexRoute =
+  AuthenticatedAnalysesIdIndexRouteImport.update({
+    id: '/analyses/$id/',
+    path: '/analyses/$id/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalysesIdRulesRoute =
+  AuthenticatedAnalysesIdRulesRouteImport.update({
+    id: '/analyses/$id/rules',
+    path: '/analyses/$id/rules',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnalysesIdTrapsTrapIdRoute =
+  AuthenticatedAnalysesIdTrapsTrapIdRouteImport.update({
+    id: '/analyses/$id/traps/$trapId',
+    path: '/analyses/$id/traps/$trapId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -66,6 +93,10 @@ export interface FileRoutesByFullPath {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
+  '/history': typeof AuthenticatedHistoryRoute
+  '/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
+  '/analyses/$id/': typeof AuthenticatedAnalysesIdIndexRoute
+  '/analyses/$id/traps/$trapId': typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
@@ -74,7 +105,11 @@ export interface FileRoutesByTo {
   '/404': typeof errors404Route
   '/500': typeof errors500Route
   '/503': typeof errors503Route
+  '/history': typeof AuthenticatedHistoryRoute
   '/': typeof AuthenticatedIndexRoute
+  '/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
+  '/analyses/$id': typeof AuthenticatedAnalysesIdIndexRoute
+  '/analyses/$id/traps/$trapId': typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,13 +120,39 @@ export interface FileRoutesById {
   '/(errors)/404': typeof errors404Route
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/analyses/$id/rules': typeof AuthenticatedAnalysesIdRulesRoute
+  '/_authenticated/analyses/$id/': typeof AuthenticatedAnalysesIdIndexRoute
+  '/_authenticated/analyses/$id/traps/$trapId': typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/401' | '/403' | '/404' | '/500' | '/503'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/401'
+    | '/403'
+    | '/404'
+    | '/500'
+    | '/503'
+    | '/history'
+    | '/analyses/$id/rules'
+    | '/analyses/$id/'
+    | '/analyses/$id/traps/$trapId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/sign-in' | '/401' | '/403' | '/404' | '/500' | '/503' | '/'
+  to:
+    | '/sign-in'
+    | '/401'
+    | '/403'
+    | '/404'
+    | '/500'
+    | '/503'
+    | '/history'
+    | '/'
+    | '/analyses/$id/rules'
+    | '/analyses/$id'
+    | '/analyses/$id/traps/$trapId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -101,7 +162,11 @@ export interface FileRouteTypes {
     | '/(errors)/404'
     | '/(errors)/500'
     | '/(errors)/503'
+    | '/_authenticated/history'
     | '/_authenticated/'
+    | '/_authenticated/analyses/$id/rules'
+    | '/_authenticated/analyses/$id/'
+    | '/_authenticated/analyses/$id/traps/$trapId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -172,15 +237,52 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analyses/$id/': {
+      id: '/_authenticated/analyses/$id/'
+      path: '/analyses/$id'
+      fullPath: '/analyses/$id/'
+      preLoaderRoute: typeof AuthenticatedAnalysesIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analyses/$id/rules': {
+      id: '/_authenticated/analyses/$id/rules'
+      path: '/analyses/$id/rules'
+      fullPath: '/analyses/$id/rules'
+      preLoaderRoute: typeof AuthenticatedAnalysesIdRulesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analyses/$id/traps/$trapId': {
+      id: '/_authenticated/analyses/$id/traps/$trapId'
+      path: '/analyses/$id/traps/$trapId'
+      fullPath: '/analyses/$id/traps/$trapId'
+      preLoaderRoute: typeof AuthenticatedAnalysesIdTrapsTrapIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAnalysesIdRulesRoute: typeof AuthenticatedAnalysesIdRulesRoute
+  AuthenticatedAnalysesIdIndexRoute: typeof AuthenticatedAnalysesIdIndexRoute
+  AuthenticatedAnalysesIdTrapsTrapIdRoute: typeof AuthenticatedAnalysesIdTrapsTrapIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAnalysesIdRulesRoute: AuthenticatedAnalysesIdRulesRoute,
+  AuthenticatedAnalysesIdIndexRoute: AuthenticatedAnalysesIdIndexRoute,
+  AuthenticatedAnalysesIdTrapsTrapIdRoute:
+    AuthenticatedAnalysesIdTrapsTrapIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

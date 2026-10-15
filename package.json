@@ -1,5 +1,5 @@
 {
-  "name": "policy-police",
+  "name": "safely-ink",
   "private": true,
   "author": {
     "name": "Dzikri Syairozi",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dzikrisyairozi/policy-police"
+    "url": "https://github.com/dzikrisyairozi/safely.ink"
   },
   "license": "MIT",
   "scripts": {
@@ -37,15 +37,16 @@
     "@commitlint/config-conventional": "^21.2.3",
     "@eslint/compat": "^2.1.1",
     "@eslint/eslintrc": "^3.3.7",
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.5",
     "es-abstract": "^1.24.2",
-    "globals": "^17.12.0",
+    "firebase-tools": "^15.33.0",
+    "globals": "^17.13.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
-    "turbo": "^2.11.5",
+    "turbo": "^2.11.7",
     "typescript": "6.0.3",
-    "typescript-eslint": "^8.71.0"
+    "typescript-eslint": "^8.71.1"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {

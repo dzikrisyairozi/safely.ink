@@ -271,7 +271,7 @@ modifying a shared package, verify downstream consumers still build:
 
 ## Project Reference
 
-Policy Police is a policy fuzzer: it reads a policy or contract, turns it into rules,
+safely.ink is a policy fuzzer: it reads a policy or contract, turns it into rules,
 generates tricky scenarios, runs them through a deterministic engine, and compares the
 outcomes with what a reasonable person expects and what the law allows. Product,
 functional and technical specifications are in `docs/PRD.md`, `docs/FSD.md` and
@@ -351,10 +351,28 @@ Run, the front ends on Firebase.
 
 #### Environment Variables
 
-API (`apps/api`):
+Each app has a committed `.env.example`; copy it to `.env`, which git ignores. Never
+commit a `.env` file, a service-account key or the Gemini key.
+
+API (`apps/api/.env`), parsed once in `src/config.ts`:
 
 ```
 PORT=3001
+ALLOWED_ORIGIN=http://localhost:5174
+GOOGLE_CLOUD_PROJECT=
+STORAGE_BUCKET=
+GEMINI_API_KEY=
+```
+
+Dashboard (`apps/dashboard/.env`), public Firebase web config:
+
+```
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_APP_ID=
+VITE_API_URL=http://localhost:3001
 ```
 
 Web (`apps/web/.env`):
@@ -364,8 +382,9 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:5174
 ```
 
-Variables for Gemini, Firebase and Cloud Storage are listed in `docs/TSD.md` section 8
-and are added with the features that use them.
+`pnpm test` starts the Firebase emulators for the API's rules tests and needs Java 21
+(see CONTRIBUTING for the Windows `PATH` note). Setup and deploy steps are in
+`docs/runbook.md`.
 
 ### Commit Convention
 

@@ -1,0 +1,20 @@
+# Firebase App Hosting for the landing site (backend root directory: apps/web).
+# See docs/runbook.md, "Landing on App Hosting".
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 80
+
+env:
+  # Inlined into the client bundle at build time, and read by the server for
+  # metadata, so both stages need them.
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: https://safely.ink
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_APP_URL
+    value: https://app.safely.ink
+    availability:
+      - BUILD
+      - RUNTIME

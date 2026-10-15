@@ -1,4 +1,4 @@
-# Policy Police — Functional Specification Document (FSD)
+# safely.ink — Functional Specification Document (FSD)
 
 |         |                                             |
 | ------- | ------------------------------------------- |
@@ -11,22 +11,22 @@ This document says **what the system does** from the outside. How it is built is
 
 ## 1. Glossary
 
-| Term           | Meaning                                                                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Document       | The policy or contract the user uploads.                                                                                                                |
-| Document type  | `insurance`, `loan`, `employment`, `nda`, `lease`, or `other`.                                                                                          |
-| Pack           | Scenario seeds and expectation hints for one document type. `other` uses the general pack.                                                              |
-| User's role    | The party the user is in the document (insured, borrower, employee, receiving party, tenant, …). Everything is judged from this side.                   |
-| Clause         | One numbered or otherwise separable piece of wording, with its page.                                                                                    |
-| Fact schema    | The list of facts that matter for this document (for example `daysSinceStart`, `noticeGivenDays`), derived from the document itself.                    |
-| Rule           | A machine-checkable statement derived from one or more clauses, written over the fact schema.                                                           |
-| Unmodeled rule | A clause that matters but cannot be expressed as a machine condition. Shown to the user, never silently dropped.                                        |
-| Scenario       | A generated situation: a short story plus a value for every fact. For insurance this is a claim; for a lease it may be "moving out two months early".   |
-| Outcome        | Result of running a scenario through the rules, from the user's side: `fine`, `partly_bad`, `bad`, or `undetermined`, with money lost where it applies. |
-| Expectation    | What a reasonable person in the user's role would expect in that scenario, judged without seeing the fine print.                                        |
-| Legal finding  | What the law of the document's jurisdiction says about the deciding rule, with citation.                                                                |
-| Trap           | A scenario whose outcome is worse than the expectation, or whose deciding rule conflicts with the law.                                                  |
-| Analysis       | One run of the whole pipeline on one document, and its stored result.                                                                                   |
+| Term           | Meaning                                                                                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Document       | The policy or contract the user uploads.                                                                                                                               |
+| Document type  | `insurance`, `loan`, `employment`, `nda`, `lease`, `terms`, or `other`.                                                                                                |
+| Pack           | Prompt content for one document type: the facts worth looking for and scenario seeds, later also expectation hints. A type without its own pack uses the general pack. |
+| User's role    | The party the user is in the document (insured, borrower, employee, receiving party, tenant, …). Everything is judged from this side.                                  |
+| Clause         | One numbered or otherwise separable piece of wording, with its page.                                                                                                   |
+| Fact schema    | The list of facts that matter for this document (for example `daysSinceStart`, `noticeGivenDays`), derived from the document itself.                                   |
+| Rule           | A machine-checkable statement derived from one or more clauses, written over the fact schema.                                                                          |
+| Unmodeled rule | A clause that matters but cannot be expressed as a machine condition. Shown to the user, never silently dropped.                                                       |
+| Scenario       | A generated situation: a short story plus a value for every fact. For insurance this is a claim; for a lease it may be "moving out two months early".                  |
+| Outcome        | Result of running a scenario through the rules, from the user's side: `fine`, `partly_bad`, `bad`, or `undetermined`, with money lost where it applies.                |
+| Expectation    | What a reasonable person in the user's role would expect in that scenario, judged without seeing the fine print.                                                       |
+| Legal finding  | What the law of the document's jurisdiction says about the deciding rule, with citation.                                                                               |
+| Trap           | A scenario whose outcome is worse than the expectation, or whose deciding rule conflicts with the law.                                                                 |
+| Analysis       | One run of the whole pipeline on one document, and its stored result.                                                                                                  |
 
 ## 2. Actors
 
@@ -44,10 +44,11 @@ Landing ──► Sign in ──► Upload ──► Confirm details ──► L
 
 1. Visitor opens the landing page and chooses "Check a document".
 2. Visitor signs in with Google.
-3. User uploads a PDF or one or more page photos.
-4. System reads the document and proposes: document type, title, the parties,
-   jurisdiction, language. User confirms or corrects document type and jurisdiction, and
-   picks which party they are.
+3. User says what kind of document it is and which country it is from (or Global), then
+   uploads a PDF or one or more page photos.
+4. System reads the document: title, the parties, language, and on its own the document
+   type and jurisdiction. User confirms or corrects type and country, is told when the
+   document reads like something else, and picks which party they are.
 5. System runs the remaining stages. The user watches stage progress and sees traps
    appear as they are found.
 6. User lands on the report: grade, summary numbers, ranked traps.
@@ -69,26 +70,27 @@ Each requirement has an ID used by the TSD and by tests.
 
 ### 4.2 Upload
 
-| ID     | Requirement                                                                                                                                   |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| F-UP-1 | Accepted input: one PDF, **or** 1–30 images (JPEG, PNG, WebP, HEIC) treated as pages in the order given.                                      |
-| F-UP-2 | Limits: total 30 MB, 100 pages. Over the limit, the upload is refused with a message that states the limit.                                   |
-| F-UP-3 | The user can reorder and remove page images before starting.                                                                                  |
-| F-UP-4 | The upload screen shows the "not legal advice" notice and the data notice (private, source file deleted after 7 days) before the user starts. |
-| F-UP-5 | A user may start at most 10 analyses per day. The 11th shows when the limit resets.                                                           |
+| ID     | Requirement                                                                                                                                                                                                                                                                                                                               |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-UP-1 | Accepted input: one PDF, **or** 1–30 images (JPEG, PNG, WebP, HEIC) treated as pages in the order given.                                                                                                                                                                                                                                  |
+| F-UP-2 | Limits: total 30 MB, 100 pages. Over the limit, the upload is refused with a message that states the limit.                                                                                                                                                                                                                               |
+| F-UP-3 | The user can reorder and remove page images before starting.                                                                                                                                                                                                                                                                              |
+| F-UP-4 | The upload screen shows the "not legal advice" notice and the data notice (private, source file deleted after 7 days) before the user starts.                                                                                                                                                                                             |
+| F-UP-5 | A user may start at most 10 analyses per day. The 11th shows when the limit resets.                                                                                                                                                                                                                                                       |
+| F-UP-6 | Before uploading, the user picks the document type and the country it is from: one of the JAPAC countries (Australia, China, Hong Kong, India, Indonesia, Japan, Malaysia, New Zealand, Philippines, Singapore, South Korea, Taiwan, Thailand, Vietnam) or Global, for a document no single country governs. Nothing starts without both. |
 
 ### 4.3 Read and confirm
 
-| ID       | Requirement                                                                                                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F-READ-1 | The system extracts the clauses with clause number (if any), heading, verbatim text and page number.                                                                                        |
-| F-READ-2 | The system detects document type, title, the named parties and their roles, jurisdiction (from the governing-law clause, else from other evidence) and document language.                   |
-| F-READ-3 | Before the run continues, the user confirms or changes the document type and jurisdiction, and selects which party they are.                                                                |
-| F-READ-4 | If the upload is not a policy or contract (for example a letter, an invoice, a photo of something else), the run stops with a clear message and nothing is counted against the daily limit. |
-| F-READ-5 | A policy or contract that is not one of the five tuned types is analysed with the general pack, and its report is labelled "general analysis".                                              |
-| F-READ-6 | A jurisdiction other than Indonesia, Singapore or Australia does not stop the run. The legal comparison is skipped and the report says so.                                                  |
-| F-READ-7 | Documents in any language are accepted. The report is always written in English; quoted clauses stay in the original language with an English gloss.                                        |
-| F-READ-8 | If pages are unreadable (blurred, cut off), the system says which pages and continues with the rest; the report carries a visible "incomplete document" warning.                            |
+| ID       | Requirement                                                                                                                                                                                                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-READ-1 | The system extracts the clauses with clause number (if any), heading, verbatim text and page number.                                                                                                                                                                                  |
+| F-READ-2 | The system detects document type, title, the named parties and their roles, jurisdiction (from the governing-law clause, else from other evidence) and document language. Type and jurisdiction are a check on the user's pick (F-UP-6), not a replacement for it.                    |
+| F-READ-3 | Before the run continues, the user confirms or changes the document type and country, and selects which party they are. When the detected type or country differs from the pick, the screen says so and one click takes it; a detected country outside the list is offered as Global. |
+| F-READ-4 | If the upload is not a policy or contract (for example a letter, an invoice, a photo of something else), the run stops with a clear message and nothing is counted against the daily limit.                                                                                           |
+| F-READ-5 | A policy or contract that is not one of the six tuned types is analysed with the general pack, and its report is labelled "general analysis".                                                                                                                                         |
+| F-READ-6 | A jurisdiction other than Indonesia, Singapore or Australia, or Global, does not stop the run. The legal comparison is skipped and the report says so.                                                                                                                                |
+| F-READ-7 | Documents in any language are accepted. The report is always written in English; quoted clauses stay in the original language with an English gloss.                                                                                                                                  |
+| F-READ-8 | If pages are unreadable (blurred, cut off), the system says which pages and continues with the rest; the report carries a visible "incomplete document" warning.                                                                                                                      |
 
 ### 4.4 Rules
 
@@ -104,7 +106,7 @@ Each requirement has an ID used by the TSD and by tests.
 
 | ID       | Requirement                                                                                                                                                                                                                                                           |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F-FUZZ-1 | The system generates between 20 and 40 scenarios per analysis.                                                                                                                                                                                                        |
+| F-FUZZ-1 | The system aims for between 20 and 40 scenarios per analysis and never keeps more than 40. A short document can give fewer; the run goes on with what there is.                                                                                                       |
 | F-FUZZ-2 | Each scenario has a 1–3 sentence story a non-expert understands, told from the user's role, and a value for every fact in the fact schema.                                                                                                                            |
 | F-FUZZ-3 | Scenarios target the document's own rules. At least one scenario probes each rule that can hurt the user, up to the scenario cap.                                                                                                                                     |
 | F-FUZZ-4 | Strategies used: boundary (just inside and just outside a number or date), overlap (an allowed situation with a disallowed contributing factor), definition (a situation at the edge of a defined term), procedure (late notice, missing paperwork), and combination. |
@@ -146,10 +148,10 @@ Each requirement has an ID used by the TSD and by tests.
 
 | ID      | Requirement                                                                                                                                                                                   |
 | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F-REP-1 | The report header shows title, other party, document type, the user's role, jurisdiction, date, grade, confidence, and counts: scenarios tested, fine, partly bad, bad, unclear, traps.       |
+| F-REP-1 | The report header shows title, other party, document type, the user's role, country or Global, date, grade, confidence, and counts: scenarios tested, fine, partly bad, bad, unclear, traps.  |
 | F-REP-2 | Traps are listed by severity. Each row shows a plain-English title, the severity, and "You'd expect: … / The document says: …".                                                               |
 | F-REP-3 | Opening a trap shows: example scenario(s), outcome and amounts, expectation and reason, the rule trace, the verbatim clause with page number, and the legal finding with citations and links. |
-| F-REP-4 | Critical and high traps show a "what you can do" note: questions to ask the other party before signing, and where to get help in that jurisdiction.                                           |
+| F-REP-4 | Critical and high traps show a "what you can do" note: questions to ask the other party before signing. Where to get help in that jurisdiction is added with the legal comparison.            |
 | F-REP-5 | A "What works in your favour" section lists the baseline scenarios that came out `fine`.                                                                                                      |
 | F-REP-6 | The disclaimer is visible on the report without scrolling to the end.                                                                                                                         |
 | F-REP-7 | Wording is neutral. The report describes what the wording does; it does not accuse the other party.                                                                                           |
@@ -166,11 +168,11 @@ Each requirement has an ID used by the TSD and by tests.
 
 ### 4.11 History
 
-| ID       | Requirement                                                                                                                       |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| F-HIST-1 | History lists the user's analyses, newest first: title, document type, jurisdiction, date, grade, status.                         |
-| F-HIST-2 | The user can open any finished analysis and delete any analysis. Delete removes the report, rules, scenarios and the source file. |
-| F-HIST-3 | Source files are removed automatically 7 days after upload. Reports stay until deleted; the clause quotes inside them remain.     |
+| ID       | Requirement                                                                                                                                        |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-HIST-1 | History lists the user's analyses, newest first: title, document type, jurisdiction, date, grade, status.                                          |
+| F-HIST-2 | The user can open any analysis and delete any analysis whose run is not going on. Delete removes the report, rules, scenarios and the source file. |
+| F-HIST-3 | Source files are removed automatically 7 days after upload. Reports stay until deleted; the clause quotes inside them remain.                      |
 
 ### 4.12 Landing page
 
@@ -186,7 +188,7 @@ Each requirement has an ID used by the TSD and by tests.
 | ------------ | --------- | ------------------------------- | -------------------------------------------------- |
 | Landing      | web       | `/`                             | F-LAND                                             |
 | Sign in      | dashboard | `/sign-in`                      | Google button, disclaimer link                     |
-| New analysis | dashboard | `/`                             | Upload area, limits, notices                       |
+| New analysis | dashboard | `/`                             | Type and country, upload area, limits, notices     |
 | Run          | dashboard | `/analyses/$id` (status ≠ done) | Confirm details, then stage tracker and live traps |
 | Report       | dashboard | `/analyses/$id` (status = done) | Header, traps, in-your-favour list, unclear list   |
 | Trap detail  | dashboard | `/analyses/$id/traps/$trapId`   | F-REP-3, F-REP-4                                   |
@@ -208,16 +210,17 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
 
 ## 7. Messages for error cases
 
-| Case                            | Message intent                                                                                                                                   |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| File too large / too many pages | State the limit, suggest uploading the main document only.                                                                                       |
-| Unsupported file type           | List accepted types.                                                                                                                             |
-| Not a policy or contract        | "This doesn't look like a policy or contract. Policy Police checks documents that set out rights and obligations between you and another party." |
-| Jurisdiction without law check  | Name the detected country; say the scenarios still run and the legal comparison is skipped.                                                      |
-| Unreadable pages                | List page numbers, offer to continue or re-upload.                                                                                               |
-| Daily limit reached             | State the limit and the reset time.                                                                                                              |
-| Legal lookup unavailable        | Report still completes; legal findings show "law lookup unavailable — try again later" with a retry for that stage.                              |
-| Stage failure                   | Name the stage, offer retry.                                                                                                                     |
+| Case                             | Message intent                                                                                                                                                        |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File too large / too many pages  | State the limit, suggest uploading the main document only.                                                                                                            |
+| Unsupported file type            | List accepted types.                                                                                                                                                  |
+| Not a policy or contract         | "This doesn't look like a policy or contract. safely.ink checks documents that set out rights and obligations between you and another party."                         |
+| Jurisdiction without law check   | Name the country (or say Global); say the scenarios still run and the legal comparison is skipped.                                                                    |
+| Detected type or country differs | Name what the document reads like; offer one click to take it; keep the user's pick otherwise.                                                                        |
+| Unreadable pages                 | List page numbers, offer to continue or re-upload.                                                                                                                    |
+| Daily limit reached              | State the limit and the reset time.                                                                                                                                   |
+| Legal lookup unavailable         | Report still completes; legal findings show "law lookup unavailable — try again later", and the report offers "Check the law again", which looks up only those rules. |
+| Stage failure                    | Name the stage, offer retry.                                                                                                                                          |
 
 ## 8. Acceptance criteria (demo-level)
 
@@ -232,8 +235,8 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
    citation quote appears in the stored page text.
 4. **Three countries.** One real document each from ID, SG and AU produces a report with at
    least one legal finding that has a verified citation.
-5. **Five packs.** One real document each for insurance, loan, employment, NDA and lease
-   completes without `failed` and produces at least one trap a human reviewer agrees with.
+5. **Six packs.** One real document each for insurance, loan, employment, NDA, lease and
+   terms and conditions completes without `failed` and produces at least one trap a human reviewer agrees with.
 6. **General pack.** A document of another kind (for example a gym membership agreement)
    completes and is labelled "general analysis".
 7. **Role matters.** The same NDA analysed once as the disclosing party and once as the

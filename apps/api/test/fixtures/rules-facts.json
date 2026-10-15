@@ -1,0 +1,28 @@
+{
+  "facts": [
+    {
+      "key": "claimIsForIllness",
+      "type": "boolean",
+      "values": null,
+      "unit": null,
+      "description": "The claim is for an illness, not for an accident",
+      "neutral": false
+    },
+    {
+      "key": "inpatientCost",
+      "type": "number",
+      "values": null,
+      "unit": "IDR",
+      "description": "The hospital bill for the stay",
+      "neutral": 0
+    },
+    {
+      "key": "treatmentPlace",
+      "type": "enum",
+      "values": ["partner_hospital", "other_hospital", "abroad"],
+      "unit": null,
+      "description": "Where the insured was treated",
+      "neutral": "partner_hospital"
+    }
+  ]
+}

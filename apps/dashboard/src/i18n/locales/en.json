@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Policy Police"
+    "name": "safely.ink"
   },
   "errors": {
     "goBack": "Go back",
@@ -26,26 +26,14 @@
       "description": "This service is temporarily unavailable. Please check back soon."
     }
   },
-  "validation": {
-    "emailRequired": "Email is required.",
-    "emailInvalid": "Enter a valid email address.",
-    "passwordRequired": "Password is required.",
-    "passwordMinLength": "Password must be at least 8 characters."
-  },
   "signIn": {
     "title": "Sign in",
-    "description": "Enter your email and password to access Policy Police.",
-    "email": "Email",
-    "emailPlaceholder": "name@example.com",
-    "password": "Password",
-    "submit": "Sign in"
+    "description": "Use your Google account to access safely.ink.",
+    "google": "Continue with Google",
+    "failed": "Sign-in failed. Please try again."
   },
   "layout": {
     "skipToMain": "Skip to main content"
-  },
-  "passwordInput": {
-    "show": "Show password",
-    "hide": "Hide password"
   },
   "confirmDialog": {
     "confirm": "Confirm",
@@ -59,26 +47,6 @@
     "title": "Sign out?",
     "description": "You'll need to sign in again to access the dashboard.",
     "confirm": "Sign out"
-  },
-  "configDrawer": {
-    "title": "Configuration",
-    "description": "Live playground for sidebar layout, theme, and font.",
-    "sidebarVariant": "Sidebar variant",
-    "variantInset": "Inset",
-    "variantSidebar": "Sidebar",
-    "variantFloating": "Floating",
-    "sidebarCollapsible": "Collapsible mode",
-    "collapsibleOffcanvas": "Offcanvas",
-    "collapsibleIcon": "Icon",
-    "collapsibleNone": "None",
-    "theme": "Theme",
-    "font": {
-      "label": "Font",
-      "outfit": "Outfit",
-      "inter": "Inter",
-      "system": "System"
-    },
-    "reset": "Reset to defaults"
   },
   "commandMenu": {
     "title": "Command Menu",
@@ -94,11 +62,344 @@
       "general": "General"
     },
     "signOut": "Sign out",
-    "newAnalysis": "New analysis"
+    "newAnalysis": "New analysis",
+    "history": "History"
   },
   "newAnalysis": {
     "title": "Check a document",
-    "subtitle": "Upload a policy or contract and Policy Police will stress-test it with tricky scenarios.",
-    "comingSoon": "Upload is not available yet."
+    "subtitle": "Upload a policy or contract and safely.ink will stress-test it with tricky scenarios."
+  },
+  "document": {
+    "type": "Document type",
+    "country": "Country",
+    "choose": "Choose…",
+    "global": "Global (no single country)",
+    "lawChecked": "{{country}} · law checked",
+    "generalAnalysis": "This type is checked with the general rules, and the report will be labelled as a general analysis.",
+    "lawSkipped": "We do not compare against the law of {{country}} yet. The scenarios still run; only the legal comparison is skipped.",
+    "lawSkippedGlobal": "No single country's law applies, so there is no legal comparison. The scenarios still run."
+  },
+  "upload": {
+    "choose": "Choose a PDF or page photos, or drop them here",
+    "limits": "One PDF, or 1 to 30 images (JPEG, PNG, WebP, HEIC). Up to 30 MB and 100 pages.",
+    "pages": "Pages, in reading order",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "remove": "Remove {{name}}",
+    "notices": {
+      "notLegalAdvice": "safely.ink is not legal advice. It shows where the wording may leave you worse off; a lawyer decides what that means for you.",
+      "data": "Your document is private to your account. The uploaded file is deleted after 7 days."
+    },
+    "start": "Check this document",
+    "reading": "Reading your document…",
+    "readingHint": "This can take a minute or two. Keep this page open.",
+    "errors": {
+      "unsupported_type": "That file type is not supported. Upload one PDF, or images in JPEG, PNG, WebP or HEIC.",
+      "mixed_input": "Upload either one PDF or page photos, not both.",
+      "too_many_files": "You can upload up to 30 images. Upload the main document only.",
+      "too_large": "The upload is over 30 MB. Upload the main document only.",
+      "too_many_pages": "The document has more than 100 pages. Upload the main document only.",
+      "file_missing": "One of the files did not upload. Please try again.",
+      "daily_limit": "You can check 10 documents a day. The limit resets at {{resetAt}}.",
+      "failed": "The upload did not go through. Check your connection and try again."
+    }
+  },
+  "analysis": {
+    "uploadAgain": "Upload it again",
+    "uploadAnother": "Upload another document",
+    "reading": {
+      "title": "Reading your document",
+      "description": "We are finding the clauses and the details. This page updates on its own."
+    },
+    "rejected": {
+      "title": "Not a policy or contract",
+      "description": "This doesn't look like a policy or contract. safely.ink checks documents that set out rights and obligations between you and another party."
+    },
+    "unreadable": {
+      "title": "Some pages could not be read",
+      "description": "Page {{pages}} is blurred, cut off or too dark. You can continue with the rest, and the report will be marked as incomplete."
+    },
+    "confirm": {
+      "eyebrow": "Check what we found before we continue",
+      "facts": "{{pages}} pages · language {{language}}",
+      "yourRole": "Which party are you?",
+      "rolePlaceholder": "For example: tenant",
+      "submit": "These details are right",
+      "failed": "Could not save the details. Please try again.",
+      "mismatch": {
+        "title": "The document may say something else",
+        "type": "It reads like: {{type}}.",
+        "country": "It points to the law of {{country}}.",
+        "countryOutside": "It points to the law of {{country}}, which is not in the list, so Global fits it best.",
+        "use": "Use what the document says"
+      }
+    },
+    "docTypes": {
+      "insurance": "Insurance policy",
+      "loan": "Loan agreement",
+      "employment": "Employment contract",
+      "nda": "Non-disclosure agreement",
+      "lease": "Lease",
+      "terms": "Terms and conditions",
+      "other": "Another kind of contract"
+    },
+    "failed": {
+      "reading": {
+        "title": "Reading did not finish",
+        "description": "Something went wrong while reading the document. Nothing was lost on your side; please upload it again."
+      },
+      "extracting_rules": {
+        "title": "The rules could not be worked out",
+        "description": "Something went wrong while we turned the clauses into rules. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
+      },
+      "fuzzing": {
+        "title": "The test situations could not be written",
+        "description": "Something went wrong while we wrote situations to test the rules against. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
+      },
+      "running": {
+        "title": "The rules could not be tested",
+        "description": "Something went wrong while we ran the situations through the rules. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
+      },
+      "comparing": {
+        "title": "The results could not be compared",
+        "description": "Something went wrong while we compared the results with what a person would expect. This run does not count against your daily limit. You can run this stage again; what came before it is kept."
+      }
+    },
+    "extractingRules": {
+      "title": "Working out the rules",
+      "description": "We are turning the clauses into rules that can be tested. This can take a minute or two. This page updates on its own."
+    },
+    "fuzzing": {
+      "title": "Writing test situations",
+      "description_one": "We found {{count}} rule in it. Now we are writing real-life situations to test it against. This can take a minute. This page updates on its own.",
+      "description_other": "We found {{count}} rules in it. Now we are writing real-life situations to test them against. This can take a minute. This page updates on its own."
+    },
+    "running": {
+      "title": "Testing the rules",
+      "description_one": "We are running {{count}} situation through the rules of your document. This takes a moment.",
+      "description_other": "We are running {{count}} situations through the rules of your document. This takes a moment."
+    },
+    "comparing": {
+      "title": "Comparing with what you would expect",
+      "description_one": "We ran {{count}} real-life situation through the rules. Now we compare the result with what a reasonable person in your place would expect.",
+      "description_other": "We ran {{count}} real-life situations through the rules. Now we compare each result with what a reasonable person in your place would expect."
+    },
+    "rulesLink": "How we read your document",
+    "retry": {
+      "button": "Try this stage again",
+      "starting": "Starting again…",
+      "failed": "Could not start again. Check your connection and try again."
+    }
+  },
+  "rules": {
+    "eyebrow": "How we read your document",
+    "back": "Back to the analysis",
+    "empty": "The rules of this document are not ready yet.",
+    "appliesWhen": "Applies when",
+    "clause": "Clause {{number}}",
+    "clauseUnnumbered": "Clause",
+    "page": "page {{page}}",
+    "kinds": {
+      "benefit": {
+        "title": "What you get",
+        "description": "Something the document gives you or lets you do."
+      },
+      "exclusion": {
+        "title": "When it does not apply",
+        "description": "Situations in which you do not get a benefit."
+      },
+      "condition": {
+        "title": "What you must have done",
+        "description": "If you have not, it counts against you."
+      },
+      "deadline": {
+        "title": "Time limits on you",
+        "description": "Miss one and it counts against you."
+      },
+      "limit": {
+        "title": "Caps and deductions",
+        "description": "What reduces the amount you get."
+      },
+      "charge": {
+        "title": "What you may have to pay",
+        "description": "Fees and penalties, and what triggers them."
+      },
+      "unmodeled": {
+        "title": "Read these yourself",
+        "description": "These clauses matter, but they depend on a judgement or on vague wording, so we cannot test them. Read the clause."
+      }
+    },
+    "join": {
+      "all": "All of these:",
+      "any": "Any of these:",
+      "not": "Not this:"
+    },
+    "op": {
+      "eq": "{{value}}",
+      "ne": "not {{value}}",
+      "lt": "less than {{value}}",
+      "lte": "{{value}} or less",
+      "gt": "more than {{value}}",
+      "gte": "{{value}} or more",
+      "in": "one of: {{value}}"
+    },
+    "yes": "yes",
+    "no": "no",
+    "facts": {
+      "title": "The facts we look at",
+      "description": "Every rule above is written with these facts. Each test situation gives every one of them a value."
+    },
+    "clauses": {
+      "title": "The clauses"
+    }
+  },
+  "run": {
+    "stages": {
+      "label": "Stages of the run",
+      "read": "Read",
+      "rules": "Rules",
+      "fuzz": "Situations",
+      "run": "Run",
+      "compare": "Compare"
+    },
+    "counts": {
+      "clauses": "Clauses",
+      "rules": "Rules",
+      "scenarios": "Situations",
+      "traps": "Traps"
+    },
+    "traps": "Traps found so far"
+  },
+  "severity": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "report": {
+    "eyebrow": "Report",
+    "grade": "Grade",
+    "confidence": {
+      "high": "Confidence: high",
+      "medium": "Confidence: medium",
+      "low": "Confidence: low"
+    },
+    "facts": {
+      "otherParty": "Other party",
+      "type": "Document type",
+      "role": "You are",
+      "country": "Country",
+      "date": "Checked on"
+    },
+    "counts": {
+      "scenarios": "Tested",
+      "fine": "Fine",
+      "partlyBad": "Partly bad",
+      "bad": "Bad",
+      "undetermined": "Unclear",
+      "traps": "Traps"
+    },
+    "generalAnalysis": "General analysis: this kind of document is checked with the general rules.",
+    "lawChecked": "Compared with official sources of the law of {{country}}. Each citation was found on the page it links to.",
+    "lawNotYet": "We do not check the law of {{country}} yet, so this report has no legal comparison. The situations ran on the document's own rules.",
+    "lawUnavailable": {
+      "title": "Some of the law could not be looked up",
+      "description": "The official sources did not answer in time. The grade counts only what was found; checking again may change it. Checking again works the report out anew, takes a few minutes, and uses one of today's analyses.",
+      "button": "Check the law again"
+    },
+    "lawGlobal": "Global: no single country's law applies, so the law is not checked. The situations ran on the document's own rules.",
+    "incomplete": {
+      "title": "Incomplete document",
+      "description": "Page {{pages}} could not be read, so what is written there is not in this report."
+    },
+    "traps": {
+      "title": "Traps",
+      "none": "No situation ended worse than a reasonable person would expect.",
+      "expect": "You'd expect",
+      "says": "The document says"
+    },
+    "favour": {
+      "title": "What works in your favour",
+      "description": "Ordinary situations that came out the way you would expect.",
+      "none": "None of the ordinary situations came out fine."
+    },
+    "unclear": {
+      "title": "Unclear, read these clauses yourself",
+      "description": "The outcome depends on a clause we could not turn into a rule.",
+      "dependsOn": "Depends on: {{rule}}"
+    },
+    "formula": {
+      "title": "How the grade is worked out",
+      "intro": "Start at 100 and take off points for each trap:",
+      "penalty_one": "{{severity}}: {{count}} point",
+      "penalty_other": "{{severity}}: {{count}} points",
+      "bands": "Then the grade: {{bands}}.",
+      "this": "This report: {{score}} points, grade {{grade}}."
+    }
+  },
+  "trap": {
+    "back": "Back to the report",
+    "action": "What you can do",
+    "help": "Where to get help",
+    "helpAbout": {
+      "financialDisputes": "financial services disputes",
+      "legalAid": "legal aid"
+    },
+    "examples": "Example situations",
+    "outcome": "What the document gives",
+    "stake": "At stake",
+    "loss": "You lose",
+    "expected": "What you would expect",
+    "trace": "How the rules decided it",
+    "because": "Because of: {{fact}}",
+    "clause": "What the document says",
+    "law": {
+      "title": "What the law says",
+      "status": {
+        "conflicts": "The law does not allow this.",
+        "restricted": "The law allows this only under conditions.",
+        "permitted": "The law allows this.",
+        "no_finding": "We found no law that settles this."
+      },
+      "source": "Open the official source",
+      "unavailable": "Law lookup unavailable. Try again later from the report."
+    },
+    "frequency": {
+      "common": "Happens often",
+      "occasional": "Happens now and then",
+      "rare": "Happens rarely"
+    },
+    "result": {
+      "fine": "Fine",
+      "partly_bad": "Partly bad",
+      "bad": "Bad",
+      "undetermined": "Unclear"
+    }
+  },
+  "history": {
+    "title": "History",
+    "untitled": "Untitled document",
+    "empty": "You have not checked a document yet.",
+    "start": "Check a document",
+    "status": {
+      "uploaded": "Uploaded",
+      "reading": "Reading",
+      "awaiting_confirmation": "Waiting for you",
+      "rejected": "Not a policy or contract",
+      "extracting_rules": "Reading the rules",
+      "fuzzing": "Writing scenarios",
+      "running": "Running",
+      "comparing": "Comparing",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "delete": {
+      "action": "Delete",
+      "title": "Delete this analysis?",
+      "description": "The report, its rules and scenarios, and the uploaded file are deleted for good. This cannot be undone.",
+      "confirm": "Delete for good",
+      "running": "You can delete this when the run ends.",
+      "failed": "The analysis could not be deleted. Try again."
+    }
   }
 }

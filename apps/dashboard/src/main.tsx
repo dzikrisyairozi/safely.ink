@@ -3,8 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DEFAULT_THEME, ThemeProvider } from './components/theme-provider';
-import { FontProvider } from './context/font-provider';
-import { LayoutProvider } from './context/layout-provider';
 import { SearchProvider } from './context/search-provider';
 import { I18nProvider } from '@repo/i18n';
 import { Toaster } from '@repo/ui/components/ui/sonner';
@@ -42,14 +40,10 @@ createRoot(document.getElementById('root')!).render(
     >
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme={DEFAULT_THEME} attribute="class">
-          <FontProvider>
-            <LayoutProvider>
-              <SearchProvider>
-                <RouterProvider router={router} />
-                <Toaster />
-              </SearchProvider>
-            </LayoutProvider>
-          </FontProvider>
+          <SearchProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+          </SearchProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </I18nProvider>

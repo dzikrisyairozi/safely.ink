@@ -7,6 +7,10 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./core": {
+      "types": "./src/core.ts",
+      "import": "./src/core.ts"
+    },
     "./config": {
       "types": "./src/config.ts",
       "import": "./src/config.ts"
@@ -26,7 +30,7 @@
   "dependencies": {
     "i18next": "^26.4.2",
     "i18next-browser-languagedetector": "^8.0.6",
-    "react-i18next": "^17.0.15"
+    "react-i18next": "^17.0.16"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
@@ -36,5 +40,8 @@
   },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
   }
 }

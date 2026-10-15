@@ -1,4 +1,4 @@
-# Policy Police — Product Requirements Document (PRD)
+# safely.ink — Product Requirements Document (PRD)
 
 |         |                                                                            |
 | ------- | -------------------------------------------------------------------------- |
@@ -10,15 +10,16 @@
 
 ## 1. Problem
 
-Insurance policies, loan agreements, employment contracts, NDAs and leases are long, written
-by the other side's lawyers, and signed by people who do not read them. The signer finds
+Insurance policies, loan agreements, employment contracts, NDAs, leases and terms and
+conditions are long, written by the other side's lawyers, and signed by people who do not
+read them. The signer finds
 out what the document really says on the worst day possible: when a claim is denied, a
 penalty is charged, or a deposit is kept. Summarising the document does not solve this. A
 summary tells you what the document says; it does not tell you where it breaks.
 
 ## 2. Product in one sentence
 
-Policy Police is a **policy fuzzer**: upload a policy or contract and it turns the wording
+safely.ink is a **policy fuzzer**: upload a policy or contract and it turns the wording
 into executable rules, generates dozens of tricky but realistic scenarios, runs them
 through those rules, and shows every case where you end up worse off than a reasonable
 person would expect — or worse off than the law allows.
@@ -46,8 +47,9 @@ Australia; documents from other countries are still analysed, without the legal 
    minutes, with progress visible while it runs.
 2. Every trap is backed by the exact clause and, where the law is relevant, a citation to a
    real article or section with a link to the official source.
-3. Works on any mainstream policy or contract. Five document types are tuned: insurance
-   policy, loan / credit agreement, employment contract, NDA, rental lease.
+3. Works on any mainstream policy or contract. Six document types are tuned: insurance
+   policy, loan / credit agreement, employment contract, NDA, rental lease, terms and
+   conditions.
 4. Legal comparison works for Indonesia, Singapore and Australia.
 5. Signed-in users keep a history of their reports.
 6. Meets every hackathon rule: Gemini models, agentic platform (ADK), deployed on Cloud
@@ -99,14 +101,14 @@ ordinary person expects. Packs are content, not code; the engine is the same for
 - Compare C — marketing brochure versus fine print.
 - Compare D — two documents side by side on the same scenarios.
 - "What if" chat that runs a user-described scenario through the same rule engine.
-- More tuned packs: terms of service, subscription, gym, telco, purchase agreements.
+- More tuned packs: telco, purchase agreements.
 - More JAPAC jurisdictions (Japan, India, Malaysia, Philippines, Thailand, Vietnam, …).
 - Localised UI (the repo already carries Indonesian i18n scaffolding).
 - Shareable public report links.
 
 ## 6. Why this is not "chat with your PDF"
 
-|             | Summariser / chat           | Policy Police                                                             |
+|             | Summariser / chat           | safely.ink                                                                |
 | ----------- | --------------------------- | ------------------------------------------------------------------------- |
 | Output      | Description of the document | Failing test cases against the document                                   |
 | Method      | One LLM reading             | LLM extraction → **deterministic** rule execution → independent judgments |
@@ -166,17 +168,17 @@ Post-hackathon: reports per user, share of users who open at least one trap, ret
 
 ## 10. Risks
 
-| Risk                                                          | Impact                 | Mitigation                                                                                                                                    |
-| ------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Five days to deadline, wide scope                             | Scope is not finished  | P0 list is fixed; packs are prompt content, not code; cut order in section 11.                                                                |
-| Any-document mode gives shallow results on unusual documents  | Weak report            | Five tuned packs carry the demo; fallback reports are labelled "general analysis"; clauses that cannot be modelled are listed, never dropped. |
-| Model invents a rule or a law                                 | Wrong, harmful report  | Rules must reference clause IDs that exist; citation quotes are string-matched against the fetched page; unverifiable items are dropped.      |
-| Search grounding misses the relevant article                  | Missing legal finding  | Reported as "no finding", never guessed. Verified findings are stored and reused, so coverage improves with use.                              |
-| Official legal sites block or cannot be fetched               | Citations unverifiable | Day-1 spike per site; fallback is Gemini's URL context tool as the retriever, with the same quote check.                                      |
-| Defamation / liability                                        | Legal exposure         | Neutral wording, disclaimer, evidence shown, no company ranking.                                                                              |
-| Personal data inside uploaded documents                       | Privacy breach         | Owner-only access rules, source files auto-deleted after 7 days, user can delete everything.                                                  |
-| "Fresh project" rule versus starter template                  | Disqualification       | Disclosed; template is generic tooling; ask organisers.                                                                                       |
-| Submission form lists categories that do not match the themes | Wrong category         | Ask organisers before submitting.                                                                                                             |
+| Risk                                                          | Impact                 | Mitigation                                                                                                                                   |
+| ------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Five days to deadline, wide scope                             | Scope is not finished  | P0 list is fixed; packs are prompt content, not code; cut order in section 11.                                                               |
+| Any-document mode gives shallow results on unusual documents  | Weak report            | Six tuned packs carry the demo; fallback reports are labelled "general analysis"; clauses that cannot be modelled are listed, never dropped. |
+| Model invents a rule or a law                                 | Wrong, harmful report  | Rules must reference clause IDs that exist; citation quotes are string-matched against the fetched page; unverifiable items are dropped.     |
+| Search grounding misses the relevant article                  | Missing legal finding  | Reported as "no finding", never guessed. Verified findings are stored and reused, so coverage improves with use.                             |
+| Official legal sites block or cannot be fetched               | Citations unverifiable | Day-1 spike per site; fallback is Gemini's URL context tool as the retriever, with the same quote check.                                     |
+| Defamation / liability                                        | Legal exposure         | Neutral wording, disclaimer, evidence shown, no company ranking.                                                                             |
+| Personal data inside uploaded documents                       | Privacy breach         | Owner-only access rules, source files auto-deleted after 7 days, user can delete everything.                                                 |
+| "Fresh project" rule versus starter template                  | Disqualification       | Disclosed; template is generic tooling; ask organisers.                                                                                      |
+| Submission form lists categories that do not match the themes | Wrong category         | Ask organisers before submitting.                                                                                                            |
 
 ## 11. Delivery plan
 

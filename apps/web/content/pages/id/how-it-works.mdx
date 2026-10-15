@@ -1,0 +1,87 @@
+safely.ink adalah policy fuzzer. Anda mengunggah polis atau kontrak, lalu safely.ink mengubah isinya menjadi aturan yang bisa dijalankan komputer, menyusun situasi yang rumit tetapi realistis, menjalankan setiap situasi melalui aturan tersebut, dan menunjukkan setiap kasus ketika Anda lebih dirugikan daripada yang wajar diharapkan, atau lebih dirugikan daripada yang diizinkan hukum.
+
+Gagasannya berasal dari pengujian perangkat lunak. Fuzzer tidak membaca kode lalu menjelaskannya. Ia menguji kode dengan kasus-kasus pinggiran sampai ada yang rusak. Kami melakukan hal yang sama pada kontrak. Model bertugas membaca dan menyusun skenario; kode biasa yang memutuskan setiap hasil.
+
+## 1. Membaca dan mengonfirmasi
+
+Sebelum mengunggah, Anda memilih jenis dokumen dan negara asalnya. Ada enam jenis yang sudah disesuaikan: polis asuransi, perjanjian pinjaman atau kredit, kontrak kerja, NDA, sewa tempat tinggal, serta syarat dan ketentuan. Polis atau kontrak jenis lain tetap bisa diperiksa, dan laporannya diberi label "analisis umum".
+
+Anda mengunggah satu PDF, baik teks maupun hasil pindai, atau foto halaman-halamannya. Model memecah dokumen menjadi klausul, masing-masing dengan nomor, judul, kata-kata aslinya, dan halamannya, serta mencari judul dokumen, para pihak, dan bahasanya. Model juga menebak sendiri jenis dokumen dan negaranya.
+
+Lalu Anda mengonfirmasi tiga hal: jenis dokumen, negara, dan **pihak mana Anda**. NDA yang sama terbaca sangat berbeda bagi pihak yang membagikan rahasia dan pihak yang wajib menjaganya, jadi semua langkah berikutnya dinilai dari sisi Anda. Jika tebakan model berbeda dengan pilihan Anda, layar memberi tahu dan Anda bisa menggantinya dengan satu klik.
+
+Jika unggahan sama sekali bukan polis atau kontrak, misalnya struk belanja, prosesnya berhenti dan tidak dihitung dalam batas harian Anda. Jika ada halaman yang tidak terbaca, laporan menyebutkan halaman mana.
+
+## 2. Mengubah isi dokumen menjadi aturan
+
+Pertama, sistem menentukan fakta-fakta yang penting untuk dokumen ini: berapa hari sejak polis mulai berlaku, berapa lama pemberitahuan yang Anda berikan, apakah dokumen pendukung Anda lengkap. Beberapa fakta dasar selalu disertakan; sisanya diambil dari dokumen itu sendiri.
+
+Lalu setiap klausul yang memengaruhi Anda diubah menjadi aturan bertipe yang ditulis dengan fakta-fakta tersebut. Setiap aturan punya jenis:
+
+- **manfaat**: sesuatu yang Anda dapatkan atau boleh lakukan
+- **pengecualian**: situasi ketika manfaat tidak berlaku
+- **syarat**: sesuatu yang harus sudah Anda lakukan
+- **tenggat**: batas waktu bagi Anda
+- **batasan**: plafon atau potongan atas apa yang Anda terima
+- **biaya**: uang yang harus Anda bayar jika sesuatu terjadi
+- **tidak dimodelkan**: klausul yang penting tetapi tidak bisa dijadikan uji yang jelas, misalnya "sesuai keputusan kami"
+
+Setiap aturan wajib menunjuk ke setidaknya satu klausul yang benar-benar ada di dokumen Anda, dan kode memeriksanya. Aturan yang tidak menunjuk klausul nyata dibuang. Aturan yang tidak cocok dengan faktanya dikembalikan sekali untuk diperbaiki, dan jika masih tidak cocok, aturan itu disimpan sebagai "tidak dimodelkan", bukan dihapus diam-diam. "Cara kami membaca dokumen Anda" menampilkan semua aturan, dikelompokkan menurut jenis, masing-masing terhubung ke klausulnya.
+
+## 3. Menyusun skenario
+
+Sekarang fuzzing dimulai. Sistem menargetkan 20 sampai 40 skenario, masing-masing cerita singkat dari sisi Anda, dengan nilai untuk setiap fakta. Skenario berasal dari beberapa kelompok:
+
+- **Dasar**: situasi biasa yang seharusnya tidak bermasalah, supaya laporan juga bisa menunjukkan apa yang menguntungkan Anda.
+- **Batas**: tepat di dalam dan tepat di luar suatu angka atau tanggal, misalnya hari ke-29, 30, dan 31 dari masa tunggu 30 hari. Kode membuat skenario ini langsung dari aturannya.
+- **Tumpang tindih**: situasi yang diizinkan, tetapi ada penyebab lain yang tidak diizinkan ikut berperan.
+- **Definisi**: situasi di tepi suatu istilah yang didefinisikan.
+- **Prosedur**: pemberitahuan terlambat, dokumen kurang.
+- **Kombinasi**: beberapa hal di atas sekaligus, dan di sinilah kontrak paling sering bermasalah.
+
+Skenario harus berupa hal yang memang dialami orang biasa di posisi Anda. Tidak ada kecurangan dari pihak Anda dan tidak ada kejadian yang mustahil. Kode membuang skenario yang tidak sesuai dengan aturan dan faktanya.
+
+## 4. Menjalankan setiap skenario melalui aturan
+
+Inilah yang membedakan safely.ink dari sekadar bertanya ke chatbot. Setiap hasil diputuskan oleh potongan kode yang kecil dan sederhana, tanpa model di dalamnya. Dengan aturan dan skenario yang sama, hasil dan jumlah uangnya selalu sama.
+
+Kode memeriksa dengan urutan tetap: apakah manfaat yang Anda andalkan berlaku, apakah ada syarat atau tenggat yang terlewat, apakah ada pengecualian yang terpicu, lalu menghitung uangnya: plafon, potongan, dan biaya. Setiap skenario berakhir sebagai **baik**, **sebagian buruk**, **buruk**, atau **tidak jelas**, dengan jumlah yang dipertaruhkan dan jumlah yang hilang jika menyangkut uang. Setiap hasil disertai jejak: aturan mana yang berlaku dan fakta mana yang memicunya.
+
+Jika aturan yang tidak dimodelkan bisa menentukan kasusnya, mesin tidak menebak. Hasilnya tidak jelas, dan laporan mencantumkannya di bagian "Tidak jelas, baca sendiri klausul ini".
+
+## 5. Membandingkan dengan harapan Anda
+
+Model terpisah berperan sebagai orang yang tidak membaca isi detail dokumen. Ia hanya melihat jenis dokumen dan negaranya, peran Anda, petunjuk umum untuk jenis dokumen itu, apa yang dijanjikan dokumen kepada Anda, dan cerita skenarionya. Ia tidak pernah melihat pengecualian, syarat, biaya, maupun hasilnya. Untuk setiap skenario, ia menyatakan apa yang wajar diharapkan orang di posisi Anda beserta alasannya dalam satu kalimat.
+
+## 6. Membandingkan dengan hukum
+
+Untuk dokumen dari Indonesia, Singapura, atau Australia, setiap aturan yang menentukan hasil buruk atau sebagian buruk diperiksa terhadap hukum negara tersebut. Pencarian dibatasi pada daftar sumber resmi, seperti situs peraturan perundang-undangan serta regulator keuangan dan ketenagakerjaan. Yang masuk ke pencarian hanya ringkasan satu baris dari aturan itu, tidak pernah teks dokumen Anda.
+
+Kode kami sendiri yang mengambil halaman-halaman yang ditemukan. Jika sebuah situs memblokir kami, model membaca halaman itu sendiri, tetapi salinan seperti itu tidak pernah dipakai untuk memeriksa kutipan. Model membaca halaman-halaman itu dan menyatakan apakah aturan itu **bertentangan** dengan hukum, **dibatasi** (hanya boleh dengan syarat yang mungkin tidak dipenuhi dokumen), **diizinkan**, atau **tidak ada temuan**. Lalu kode memeriksa setiap kutipan: kutipan hanya ditampilkan jika kata-katanya ada di teks halaman resmi yang kami ambil. Jika tidak ada kutipan yang lolos, temuannya menjadi "tidak ada temuan". Bukti, atau diam.
+
+Untuk negara lain, atau dokumen yang tidak diatur oleh satu negara tertentu, skenario tetap dijalankan dan laporan menyatakan bahwa perbandingan hukum dilewati.
+
+## 7. Nilai dan tingkat keparahan
+
+Sebuah skenario menjadi **jebakan** jika hasilnya lebih buruk daripada yang wajar diharapkan, atau jika aturan yang menentukannya bertentangan dengan hukum atau dibatasi olehnya. Jebakan yang berasal dari aturan yang sama digabung menjadi satu, dengan beberapa contoh skenario.
+
+Setiap jebakan mendapat tingkat keparahan, yaitu kritis, tinggi, sedang, atau rendah, dari seberapa besar bagian yang Anda kehilangan, seberapa sering situasinya terjadi, dan temuan hukumnya. Dokumen mendapat nilai A sampai F dari rumus tetap, dan laporan menunjukkan rumusnya kepada Anda. Tingkat keyakinan turun jika banyak skenario tidak jelas atau ada halaman yang tidak terbaca. Semua angka ini berasal dari kode. Model hanya menulis judul jebakan dan pertanyaan yang disarankan, dan kode menolak kata-kata yang menuduh pihak lain.
+
+## 8. Laporan
+
+Anda bisa melihat tahapan dan jebakan muncul selama proses berjalan. Laporan akhir menampilkan nilai, tingkat keyakinan, dan berapa skenario yang baik, sebagian buruk, buruk, atau tidak jelas. Jebakan diurutkan menurut tingkat keparahan, masing-masing dengan "Anda akan mengira … / Dokumen menyatakan …".
+
+Buka sebuah jebakan untuk melihat contoh skenarionya, hasil dan jumlah uangnya, harapan beserta alasannya, jejak aturannya, klausul aslinya dengan nomor halaman, serta temuan hukum dengan tautan ke sumber resmi. Jebakan kritis dan tinggi juga menyarankan pertanyaan untuk diajukan kepada pihak lain sebelum Anda menandatangani, dan tempat untuk mencari bantuan.
+
+## Dibangun di atas Google
+
+Modelnya adalah Google Gemini, dijalankan melalui Agent Development Kit dari Google. Layanannya berjalan di Google Cloud: API di Cloud Run, dengan Firebase untuk masuk akun, penyimpanan file, basis data, dan hosting.
+
+## Yang tidak dilakukan safely.ink
+
+- Tidak memberikan nasihat hukum. safely.ink adalah alat informasi, dan jebakan yang serius mengarahkan Anda ke profesional atau regulator terkait.
+- Tidak menyusun, mengubah, atau menegosiasikan dokumen, serta tidak menghubungi pihak lain atau mengajukan klaim atas nama Anda.
+- Tidak pernah menyebut sebuah perusahaan tidak jujur. Laporan menjelaskan akibat dari kata-kata dokumen, dengan nada netral.
+- Tidak menebak. Aturan tanpa klausul nyata, atau rujukan hukum yang kutipannya tidak terverifikasi, tidak ditampilkan.
+
+_safely.ink adalah alat informasi, bukan nasihat hukum._

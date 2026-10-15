@@ -1,12 +1,17 @@
-# Contributing to Policy Police
+# Contributing to safely.ink
 
 ## Setup
 
-Requires Node.js 22+ and pnpm 9.
+Requires Node.js 22+, pnpm 9, and Java 21+ (the API tests start the Firebase emulators).
+
+On Windows, `java` must resolve to the JDK's own `bin\java.exe`, not Oracle's
+`Common Files\Oracle\Java\javapath` launcher. The launcher starts the JVM as a child
+process that survives the test run, and the next run fails with "port taken". Put
+`%JAVA_HOME%\bin` ahead of `javapath` in `PATH`.
 
 ```bash
-git clone https://github.com/dzikrisyairozi/policy-police.git
-cd policy-police
+git clone https://github.com/dzikrisyairozi/safely.ink.git
+cd safely.ink
 pnpm install
 pnpm dev              # all apps; or dev:web, dev:api, dev:dashboard
 ```

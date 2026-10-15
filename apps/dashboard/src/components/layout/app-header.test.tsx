@@ -3,24 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { SidebarProvider } from '@repo/ui/components/ui/sidebar';
 import { AppHeader } from './app-header';
-import { FontProvider } from '../../context/font-provider';
-import { LayoutProvider } from '../../context/layout-provider';
 import { SearchProvider } from '../../context/search-provider';
 
 function Providers({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
-      <SearchProvider>
-        <LayoutProvider>
-          <FontProvider>{children}</FontProvider>
-        </LayoutProvider>
-      </SearchProvider>
+      <SearchProvider>{children}</SearchProvider>
     </SidebarProvider>
   );
 }
 
 describe('AppHeader', () => {
-  it('renders the shared Search/ThemeSwitch/ConfigDrawer/ProfileDropdown cluster', () => {
+  it('renders the shared Search/ThemeSwitch/ProfileDropdown cluster', () => {
     render(
       <Providers>
         <AppHeader />

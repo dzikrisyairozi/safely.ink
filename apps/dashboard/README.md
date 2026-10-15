@@ -1,6 +1,6 @@
 # dashboard
 
-The Policy Police product app: sign in, upload a document, watch the run, read the report.
+The safely.ink product app: sign in, upload a document, watch the run, read the report.
 Vite, React, TanStack Router (file-based), React Query, Zustand, `@repo/ui`, `@repo/i18n`.
 
 ```bash
