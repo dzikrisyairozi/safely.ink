@@ -1,11 +1,11 @@
-# safely.ink — Functional Specification Document (FSD)
+# safely.ink functional specification
 
-|         |                                             |
-| ------- | ------------------------------------------- |
-| Status  | Draft, revision 2                           |
-| Date    | 2026-10-13                                  |
-| Scope   | Hackathon build (P0 in the [PRD](./PRD.md)) |
-| Related | [PRD](./PRD.md) · [TSD](./TSD.md)           |
+|         |                                                                                                                         |
+| ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Status  | Revision 3                                                                                                              |
+| Date    | 2026-10-18                                                                                                              |
+| Scope   | The deployed build, v1.0.1. Planned behaviour is in the [roadmap](./ROADMAP.md) and moves here when its milestone ships |
+| Related | [PRD](./PRD.md) · [TSD](./TSD.md) · [Roadmap](./ROADMAP.md) · [Flow](./FLOW.md)                                         |
 
 This document says **what the system does** from the outside. How it is built is in the TSD.
 
@@ -20,7 +20,7 @@ This document says **what the system does** from the outside. How it is built is
 | Clause         | One numbered or otherwise separable piece of wording, with its page.                                                                                                   |
 | Fact schema    | The list of facts that matter for this document (for example `daysSinceStart`, `noticeGivenDays`), derived from the document itself.                                   |
 | Rule           | A machine-checkable statement derived from one or more clauses, written over the fact schema.                                                                          |
-| Unmodeled rule | A clause that matters but cannot be expressed as a machine condition. Shown to the user, never silently dropped.                                                       |
+| Unmodeled rule | A clause that affects the user but cannot be expressed as a machine condition. Shown to the user, never silently dropped.                                              |
 | Scenario       | A generated situation: a short story plus a value for every fact. For insurance this is a claim; for a lease it may be "moving out two months early".                  |
 | Outcome        | Result of running a scenario through the rules, from the user's side: `fine`, `partly_bad`, `bad`, or `undetermined`, with money lost where it applies.                |
 | Expectation    | What a reasonable person in the user's role would expect in that scenario, judged without seeing the fine print.                                                       |
@@ -30,9 +30,9 @@ This document says **what the system does** from the outside. How it is built is
 
 ## 2. Actors
 
-- **Visitor** — not signed in. Sees the landing page only.
-- **User** — signed in with Google. Owns analyses.
-- **System** — the pipeline. Acts only on the user's uploaded document.
+- **Visitor**: not signed in. Sees the landing page only.
+- **User**: signed in with Google. Owns analyses.
+- **System**: the pipeline. Acts only on the user's uploaded document.
 
 ## 3. End-to-end flow
 
@@ -88,8 +88,8 @@ Each requirement has an ID used by the TSD and by tests.
 | F-READ-3 | Before the run continues, the user confirms or changes the document type and country, and selects which party they are. When the detected type or country differs from the pick, the screen says so and one click takes it; a detected country outside the list is offered as Global. |
 | F-READ-4 | If the upload is not a policy or contract (for example a letter, an invoice, a photo of something else), the run stops with a clear message and nothing is counted against the daily limit.                                                                                           |
 | F-READ-5 | A policy or contract that is not one of the six tuned types is analysed with the general pack, and its report is labelled "general analysis".                                                                                                                                         |
-| F-READ-6 | A jurisdiction other than Indonesia, Singapore or Australia, or Global, does not stop the run. The legal comparison is skipped and the report says so.                                                                                                                                |
-| F-READ-7 | Documents in any language are accepted. The report is always written in English; quoted clauses stay in the original language with an English gloss.                                                                                                                                  |
+| F-READ-6 | The legal comparison runs for Indonesia, Singapore and Australia. Indonesia's legal sources are kept up to date. Singapore and Australia work as in v1.0.1. Any other jurisdiction, or Global, does not stop the run. The legal comparison is skipped and the report says so.         |
+| F-READ-7 | Documents in any language are accepted. The interface is in English and Indonesian. Generated report text is written in English, and quoted clauses stay in the original language with an English gloss.                                                                              |
 | F-READ-8 | If pages are unreadable (blurred, cut off), the system says which pages and continues with the rest; the report carries a visible "incomplete document" warning.                                                                                                                      |
 
 ### 4.4 Rules
@@ -125,14 +125,14 @@ Each requirement has an ID used by the TSD and by tests.
 
 ### 4.7 Compare
 
-| ID      | Requirement                                                                                                                                                                                                                                                            |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F-CMP-1 | **Expectation.** For each scenario the system records what a reasonable person in the user's role would expect (`fine`, `partly_bad`, `bad`) and a one-sentence reason. This judgment is made from the kind of document and the scenario story only.                   |
-| F-CMP-2 | **Law.** For each rule that decides a `bad` or `partly_bad` outcome, the system looks up the law of the document's jurisdiction and records one of: `conflicts`, `restricted` (allowed only under conditions the document may not meet), `permitted`, or `no finding`. |
-| F-CMP-3 | Every legal finding other than `no finding` has at least one citation: instrument name, article or section number, a verbatim quote, and a link to the official source.                                                                                                |
-| F-CMP-4 | A citation is shown only if its quote is found in the text of the cited page as fetched by the system. Otherwise the finding is downgraded to `no finding`.                                                                                                            |
-| F-CMP-5 | Law is found by grounded web search restricted to an allowlist of official legal sources per jurisdiction. A source outside the allowlist is never cited.                                                                                                              |
-| F-CMP-6 | Pages fetched for verification are kept, so that the same source is not fetched again for later analyses.                                                                                                                                                              |
+| ID      | Requirement                                                                                                                                                                                                                                                                                   |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-CMP-1 | **Expectation.** For each scenario the system records what a reasonable person in the user's role would expect (`fine`, `partly_bad`, `bad`) and a one-sentence reason. This judgment is made from the kind of document and the scenario story only.                                          |
+| F-CMP-2 | **Law.** For each rule that decides a `bad` or `partly_bad` outcome, the system looks up the law of the document's jurisdiction and records one of: `conflicts`, `restricted` (allowed only under conditions the document may not meet), `permitted`, or `no finding`.                        |
+| F-CMP-3 | Every legal finding other than `no finding` has at least one citation: instrument name, article or section number, a verbatim quote, and a link to the official source.                                                                                                                       |
+| F-CMP-4 | A citation is shown only if its quote is found in the text of the cited page as fetched by the system. Otherwise the finding is downgraded to `no finding`.                                                                                                                                   |
+| F-CMP-5 | Citations come only from the official legal sources listed for each jurisdiction. A source outside that list is never cited.                                                                                                                                                                  |
+| F-CMP-6 | A citation is checked against a stored copy of its source page. The copy is refreshed once it is 30 days old, and the older copy is used when the page cannot be read again. One copy per page serves every analysis, so a refresh replaces the text an earlier citation was checked against. |
 
 ### 4.8 Traps and grade
 
@@ -224,6 +224,9 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
 
 ## 8. Acceptance criteria (demo-level)
 
+On 2026-10-18 nobody had walked these criteria end to end on the deployed build. The walk-through
+is open in issue #16. Criterion 4 covers the three countries v1.0.1 checks.
+
 1. **Happy path.** Given a real 20–40 page Indonesian insurance policy PDF, when the user
    uploads it and confirms the details, then within 150 seconds a report appears with a
    grade, at least 20 scenarios tested, and at least one trap that shows a clause quote
@@ -239,7 +242,7 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
    terms and conditions completes without `failed` and produces at least one trap a human reviewer agrees with.
 6. **General pack.** A document of another kind (for example a gym membership agreement)
    completes and is labelled "general analysis".
-7. **Role matters.** The same NDA analysed once as the disclosing party and once as the
+7. **The role changes the result.** The same NDA analysed once as the disclosing party and once as the
    receiving party produces different traps.
 8. **Photos.** Ten phone photos of a printed document produce a report; an intentionally
    blurred page is reported by number.
@@ -250,5 +253,6 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
 
 ## 9. Out of scope
 
-Brochure comparison, two-document comparison, chat, legal comparison outside ID / SG / AU,
-non-English UI, public share links, payments. See PRD section 5 (P1).
+Not in v1.0.1: brochure comparison, two-document comparison, chat, legal comparison outside
+Indonesia, Singapore and Australia, report text in Indonesian, public share links and payments.
+The [roadmap](./ROADMAP.md) orders what comes next.

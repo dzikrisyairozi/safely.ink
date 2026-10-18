@@ -1,202 +1,163 @@
-# safely.ink — Product Requirements Document (PRD)
+# safely.ink product requirements
 
-|         |                                                                            |
-| ------- | -------------------------------------------------------------------------- |
-| Status  | Draft, revision 2                                                          |
-| Date    | 2026-10-13                                                                 |
-| Target  | AI Builder Cup 2026 (Google Cloud, JAPAC) — submission deadline 2026-10-18 |
-| Theme   | BFSI: Intelligent Risk, Fraud & Financial Experiences                      |
-| Related | [FSD](./FSD.md) · [TSD](./TSD.md)                                          |
+|         |                                                                                                                                                                                                        |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status  | Living document, revision 3                                                                                                                                                                            |
+| Date    | 2026-10-18                                                                                                                                                                                             |
+| Related | [Roadmap](./ROADMAP.md) · [FSD](./FSD.md) · [TSD](./TSD.md) · [Flow](./FLOW.md) · [Market](./research/2026-10-18-market-and-competitors.md) · [Literature](./research/2026-10-18-literature-review.md) |
+
+Revision 2 was the plan for the AI Builder Cup 2026 build. It is kept at the `v1.0.1` tag
+(`git show v1.0.1:docs/PRD.md`), and the history section at the end says what came of it.
 
 ## 1. Problem
 
-Insurance policies, loan agreements, employment contracts, NDAs, leases and terms and
-conditions are long, written by the other side's lawyers, and signed by people who do not
-read them. The signer finds
-out what the document really says on the worst day possible: when a claim is denied, a
-penalty is charged, or a deposit is kept. Summarising the document does not solve this. A
-summary tells you what the document says; it does not tell you where it breaks.
+People in Indonesia sign loan agreements, paylater terms, multifinance contracts and insurance
+policies written by the other side, and most never read them. They find out what the document
+says when a late fee doubles, a collector calls their family, or a claim is refused. Outstanding
+online lending reached Rp106.94 trillion in August 2026, and the illegal-lending task force
+recorded 21,249 complaints about illegal online loans in 2025. The figures and their sources are in the
+[market document](./research/2026-10-18-market-and-competitors.md).
 
-## 2. Product in one sentence
+A summary of the document does not help much. It says what the document says. The user needs to
+know where it hurts them, whether the law allows it, how it compares with another offer, and what
+to do next.
 
-safely.ink is a **policy fuzzer**: upload a policy or contract and it turns the wording
-into executable rules, generates dozens of tricky but realistic scenarios, runs them
-through those rules, and shows every case where you end up worse off than a reasonable
-person would expect — or worse off than the law allows.
+## 2. Product
 
-The name of the technique comes from software testing. A fuzzer does not read code and
-describe it; it attacks the code with edge cases until something breaks. We do the same to
-a contract.
+safely.ink helps people in Indonesia test how an agreement affects them before and after they
+sign, compare their choices, and take reliable evidence into a clarification, a complaint or a
+consultation.
+
+The method is fuzzing, borrowed from software testing. A model turns the wording into rules and
+invents tricky but realistic scenarios, and plain code works out what happens to the user in each
+one, so the same rules and scenarios always give the same outcomes. Every outcome where the user ends up worse off than a reasonable person expects, or
+worse off than Indonesian law allows, becomes a finding with the clause and the scenario behind it, and the law passage
+when the lookup finds one.
 
 ## 3. Users
 
-| Persona                  | Situation                                                                                           | What they need                                                    |
-| ------------------------ | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **The signer** (primary) | About to sign, or just signed, a policy or contract. No legal background, no wish to read 40 pages. | "Tell me where this will bite me, in plain words, before I sign." |
-| **The one in trouble**   | Already bound by the document and something has happened.                                           | "What happens to me now? Which clause decides it?"                |
-| **The helper**           | Agent, broker, HR person, or family member who is asked "is this okay to sign?"                     | A cited report they can stand behind.                             |
+| Persona                     | Situation                                                                                              | What they need                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| The signer (primary)        | Comparing a multifinance, instalment, paylater or loan offer, or about to sign one                     | "What happens if I pay late, repay early or cancel, and which offer costs me less when things go wrong?" |
+| The one in trouble          | Already bound, and something has happened: a fee, a collection call, a refused claim                   | "Is this allowed, which clause decides it, and who do I complain to?"                                    |
+| The helper                  | A family member, a paralegal at an LBH, or a consumer group volunteer asked "is this okay?"            | A cited report and an evidence packet they can stand behind                                              |
+| The remediation buyer (B2B) | A product or legal team at a licensed provider that wants its own standard terms tested before release | Findings and suggested fixes for their drafts, with no say over what consumers see                       |
 
-Users are in JAPAC. The hackathon build checks the law of Indonesia, Singapore and
-Australia; documents from other countries are still analysed, without the legal comparison.
+## 4. Wedge
 
-## 4. Goals and non-goals
+Consumer finance first, insurance second. The pre-signing path starts with multifinance and
+planned instalment purchases, where people have time to compare, then paylater and online loans.
+Online-loan users mostly arrive after something has gone wrong, so they come in through the
+after-the-fact path. Insurance is framed as "which circumstances could stop payment". Employment
+and rental agreements follow, then app terms and privacy policies.
 
-### Goals (hackathon build, P0)
+Law checks cover Indonesia. Singapore and Australia stay as they were in v1.0.1 and are not
+extended.
 
-1. A user can upload one document (PDF or page photos) and get a trap report in about two
-   minutes, with progress visible while it runs.
-2. Every trap is backed by the exact clause and, where the law is relevant, a citation to a
-   real article or section with a link to the official source.
-3. Works on any mainstream policy or contract. Six document types are tuned: insurance
-   policy, loan / credit agreement, employment contract, NDA, rental lease, terms and
-   conditions.
-4. Legal comparison works for Indonesia, Singapore and Australia.
-5. Signed-in users keep a history of their reports.
-6. Meets every hackathon rule: Gemini models, agentic platform (ADK), deployed on Cloud
-   Run and Firebase, public repo, English submission.
-
-### Non-goals (hackathon build)
-
-- Legal advice. The product is an information tool and says so.
-- Drafting, redlining or negotiating documents.
-- Contacting the other party, filing claims, or calling any company dishonest.
-- Payments, teams, sharing permissions, mobile apps.
+The B2B line is a clause-testing and remediation workflow for one paid design partner. It is
+never sold as proof of compliance with POJK 22/2023.
 
 ## 5. Scope
 
-### P0 — must ship by 18 Oct
+What v1.0.1 does is in the [roadmap](./ROADMAP.md#where-we-are-on-2026-10-18). The next work is
+grouped in horizons there:
 
-| #     | Capability                                                                                  |
-| ----- | ------------------------------------------------------------------------------------------- |
-| P0-1  | Google sign-in (Firebase Auth)                                                              |
-| P0-2  | Upload PDF (text or scanned) or photos of pages                                             |
-| P0-3  | Read: detect document type, parties, jurisdiction, language; split into clauses             |
-| P0-4  | Confirm: user confirms document type, jurisdiction and **which party they are**             |
-| P0-5  | Rules: derive the document's own fact schema, then a typed, machine-checkable rule set      |
-| P0-6  | Fuzz: generate 20–40 edge-case scenarios                                                    |
-| P0-7  | Run: evaluate every scenario against the rules with a deterministic engine                  |
-| P0-8  | Compare A — reasonable person's expectation                                                 |
-| P0-9  | Compare B — law and regulation (ID, SG, AU) through grounded search with verified citations |
-| P0-10 | Report: overall grade and ranked trap list; each trap opens the source clause               |
-| P0-11 | Live progress while the pipeline runs                                                       |
-| P0-12 | History of past reports, with delete                                                        |
-| P0-13 | Landing page that explains the product                                                      |
+| Horizon             | What it adds                                                                                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| H1 Trustworthy core | Findings that hold up: the known accuracy faults fixed, accuracy measured on Indonesian agreements, runs that always finish, data kept safe, every change tried before release |
+| H2 Indonesian depth | Our own library of Indonesian law, questions like a legal aid intake, offers tested on their money, the exact clause shown in the document                                     |
+| H3 Act on findings  | Referral with an evidence packet, document comparison, after-the-fact help and complaint drafts, analysis for both parties with graded and party-bias warnings                 |
+| H4 Reach            | Counsel review and public launch, the B2B design partner, a lawyer-reviewed rewording library, a published Indonesian benchmark                                                |
+| H5 Region           | Standard-contract regimes in Thailand and Vietnam                                                                                                                              |
 
-### Document packs
+### Non-goals
 
-A pack is a set of prompt seeds for one document type: typical scenarios and what an
-ordinary person expects. Packs are content, not code; the engine is the same for all.
-
-| Pack                    | Example scenarios                                                           |
-| ----------------------- | --------------------------------------------------------------------------- |
-| Insurance policy        | Claim inside a waiting period, excluded contributing cause, late notice     |
-| Loan / credit agreement | One late payment, early repayment, rate change, default and collateral      |
-| Employment contract     | Resignation notice, non-compete, training-bond clawback, dismissal          |
-| NDA                     | What counts as confidential, how long, penalty for an accidental disclosure |
-| Rental lease            | Deposit forfeiture, early exit, repairs, rent increase                      |
-| General (fallback)      | Any other policy or contract; report is labelled "general analysis"         |
-
-### P1 — roadmap (in the deck, not in the build)
-
-- Compare C — marketing brochure versus fine print.
-- Compare D — two documents side by side on the same scenarios.
-- "What if" chat that runs a user-described scenario through the same rule engine.
-- More tuned packs: telco, purchase agreements.
-- More JAPAC jurisdictions (Japan, India, Malaysia, Philippines, Thailand, Vietnam, …).
-- Localised UI (the repo already carries Indonesian i18n scaffolding).
-- Shareable public report links.
+- Acting as a lawyer, or letting a user believe a lawyer-client relationship exists.
+- Certifying that a provider complies with any regulation.
+- Contacting a provider, a regulator or a court for the user. The user reviews and sends
+  everything.
+- Public grades for named providers before counsel has reviewed publication.
+- Letting anyone who pays us change what a consumer report says.
+- Training models on user documents.
+- Referral payments or sponsorships that are not disclosed, or that change a ranking.
 
 ## 6. Why this is not "chat with your PDF"
 
-|             | Summariser / chat           | safely.ink                                                                |
-| ----------- | --------------------------- | ------------------------------------------------------------------------- |
-| Output      | Description of the document | Failing test cases against the document                                   |
-| Method      | One LLM reading             | LLM extraction → **deterministic** rule execution → independent judgments |
-| Repeatable  | No                          | Yes: the same rules and scenarios always give the same outcomes           |
-| Explainable | "The model said so"         | A trace: which rule fired, on which fact, from which clause               |
-| Grounding   | Model memory                | Law text fetched from official sites, quote-verified before display       |
+|             | Summariser or chat            | safely.ink                                                                                          |
+| ----------- | ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| Output      | A description of the document | Failing scenarios against the document, with the clause behind each, and the law where it was found |
+| Method      | One model reading             | Model extraction, deterministic rule execution, independent judgments                               |
+| Repeatable  | No                            | The same rules and scenarios give the same outcomes                                                 |
+| Explainable | "The model said so"           | A trace: which rule fired, on which fact, from which clause                                         |
+| Grounding   | Model memory                  | Law text from official sources, quote-checked before it is shown                                    |
 
-This is the innovation claim for the judges: Gen AI is used where it is strong (reading
-messy legal prose, inventing adversarial scenarios, researching law) and kept away from
-where it is weak (being the calculator that decides the outcome).
+## 7. Measures
 
-## 7. Hackathon alignment
+The north star is the number of evidence-backed decisions per month: a user confirms that a
+supported finding shaped an offer choice, a question to the provider, a complaint or a
+consultation, and a monthly sample is audited.
 
-| Criterion (weight)               | How we address it                                                                                                                                                                                                                                                             |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Technical merit & Gen AI (40%)   | Multi-agent pipeline on Google ADK; Gemini multimodal document reading; structured output into a typed rule schema derived per document; Google Search grounding for law; deterministic evaluator; citation verification. Serverless on Cloud Run + Firebase, scales to zero. |
-| Problem alignment & impact (25%) | The demo leads with insurance policies and loan agreements, both named in the BFSI theme. Being hurt by unread fine print is a mass-market problem across JAPAC, where financial and legal literacy is low and legal help is expensive.                                       |
-| Innovation & creativity (25%)    | Fuzzing applied to contracts. Outcome is decided by code, not by the model. Law citations are checked against the source page.                                                                                                                                                |
-| UX & solution design (10%)       | One upload, live progress, a grade and a ranked list. Plain language. Every statement one click from its evidence.                                                                                                                                                            |
+Three guardrails sit beside it:
 
-Deck framing: **financial-document safety first, any contract next.** The same engine
-reading employment contracts, NDAs and leases is shown as breadth, not as the pitch.
+| Guardrail               | What it counts                                                                       | Target                           |
+| ----------------------- | ------------------------------------------------------------------------------------ | -------------------------------- |
+| Material-error rate     | Reviewed reports with an unsupported consequential claim or a false reassurance      | Set after the first gold-set run |
+| Safe-action rate        | Sampled complaints and referrals that went to the right channel with supported facts | Set when complaint drafts ship   |
+| Trust-boundary breaches | Sponsor influence on findings, or sharing without consent                            | Zero                             |
 
-### Hard rules we must satisfy
+Quality will be measured on a labelled set of Indonesian agreements and published in `docs/eval.md`: extraction recall,
+citation support, trap precision, false reassurance and abstention. The revision 2 targets (95%
+of rules trace to a clause, 80% of traps confirmed, a report within 150 seconds) were never
+measured, and they stay out of claims until they are. User satisfaction will be a rating on each
+report and each finding.
 
-- Gemini or Gemma models, or a Google agentic platform → Gemini + ADK.
-- Deployed on Cloud Run or Firebase → API on Cloud Run; front ends on Firebase.
-- Fresh project built in the hackathon window. The repo starts from the author's own
-  public starter template (tooling and UI shell only); all product code is new. **This is
-  disclosed in the deck and the README.**
-- Deliverables: deployed link, public GitHub repo, demo video under 3 minutes, deck as PDF.
-  All in English.
+## 8. Principles
 
-## 8. Success metrics
-
-Hackathon build:
-
-| Metric                                                              | Target                                 |
-| ------------------------------------------------------------------- | -------------------------------------- |
-| Time from upload to finished report (30-page document)              | ≤ 150 s                                |
-| Rules that trace to a real clause (spot check)                      | ≥ 95%                                  |
-| Law citations shown whose quote is found on the fetched source page | 100% (unverified ones are never shown) |
-| Traps a human reviewer agrees are real, on 5 demo documents         | ≥ 80%                                  |
-| A first-time user reaches a report without help                     | Yes, in the demo run                   |
-
-Post-hackathon: reports per user, share of users who open at least one trap, return rate.
-
-## 9. Product principles
-
-1. **Evidence or silence.** No trap without a quoted clause. No legal statement without a
+1. Evidence or silence. No finding without a quoted clause, and no legal statement without a
    verified citation.
-2. **Neutral voice.** We describe what the wording does. We never call a company a scam.
-3. **Plain language first, legal language one click away.**
-4. **Not legal advice.** Stated on the upload screen, the report, and the landing page.
-   High-severity traps point the user to a professional or the relevant regulator.
-5. **The user's document is theirs.** Private by default, deletable, not used for training.
+2. Code decides outcomes. Models read, propose and research.
+3. Neutral voice. We describe what the wording does and never call a company dishonest.
+4. Graded warnings. Each finding shows its legal status (likely void, open to dispute, lawful but
+   harsh), the gap from what a reasonable person expects, and our confidence, separately.
+5. Say whose interest it serves. Findings and suggested wording carry a party-bias indicator, and
+   our own judge is tested for a lean toward the drafting party.
+6. Ask when unsure. The product asks a question when an answer changes the result, and does not
+   guess.
+7. Plain language first, legal language one click away, in Indonesian and English.
+8. Not legal advice. Said on the upload screen, the report and the landing page, and serious
+   findings point to legal aid or the right complaint channel.
+9. The user's document is theirs. Private by default, deletable, kept only as long as the
+   retention schedule says, never used for training, and never shared without consent for that
+   purpose.
 
-## 10. Risks
+## 9. Risks
 
-| Risk                                                          | Impact                 | Mitigation                                                                                                                                   |
-| ------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Five days to deadline, wide scope                             | Scope is not finished  | P0 list is fixed; packs are prompt content, not code; cut order in section 11.                                                               |
-| Any-document mode gives shallow results on unusual documents  | Weak report            | Six tuned packs carry the demo; fallback reports are labelled "general analysis"; clauses that cannot be modelled are listed, never dropped. |
-| Model invents a rule or a law                                 | Wrong, harmful report  | Rules must reference clause IDs that exist; citation quotes are string-matched against the fetched page; unverifiable items are dropped.     |
-| Search grounding misses the relevant article                  | Missing legal finding  | Reported as "no finding", never guessed. Verified findings are stored and reused, so coverage improves with use.                             |
-| Official legal sites block or cannot be fetched               | Citations unverifiable | Day-1 spike per site; fallback is Gemini's URL context tool as the retriever, with the same quote check.                                     |
-| Defamation / liability                                        | Legal exposure         | Neutral wording, disclaimer, evidence shown, no company ranking.                                                                             |
-| Personal data inside uploaded documents                       | Privacy breach         | Owner-only access rules, source files auto-deleted after 7 days, user can delete everything.                                                 |
-| "Fresh project" rule versus starter template                  | Disqualification       | Disclosed; template is generic tooling; ask organisers.                                                                                      |
-| Submission form lists categories that do not match the themes | Wrong category         | Ask organisers before submitting.                                                                                                            |
+| Risk                                                                          | Impact                                           | Mitigation                                                                                                                                               |
+| ----------------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Complaint drafts or rewording count as legal services under the Advocates Law | Legal exposure                                   | Counsel reviews both before they ship. Templates over free text. Clear disclaimers and a referral path                                                   |
+| Marketing claims run ahead of the product                                     | The FTC fined DoNotPay $193,000 in 2025 for this | No "AI lawyer" language, and accuracy claims only from published `docs/eval.md` figures                                                                  |
+| A named provider objects to a report                                          | Defamation or ITE complaints                     | Neutral wording, evidence shown, no per-provider grades. MK 105/PUU-XXII/2024 limits ITE Pasal 27A to individuals, and counsel still reviews publication |
+| False reassurance: a report misses a harmful clause                           | A user signs something that hurts them           | A good grade only when the run covered the document, clauses we cannot test listed, and how often we abstain measured                                    |
+| Contract text leaves Indonesia on each model call                             | A UU PDP transfer without a basis                | Counsel review against PP 33/2026, a DPIA, consent per purpose, personal details masked before text goes to any other third party                        |
+| Search grounding keeps prompts for up to three days                           | Personal data held by a third party              | Law answers from our own library first, and a search service that keeps nothing if counsel asks                                                          |
+| No PSE registration with Komdigi                                              | The service is blocked in Indonesia              | Register before launch, which needs the named operator entity                                                                                            |
+| The judge model leans toward the drafting party or the state                  | Biased findings                                  | The same scenarios run with the roles swapped, and the lean measured                                                                                     |
+| Official legal sites block our fetches                                        | Missing law findings                             | Our own copy of the statutes, kept up to date                                                                                                            |
+| Model spend runs past the budget                                              | Cost                                             | Cost per analysis tracked, and new analyses pause when the monthly budget is reached                                                                     |
 
-## 11. Delivery plan
+## 10. Open questions
 
-| Day | Date       | Outcome                                                                                                                                              |
-| --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | Mon 13 Oct | Documents approved. Repo converted: Rust API and docs app removed, TypeScript API scaffolded, rebrand done. GCP and Firebase project created.        |
-| 1   | Tue 14 Oct | Shared schemas. Deterministic evaluator with tests. Reader and rule-extractor agents working on one insurance policy. Spikes: ADK, legal-site fetch. |
-| 2   | Wed 15 Oct | Scenario fuzzer and expectation judge. Sign-in, upload, confirm, live progress screen. First end-to-end run on Cloud Run.                            |
-| 3   | Thu 16 Oct | Legal researcher: grounded search, page cache, citation verification. Report screen and history. Loan and employment packs.                          |
-| 4   | Fri 17 Oct | NDA and lease packs. Three countries tested on real documents. Landing page. Limits, error states. **Feature freeze 18:00.**                         |
-| 5   | Sat 18 Oct | Demo video, deck PDF, README, final deploy, submit with hours to spare.                                                                              |
+1. The four questions for Indonesian counsel in the [roadmap](./ROADMAP.md#questions-for-indonesian-counsel).
+2. Which legal entity operates safely.ink, for the privacy page and the PSE registration.
+3. The monthly budget ceiling.
+4. Pricing for consumers and for the B2B line. The market document lists the business models.
 
-Cut order if we fall behind: lease pack → NDA pack → Australia → history screen → landing
-page polish. Never cut: the deterministic run, the expectation comparison, the insurance
-and loan packs, one country of legal lookup, deployment on Google Cloud.
+## 11. History
 
-## 12. Open questions
-
-1. Which hackathon submission "category" applies to a BFSI entry? (To ask organisers.)
-2. Is the starter template acceptable under the "fresh project" rule? (To ask organisers; assumed yes, disclosed.)
-3. Final product tagline and visual identity.
+Revision 2 planned a five-day build for the AI Builder Cup 2026, judged on technical merit,
+problem fit, innovation and design. The build
+shipped as v1.0.1 with sign-in, upload, read and confirm, rules, scenarios, the run,
+the expectation judge, the legal lookup with quote checks, the report, history and delete, an
+Indonesian and English interface, and the landing page. The legal lookup worked for Indonesia,
+Singapore and Australia, and it found a source for 5 of 13 lookups in one live Indonesian run.
+The accuracy targets were not measured. The FSD acceptance walk-through is open in issue #16.

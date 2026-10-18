@@ -1,12 +1,14 @@
-# safely.ink — Technical Specification Document (TSD)
+# safely.ink technical specification
 
-|         |                                   |
-| ------- | --------------------------------- |
-| Status  | Draft, revision 2                 |
-| Date    | 2026-10-13                        |
-| Related | [PRD](./PRD.md) · [FSD](./FSD.md) |
+|         |                                                                                                                                                 |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status  | Revision 3, describes v1.0.1                                                                                                                    |
+| Date    | 2026-10-18                                                                                                                                      |
+| Related | [PRD](./PRD.md) · [FSD](./FSD.md) · [Roadmap](./ROADMAP.md) · [Technical stack](./research/2026-10-18-technical-stack.md) · [Setup](./SETUP.md) |
 
-Requirement IDs (`F-…`) refer to the FSD.
+Requirement IDs (`F-…`) refer to the FSD. This document describes the deployed build. Where the
+roadmap replaces a decision, the row says which milestone does it, and the
+[technical stack note](./research/2026-10-18-technical-stack.md) has the design.
 
 ## 1. Architecture
 
@@ -43,21 +45,21 @@ Three deployables, all on Google Cloud, all scale to zero.
 
 ### Decisions
 
-| Decision         | Choice                                                                      | Reason                                                                                                                        |
-| ---------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Backend language | TypeScript on Node 22                                                       | Official Gemini SDK and ADK support; one language in the monorepo. Replaces the template's Rust API.                          |
-| HTTP framework   | Hono                                                                        | Small, typed, runs on Cloud Run with `@hono/node-server`.                                                                     |
-| Agent framework  | Google ADK for TypeScript                                                   | Meets the hackathon's "agentic platform" requirement; built-in Google Search tool.                                            |
-| Model access     | Gemini Developer API (AI Studio key) via `@google/genai`                    | Fastest start. Key lives in Secret Manager. Moving to Vertex AI later is a config change in the same SDK.                     |
-| Outcome engine   | Plain TypeScript, no LLM                                                    | Determinism and traceability (F-RUN-2, F-RUN-3).                                                                              |
-| Any document     | Fact schema derived per document; document packs are prompt content         | One engine for every document type. No per-type code. See section 3.2.                                                        |
-| Law lookup       | Google Search grounding on an allowlist, then our own fetch and quote check | No corpus to build or keep fresh; a new country is one allowlist entry. Verified pages are stored, so the store fills itself. |
-| Database         | Firestore                                                                   | Analyses are JSON documents; realtime listeners give live progress for free. No Cloud SQL.                                    |
-| Files            | Cloud Storage for Firebase                                                  | Direct browser upload under security rules; lifecycle rule deletes after 7 days.                                              |
-| Auth             | Firebase Auth, Google provider only                                         | F-AUTH-1.                                                                                                                     |
-| Live progress    | Firestore `onSnapshot` from the browser                                     | No SSE or WebSocket code. The API only writes documents.                                                                      |
-| Shared types     | Zod schemas in `@repo/api-types`                                            | One source of truth for API, agents' structured output, Firestore documents and UI.                                           |
-| Long request     | The confirm request stays open for the run (Cloud Run timeout 900 s)        | Avoids a queue for the hackathon. Ceiling: one run per request; move to Cloud Tasks when runs outgrow a request.              |
+| Decision         | Choice                                                                      | Reason                                                                                                                                                                                                                       |
+| ---------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend language | TypeScript on Node 24                                                       | Official Gemini SDK and ADK support; one language in the monorepo. Replaces the template's Rust API.                                                                                                                         |
+| HTTP framework   | Hono                                                                        | Small, typed, runs on Cloud Run with `@hono/node-server`.                                                                                                                                                                    |
+| Agent framework  | Google ADK for TypeScript                                                   | Meets the hackathon's "agentic platform" requirement; built-in Google Search tool.                                                                                                                                           |
+| Model access     | Gemini Developer API (AI Studio key) via `@google/genai`                    | Fastest start. Key lives in Secret Manager. R3 moves calls to Vertex AI, which serves Gemini in asia-southeast1 and not in Jakarta.                                                                                          |
+| Outcome engine   | Plain TypeScript, no LLM                                                    | Determinism and traceability (F-RUN-2, F-RUN-3).                                                                                                                                                                             |
+| Any document     | Fact schema derived per document; document packs are prompt content         | One engine for every document type. No per-type code. See section 3.2.                                                                                                                                                       |
+| Law lookup       | Google Search grounding on an allowlist, then our own fetch and quote check | No corpus to build or keep fresh, and a new country is one allowlist entry. Verified pages are stored, so the store fills itself. R5 replaces it with a versioned Indonesian corpus in Cloud SQL, and search stays for gaps. |
+| Database         | Firestore                                                                   | Analyses are JSON documents, and realtime listeners give live progress for free. Analyses stay here. The R5 law corpus goes in Cloud SQL for PostgreSQL.                                                                     |
+| Files            | Cloud Storage for Firebase                                                  | Direct browser upload under security rules; lifecycle rule deletes after 7 days.                                                                                                                                             |
+| Auth             | Firebase Auth, Google provider only                                         | F-AUTH-1.                                                                                                                                                                                                                    |
+| Live progress    | Firestore `onSnapshot` from the browser                                     | No SSE or WebSocket code. The API only writes documents.                                                                                                                                                                     |
+| Shared types     | Zod schemas in `@repo/api-types`                                            | One source of truth for API, agents' structured output, Firestore documents and UI.                                                                                                                                          |
+| Long request     | The confirm request stays open for the run (Cloud Run timeout 900 s)        | Avoids a queue for the hackathon. Ceiling: one run per request. R2 moves stages to Cloud Tasks and a worker service.                                                                                                         |
 
 ### Models
 
@@ -482,13 +484,16 @@ content is data, not instructions.
 
 ## 6. Law store
 
-The law store is not built up front. It fills as a side effect of analyses.
+In v1.0.1 the law store is not built up front. It fills as a side effect of analyses. R5 replaces
+the plans below with a curated corpus: statutes chunked by Bab, Pasal, Ayat and huruf, stored with
+versions and statute links in Cloud SQL for PostgreSQL, and searched by citation, full text and
+vectors with reciprocal rank fusion.
 
-| Stage             | What                                                                                                                                                                                                                                      | Status  |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| Page cache        | `lawPages` keyed by URL hash. Saves the fetch on every later analysis that cites the same page. Entries older than 30 days are refetched.                                                                                                 | Built   |
-| Finding reuse     | Embed each **verified** finding (rule summary + document type + jurisdiction). Before searching, vector-search prior findings; on a close match, reuse its citations and re-run only the assess and verify steps against the cached page. | Stretch |
-| Managed retrieval | Vertex AI Search over the allowlisted sites.                                                                                                                                                                                              | Later   |
+| Stage             | What                                                                                                                                                                                                                                      | Status                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Page cache        | `lawPages` keyed by URL hash. Saves the fetch on every later analysis that cites the same page. Entries older than 30 days are refetched.                                                                                                 | Built                     |
+| Finding reuse     | Embed each **verified** finding (rule summary + document type + jurisdiction). Before searching, vector-search prior findings; on a close match, reuse its citations and re-run only the assess and verify steps against the cached page. | Dropped for the R5 corpus |
+| Managed retrieval | Vertex AI Search over the allowlisted sites.                                                                                                                                                                                              | Dropped for the R5 corpus |
 
 Only text from official sources is stored, with its URL. Check each site's reuse terms
 during the day-1 spike.
@@ -511,8 +516,8 @@ during the day-1 spike.
   the run tracker (`run-tracker.tsx`), the report (`features/report/report-view.tsx`) or a
   failed stage with retry, by status; `/analyses/$id/traps/$trapId` is the trap detail.
   Clause links point at `/analyses/$id/rules#<clauseId>`.
-- UI strings live in the `en` locale file through `@repo/i18n`. The `id` locale is kept
-  key-identical (the existing parity test enforces it) so that localisation later is not a rewrite.
+- UI strings live in `apps/dashboard/src/i18n/locales/en.json` and `id.json`, both translated.
+  The parity test keeps their keys identical.
 
 ### web (landing)
 
@@ -538,7 +543,8 @@ gcloud firestore databases create --location=asia-southeast2
 printf '%s' "$GEMINI_API_KEY" | gcloud secrets create gemini-api-key --data-file=-
 ```
 
-Region: `asia-southeast2` (Jakarta) for Cloud Run and Firestore.
+Region: `asia-southeast2` (Jakarta) for Cloud Run and Firestore. The upload bucket,
+`safely-ink.firebasestorage.app`, is in US-EAST1. R3 creates one in asia-southeast2.
 
 ### Deploy
 
@@ -618,15 +624,28 @@ the analysis document for the eval report.
 
 | Shortcut                          | Ceiling                                                            | Upgrade path                                                 |
 | --------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
-| Run inside the HTTP request       | One run per request, 900 s                                         | Cloud Tasks + worker service                                 |
-| AI Studio key                     | Lower rate limits, key management                                  | Vertex AI with service-account auth                          |
+| Run inside the HTTP request       | One run per request, 900 s                                         | Cloud Tasks and a worker service (R2)                        |
+| AI Studio key                     | Lower rate limits, key management                                  | Vertex AI with service-account auth (R3)                     |
 | Fact schema invented per document | Two analyses of similar documents are not directly comparable      | Canonical fact library per pack, mapped from derived schemas |
 | Flat condition language           | Discretion, vagueness and multi-step procedures are `unmodeled`    | Richer rule language; LLM adjudicator for unmodeled rules    |
-| Search grounding for law          | May miss the relevant article; depends on site availability        | Finding reuse (section 6), then managed retrieval            |
+| Search grounding for law          | May miss the relevant article, and depends on site availability    | The R5 corpus                                                |
 | Whole pages to the assessment     | Cost and time grow with page length (338,000 tokens for one Act)   | Send the passages around the section the search named        |
 | URL context for blocked hosts     | The model's copy is context only: a blocked host gives no citation | Fetch through an allowed route, or drop such hosts           |
 | Hand-tuned grade weights          | Not validated                                                      | Calibrate against labelled documents                         |
-| English-only UI                   | Excludes many JAPAC users                                          | Fill the `id` locale, add others                             |
+| English-only report text          | The interface is in Indonesian, the generated findings are not     | Indonesian report text (R6)                                  |
+
+### Known faults
+
+A Codex review found these four on 2026-10-18, and each was confirmed in the code. R0 fixes them.
+
+1. `apps/api/src/engine/evaluate.ts:104-116` treats any benefit that fires as the one the scenario
+   targets, so an unrelated benefit can hide a denial.
+2. `evaluate.ts:115-122` returns as soon as a denial fires, so the unmodeled check at line 124 never
+   runs for that scenario. `apps/api/src/legal/research.ts:86` looks up only rules that decided a
+   bad outcome, so a discretionary clause can escape both the run and the law check.
+3. `apps/api/src/legal/verify.ts:66` keeps the legal status when any one quote survives, even if the
+   decisive quote failed.
+4. `apps/api/src/engine/score.ts:119` sets confidence without looking at rule coverage.
 
 ## 13. Open technical questions
 
@@ -636,5 +655,8 @@ the analysis document for the eval report.
    AU with browser-like headers; Indonesian statutes are fetched as the official PDFs and
    read with `unpdf`. The URL context tool is only the fallback for a blocked or short
    page, and its text never verifies a quote.
-3. Firebase App Hosting behaviour with a pnpm monorepo and Next.js 16; fallback is a
-   Cloud Run container for `apps/web`.
+3. Resolved: the landing page builds and deploys on Firebase App Hosting from release tags
+   (`.github/workflows/release.yml`).
+4. Whether Cloud Tasks and Cloud SQL run in asia-southeast2, checked at the start of R2 and R5.
+5. Whether the `pg_textsearch` BM25 preview is available on Cloud SQL in asia-southeast2 (R5).
+6. Which Gemini model IDs Vertex AI serves in asia-southeast1 for the Pro and Flash roles (R3).

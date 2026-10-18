@@ -9,7 +9,8 @@ the law allows.
 It is an information tool, not legal advice.
 
 > Built for [AI Builder Cup 2026](https://aibuildercup.com/) (Google Cloud, JAPAC), theme
-> BFSI. Status: repository scaffold; the analysis pipeline is under construction.
+> BFSI. Version 1.0.1 is deployed. What comes next, starting with Indonesian consumer finance,
+> is in the [roadmap](./docs/ROADMAP.md).
 
 ## How it works
 
@@ -26,6 +27,7 @@ The model reads, proposes and researches. It never decides an outcome, and no le
 citation is shown unless its quote is found in the source text.
 
 Full detail: [PRD](./docs/PRD.md) · [FSD](./docs/FSD.md) · [TSD](./docs/TSD.md) ·
+[roadmap](./docs/ROADMAP.md) · [flow](./docs/FLOW.md) · [setup](./docs/SETUP.md) ·
 [decisions](./docs/adr) · [runbook](./docs/runbook.md)
 
 ## Repository
@@ -40,11 +42,11 @@ packages/
   ui/           shadcn/ui components
   i18n/         i18next setup (English, Indonesian)
   tailwind-config/  typescript-config/
-docs/           PRD, FSD, TSD, architecture decision records
+docs/           PRD, FSD, TSD, roadmap, research notes, decision records, runbook
 ```
 
-Target platform: Gemini through Google ADK, API on Cloud Run, front ends on Firebase,
-data in Firestore and Cloud Storage.
+Platform: Gemini through Google ADK, API on Cloud Run, front ends on Firebase, data in
+Firestore and Cloud Storage.
 
 ## Getting started
 
@@ -58,7 +60,10 @@ pnpm dev:api          # http://localhost:3001  (GET /health)
 pnpm dev:dashboard    # http://localhost:5174
 ```
 
-The dashboard's sign-in is currently a mock that accepts any email and password.
+The dashboard signs in with Google through Firebase Auth. Each app needs its `.env`, copied
+from `.env.example`, and the API's Gemini key comes from the shared encrypted file
+(runbook section 2). `pnpm test` needs Java 21 for the Firebase emulators. The full list is in
+[SETUP.md](./docs/SETUP.md).
 
 ## Commands
 
