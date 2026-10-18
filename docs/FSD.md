@@ -20,7 +20,7 @@ This document says **what the system does** from the outside. How it is built is
 | Clause         | One numbered or otherwise separable piece of wording, with its page.                                                                                                   |
 | Fact schema    | The list of facts that matter for this document (for example `daysSinceStart`, `noticeGivenDays`), derived from the document itself.                                   |
 | Rule           | A machine-checkable statement derived from one or more clauses, written over the fact schema.                                                                          |
-| Unmodeled rule | A clause that matters but cannot be expressed as a machine condition. Shown to the user, never silently dropped.                                                       |
+| Unmodeled rule | A clause that affects the user but cannot be expressed as a machine condition. Shown to the user, never silently dropped.                                              |
 | Scenario       | A generated situation: a short story plus a value for every fact. For insurance this is a claim; for a lease it may be "moving out two months early".                  |
 | Outcome        | Result of running a scenario through the rules, from the user's side: `fine`, `partly_bad`, `bad`, or `undetermined`, with money lost where it applies.                |
 | Expectation    | What a reasonable person in the user's role would expect in that scenario, judged without seeing the fine print.                                                       |
@@ -30,9 +30,9 @@ This document says **what the system does** from the outside. How it is built is
 
 ## 2. Actors
 
-- **Visitor** — not signed in. Sees the landing page only.
-- **User** — signed in with Google. Owns analyses.
-- **System** — the pipeline. Acts only on the user's uploaded document.
+- **Visitor**: not signed in. Sees the landing page only.
+- **User**: signed in with Google. Owns analyses.
+- **System**: the pipeline. Acts only on the user's uploaded document.
 
 ## 3. End-to-end flow
 
@@ -242,7 +242,7 @@ is open in issue #16. Criterion 4 covers the three countries v1.0.1 checks.
    terms and conditions completes without `failed` and produces at least one trap a human reviewer agrees with.
 6. **General pack.** A document of another kind (for example a gym membership agreement)
    completes and is labelled "general analysis".
-7. **Role matters.** The same NDA analysed once as the disclosing party and once as the
+7. **The role changes the result.** The same NDA analysed once as the disclosing party and once as the
    receiving party produces different traps.
 8. **Photos.** Ten phone photos of a printed document produce a report; an intentionally
    blurred page is reported by number.
