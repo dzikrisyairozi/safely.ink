@@ -132,7 +132,7 @@ Each requirement has an ID used by the TSD and by tests.
 | F-CMP-3 | Every legal finding other than `no finding` has at least one citation: instrument name, article or section number, a verbatim quote, and a link to the official source.                                                                                                |
 | F-CMP-4 | A citation is shown only if its quote is found in the text of the cited page as fetched by the system. Otherwise the finding is downgraded to `no finding`.                                                                                                            |
 | F-CMP-5 | Citations come only from the official legal sources listed for each jurisdiction. A source outside that list is never cited.                                                                                                                                           |
-| F-CMP-6 | The source text a citation was checked against is kept with the analysis, so the quote can be checked again later.                                                                                                                                                     |
+| F-CMP-6 | A citation is checked against a copy of its source page that is at most 30 days old. One copy per page serves every analysis, so a later refresh replaces the text an earlier citation was checked against.                                                            |
 
 ### 4.8 Traps and grade
 
