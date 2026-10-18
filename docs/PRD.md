@@ -28,9 +28,9 @@ safely.ink helps people in Indonesia test how an agreement affects them before a
 sign, compare their choices, and take reliable evidence into a clarification, a complaint or a
 consultation.
 
-The method is fuzzing, borrowed from software testing. Gemini turns the wording into typed rules,
-generates tricky but realistic scenarios, and a deterministic engine runs each scenario through
-the rules. Every outcome where the user ends up worse off than a reasonable person expects, or
+The method is fuzzing, borrowed from software testing. A model turns the wording into rules and
+invents tricky but realistic scenarios, and plain code works out what happens to the user in each
+one, so the same document always gives the same outcomes. Every outcome where the user ends up worse off than a reasonable person expects, or
 worse off than Indonesian law allows, becomes a finding with the clause and the scenario behind it, and the law passage
 when the lookup finds one.
 
@@ -51,8 +51,8 @@ Online-loan users mostly arrive after something has gone wrong, so they come in 
 after-the-fact path. Insurance is framed as "which circumstances could stop payment". Employment
 and rental agreements follow, then app terms and privacy policies.
 
-Law checks cover Indonesia. Singapore and Australia keep the v1.0.1 search-based check without
-maintenance.
+Law checks cover Indonesia. Singapore and Australia stay as they were in v1.0.1 and are not
+extended.
 
 The B2B line is a clause-testing and remediation workflow for one paid design partner. It is
 never sold as proof of compliance with POJK 22/2023.
@@ -62,13 +62,13 @@ never sold as proof of compliance with POJK 22/2023.
 What v1.0.1 does is in the [roadmap](./ROADMAP.md#where-we-are-on-2026-10-18). The next work is
 grouped in horizons there:
 
-| Horizon             | What it adds                                                                                                                                                                             |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H1 Trustworthy core | Engine and citation fixes, an Indonesian gold set and measured accuracy, durable runs, data protection, staging                                                                          |
-| H2 Indonesian depth | A versioned legal corpus, a counsellor-style intake, consumer-finance packs, clause highlighting                                                                                         |
-| H3 Act on findings  | Referral with an evidence packet, document comparison, after-the-fact help and complaint drafts, two-party analysis with graded and party-bias warnings, fast classifiers in shadow mode |
-| H4 Reach            | Counsel review and public launch, the B2B design partner, a lawyer-reviewed rewording library, a published Indonesian benchmark                                                          |
-| H5 Region           | Standard-contract regimes in Thailand and Vietnam                                                                                                                                        |
+| Horizon             | What it adds                                                                                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| H1 Trustworthy core | Findings that hold up: the known accuracy faults fixed, accuracy measured on Indonesian agreements, runs that always finish, data kept safe, every change tried before release |
+| H2 Indonesian depth | Our own library of Indonesian law, questions like a legal aid intake, offers tested on their money, the exact clause shown in the document                                     |
+| H3 Act on findings  | Referral with an evidence packet, document comparison, after-the-fact help and complaint drafts, analysis for both parties with graded and party-bias warnings                 |
+| H4 Reach            | Counsel review and public launch, the B2B design partner, a lawyer-reviewed rewording library, a published Indonesian benchmark                                                |
+| H5 Region           | Standard-contract regimes in Thailand and Vietnam                                                                                                                              |
 
 ### Non-goals
 
@@ -102,14 +102,14 @@ Three guardrails sit beside it:
 | Guardrail               | What it counts                                                                       | Target                           |
 | ----------------------- | ------------------------------------------------------------------------------------ | -------------------------------- |
 | Material-error rate     | Reviewed reports with an unsupported consequential claim or a false reassurance      | Set after the first gold-set run |
-| Safe-action rate        | Sampled complaints and referrals that went to the right channel with supported facts | Set after R11 ships              |
+| Safe-action rate        | Sampled complaints and referrals that went to the right channel with supported facts | Set when complaint drafts ship   |
 | Trust-boundary breaches | Sponsor influence on findings, or sharing without consent                            | Zero                             |
 
-From R1, quality is measured on the gold set and published in `docs/eval.md`: extraction recall,
+Quality will be measured on a labelled set of Indonesian agreements and published in `docs/eval.md`: extraction recall,
 citation support, trap precision, false reassurance and abstention. The revision 2 targets (95%
 of rules trace to a clause, 80% of traps confirmed, a report within 150 seconds) were never
-measured, and they stay out of claims until R1 measures them. User satisfaction will be the in-app
-rating on each report and each finding, which R1 adds.
+measured, and they stay out of claims until they are. User satisfaction will be a rating on each
+report and each finding.
 
 ## 8. Principles
 
@@ -137,13 +137,13 @@ rating on each report and each finding, which R1 adds.
 | Complaint drafts or rewording count as legal services under the Advocates Law | Legal exposure                                   | Counsel reviews both before they ship. Templates over free text. Clear disclaimers and a referral path                                                   |
 | Marketing claims run ahead of the product                                     | The FTC fined DoNotPay $193,000 in 2025 for this | No "AI lawyer" language, and accuracy claims only from published `docs/eval.md` figures                                                                  |
 | A named provider objects to a report                                          | Defamation or ITE complaints                     | Neutral wording, evidence shown, no per-provider grades. MK 105/PUU-XXII/2024 limits ITE Pasal 27A to individuals, and counsel still reviews publication |
-| False reassurance: a report misses a harmful clause                           | A user signs something that hurts them           | Coverage-aware grades (R0), unmodeled clauses shown, abstention measured in R1                                                                           |
-| Contract text leaves Indonesia on each model call                             | A UU PDP transfer without a basis                | Counsel review against PP 33/2026, a DPIA, consent per purpose, masking before third-party classifiers                                                   |
-| Search grounding keeps prompts for up to three days                           | Personal data held by a third party              | Law answers from our own corpus first (R5), Web Grounding for Enterprise if counsel asks                                                                 |
-| No PSE registration with Komdigi                                              | The service is blocked in Indonesia              | Register before launch (R14), which needs the operator entity from R3                                                                                    |
-| The judge model leans toward the drafting party or the state                  | Biased findings                                  | Mirrored scenarios with roles swapped, measured in R12                                                                                                   |
-| Official legal sites block our fetches                                        | Missing law findings                             | Ingest statutes into the corpus from a host that is not blocked (R5)                                                                                     |
-| Model spend runs past the budget                                              | Cost                                             | Cost per analysis logged, a budget-triggered pause and an instance cap (R2)                                                                              |
+| False reassurance: a report misses a harmful clause                           | A user signs something that hurts them           | A good grade only when the run covered the document, clauses we cannot test listed, and how often we abstain measured                                    |
+| Contract text leaves Indonesia on each model call                             | A UU PDP transfer without a basis                | Counsel review against PP 33/2026, a DPIA, consent per purpose, personal details masked before text goes to any other third party                        |
+| Search grounding keeps prompts for up to three days                           | Personal data held by a third party              | Law answers from our own library first, and a search service that keeps nothing if counsel asks                                                          |
+| No PSE registration with Komdigi                                              | The service is blocked in Indonesia              | Register before launch, which needs the named operator entity                                                                                            |
+| The judge model leans toward the drafting party or the state                  | Biased findings                                  | The same scenarios run with the roles swapped, and the lean measured                                                                                     |
+| Official legal sites block our fetches                                        | Missing law findings                             | Our own copy of the statutes, kept up to date                                                                                                            |
+| Model spend runs past the budget                                              | Cost                                             | Cost per analysis tracked, and new analyses pause when the monthly budget is reached                                                                     |
 
 ## 10. Open questions
 

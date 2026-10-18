@@ -37,8 +37,10 @@ differ in the scenarios that run and in what the report offers as a next step.
    stored with the policy version.
 4. Upload (v1.0.1, screenshots and schedules from R7). The browser uploads the file straight to
    Cloud Storage under the user's own path.
-5. Confirm (v1.0.1). The Reader's view of the document comes back: type, parties, clause list,
-   unreadable pages. The user confirms it or fixes it, and confirms which party they are.
+5. Confirm (v1.0.1). The Reader's view of the document comes back: type, country, parties and
+   unreadable pages. The user confirms or changes the type and country and picks which party they
+   are. The rules screen shows the clauses each
+   rule cites after the run, read-only.
 6. Watch the run (v1.0.1). Progress updates live from Firestore while the stages run in the
    background (R2). The user can close the tab and come back.
 7. Read the report (v1.0.1, deepened in R8 and R12). A grade with its coverage, and a ranked
