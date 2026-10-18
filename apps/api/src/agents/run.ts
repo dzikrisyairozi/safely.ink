@@ -5,12 +5,82 @@ import {
   isFinalResponse,
   LlmAgent,
   stringifyContent,
+  type Event,
 } from '@google/adk';
 import { ThinkingLevel, type Part } from '@google/genai';
 import type { AnalysisMeta } from '@repo/api-types';
 import { z } from 'zod';
 
 import { config } from '../config';
+import { recordCall } from '../telemetry';
+
+/**
+ * Runs one message through an agent and hands each event to `onEvent`. The
+ * call is cancelled once `seconds` have passed: the signal reaches the HTTP
+ * request to the model, so the stage stops waiting for it. Google may still
+ * charge for the work. Every call is logged with its tokens, also one that
+ * was cancelled or failed.
+ */
+async function converse(
+  name: string,
+  agent: LlmAgent,
+  model: string,
+  parts: Part[],
+  seconds: number,
+  onEvent: (event: Event) => void,
+) {
+  const runner = new InMemoryRunner({ agent, appName: name });
+  const session = await runner.sessionService.createSession({
+    appName: name,
+    userId: name,
+  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), seconds * 1000);
+  const { signal } = controller;
+  const started = Date.now();
+  let metadata: Event['usageMetadata'];
+  let searches = 0;
+  const timedOut = () =>
+    new Error(`The ${name} did not answer in ${seconds} s and was cancelled.`);
+  try {
+    for await (const event of runner.runAsync({
+      userId: name,
+      sessionId: session.id,
+      newMessage: { role: 'user', parts },
+      abortSignal: signal,
+    })) {
+      metadata = event.usageMetadata ?? metadata;
+      searches += event.groundingMetadata?.webSearchQueries?.length ?? 0;
+      onEvent(event);
+    }
+    // The runner stops quietly when the signal fires between events.
+    if (signal.aborted) throw timedOut();
+  } catch (err) {
+    const cancelled = signal.aborted;
+    void recordCall({
+      name,
+      model,
+      started,
+      metadata,
+      outcome: cancelled ? 'cancelled' : 'failed',
+      searches,
+    });
+    throw cancelled ? timedOut() : err;
+  } finally {
+    clearTimeout(timer);
+    await runner.sessionService
+      .deleteSession({ appName: name, userId: name, sessionId: session.id })
+      .catch(() => {});
+  }
+  void recordCall({
+    name,
+    model,
+    started,
+    metadata,
+    outcome: 'answered',
+    searches,
+  });
+}
 
 type Call<Schema extends z.ZodObject, Accept extends z.ZodType> = {
   name: string;
@@ -57,25 +127,10 @@ export async function runAgent<
       ...(thinkingLevel && { thinkingConfig: { thinkingLevel } }),
     },
   });
-  const runner = new InMemoryRunner({ agent, appName: name });
-
-  const finalAnswer = async () => {
-    let text = '';
-    for await (const event of runner.runEphemeral({
-      userId: name,
-      newMessage: { role: 'user', parts },
-    })) {
-      if (isFinalResponse(event)) text = stringifyContent(event);
-    }
-    return text;
-  };
-  // A call that hangs must end inside the request, so the stage fails and the
-  // analysis is not left waiting (TSD 9). runEphemeral takes no abort signal.
-  const answer = await inTime(
-    finalAnswer(),
-    seconds * 1000,
-    `The ${name} did not answer in ${seconds} s.`,
-  );
+  let answer = '';
+  await converse(name, agent, model, parts, seconds, (event) => {
+    if (isFinalResponse(event)) answer = stringifyContent(event);
+  });
   // ADK can end with an empty answer and no error (ADR 3).
   if (!answer.trim()) throw new Error(`The ${name} returned an empty answer.`);
   return (accept ?? schema).parse(JSON.parse(answer)) as z.infer<Accept>;
@@ -124,27 +179,14 @@ export async function runSearch({
       thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
     },
   });
-  const runner = new InMemoryRunner({ agent, appName: name });
-
-  const search = async () => {
-    let answer = '';
-    const uris: string[] = [];
-    for await (const event of runner.runEphemeral({
-      userId: name,
-      newMessage: { role: 'user', parts: [{ text }] },
-    })) {
-      for (const chunk of event.groundingMetadata?.groundingChunks ?? []) {
-        if (chunk.web?.uri) uris.push(chunk.web.uri);
-      }
-      if (isFinalResponse(event)) answer = stringifyContent(event);
+  let answer = '';
+  const uris: string[] = [];
+  await converse(name, agent, model, [{ text }], seconds, (event) => {
+    for (const chunk of event.groundingMetadata?.groundingChunks ?? []) {
+      if (chunk.web?.uri) uris.push(chunk.web.uri);
     }
-    return { answer, uris };
-  };
-  const { answer, uris } = await inTime(
-    search(),
-    seconds * 1000,
-    `The ${name} did not answer in ${seconds} s.`,
-  );
+    if (isFinalResponse(event)) answer = stringifyContent(event);
+  });
   // An empty answer is a failure, not a search that found nothing (ADR 3).
   if (!answer.trim()) throw new Error(`The ${name} returned an empty answer.`);
   return uris;

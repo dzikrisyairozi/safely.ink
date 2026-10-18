@@ -302,7 +302,8 @@ missing.
 
 ### 5.3 ScenarioFuzzer (agent, Flash, six calls)
 
-- Six calls side by side, none with a tool. Five return whole scenarios, one per
+- Six calls side by side, none with a tool and all at thinking level low: at the default
+  level the baseline call did not answer in its limit in 1 run of 3. Five return whole scenarios, one per
   strategy (baseline, overlap, definition, procedure, combination). Input: rules (ID,
   kind, summary, condition, the facts each touches), fact schema, the pack's seeds for that strategy, the user's
   role. The output schema is built from the fact schema of the document, so the model is
@@ -622,7 +623,9 @@ tokens on every route but `/health`. CORS allows the dashboard origin only.
 - Upload at most 30 MB and 100 pages, at most 40 scenarios, 10 analyses per user per day (transaction on
   `users/{uid}/usage`).
 - Cloud Run `max-instances 5`. Budget alert on the project.
-- Per-call model timeout (`limits.modelCallSeconds`). A stage fails when a call times out.
+- Per-call model timeout (`limits.modelCallSeconds`). Past it the call is cancelled: ADK calls
+  run through `runAsync` with an abort signal, which reaches the HTTP request to the model, and
+  the URL context call passes its own. A stage fails when a call is cancelled.
   There is no retry: a second wait does not fit in one request next to the first.
 - The law lookup: `limits.law` (rules at once, pages per rule, 5 MB and 20 s per page,
   30 days in `lawPages`) and 1.5 million characters of pages per assessment. The fuzz
@@ -662,9 +665,30 @@ Verification gate before any task is called done: `pnpm type-check && pnpm lint 
 
 ## 11. Observability
 
-Structured JSON logs to stdout (Cloud Logging) with `analysisId`, `stage`, duration, model,
-token counts. No document text or clause text in logs. Stage durations are also stored on
-the analysis document for the eval report.
+Every model call writes one JSON line to stdout, which Cloud Logging reads as a structured
+entry (`apps/api/src/telemetry.ts`). The line has `severity`, the `analysisId` and `stage` of
+the stage it ran in, the call's name, the model, the input, cached and output tokens (thinking
+counts as output), its price in US dollars and its duration in ms. A call that ran past its
+limit is logged as `model call cancelled`, and one that threw as `model call failed`. No
+document or clause text goes into these lines.
+
+The stages run inside an `AsyncLocalStorage` context (`inStage()`) that carries a `save`
+function. Each call, when it ends, adds what it used to `usage.{model}` on the analysis and
+its token price to `tokenCostUsd` (`addUsage()`, one Firestore increment per call). A call
+that ends after its stage did, such as a reading window still running when another failed or
+a law lookup past its deadline, is stored the same way while the instance runs. `inStage()`
+waits for every save begun in its stage before it returns, so none is pending when the request
+ends and Cloud Run may stop the instance. A store that fails is logged at `ERROR` with the
+numbers, so the log keeps them. A call is priced on its own day from
+`config.prices`: the standard paid prices per 1M tokens, dated, with Pro's higher rate for
+prompts over 200,000 tokens. A price change is a new dated entry, so an older analysis keeps
+the price of its day.
+
+`tokenCostUsd` is a floor. A call that was cancelled or failed before it reported its usage
+is counted in `unreported` and priced at 0, although Google may still charge for it. Google
+Search queries, as the grounding metadata reports them (`webSearchQueries`), are counted in
+`searches` and charged apart from tokens once the free monthly allowance is used, so they are
+not in the figure either.
 
 ## 12. Known shortcuts and their ceilings
 

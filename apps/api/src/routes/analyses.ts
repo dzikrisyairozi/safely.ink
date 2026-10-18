@@ -13,10 +13,17 @@ import { config } from '../config';
 import { failure } from '../failure';
 import { bucket, db } from '../firebase';
 import { readDocument } from '../agents/reader';
-import { clearStage, isStage, runPipeline, saveAll } from '../pipeline';
+import {
+  addUsage,
+  clearStage,
+  isStage,
+  runPipeline,
+  saveAll,
+} from '../pipeline';
 import { checkReading } from '../pipeline/reader-check';
 import { loadUploads } from '../uploads';
 import { nextReset, releaseDailySlot, reserveDailySlot } from '../usage';
+import { inStage } from '../telemetry';
 import { versions } from '../versions';
 
 const { limits } = config;
@@ -90,11 +97,18 @@ analyses.post('/', async (c) => {
 
   let status: AnalysisStatus = 'failed';
   try {
-    const reading = checkReading(
-      await readDocument(uploads.files, uploads.pageCount),
-      uploads.pageCount,
-      { docType, jurisdiction },
+    const read = await inStage(
+      {
+        analysisId,
+        stage: 'reading',
+        save: (model, used) => addUsage(analysis, model, used),
+      },
+      () => readDocument(uploads.files, uploads.pageCount),
     );
+    const reading = checkReading(read, uploads.pageCount, {
+      docType,
+      jurisdiction,
+    });
     if (reading.status === 'awaiting_confirmation') {
       await saveAll(analysis, 'clauses', reading.clauses);
       await analysis.update({

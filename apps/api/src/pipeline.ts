@@ -1,4 +1,8 @@
-import { FieldValue, type DocumentReference } from 'firebase-admin/firestore';
+import {
+  FieldPath,
+  FieldValue,
+  type DocumentReference,
+} from 'firebase-admin/firestore';
 import {
   AnalysisMeta,
   Clause,
@@ -41,6 +45,7 @@ import {
 } from './pipeline/rule-check';
 import { checkScenarios } from './pipeline/scenario-check';
 import { releaseDailySlot } from './usage';
+import { inStage, type Usage } from './telemetry';
 import { versions } from './versions';
 
 const BATCH = 500; // Firestore's limit of writes in one batch
@@ -476,6 +481,31 @@ export async function clearStage(
  * Runs the stages from the current status of the analysis on, and writes
  * the status after each. Returns where the analysis ended.
  */
+const increment = (n: number) => FieldValue.increment(n);
+
+/**
+ * Adds what one model call used, and its token cost, to the analysis. Model
+ * IDs have dots, so the fields are named by FieldPath.
+ */
+export async function addUsage(
+  analysis: DocumentReference,
+  model: string,
+  used: Usage,
+) {
+  const pairs = Object.entries(used).flatMap(([key, n]) => [
+    new FieldPath('usage', model, key),
+    increment(n),
+  ]);
+  const [field, value, ...more] = pairs as [FieldPath, unknown, ...unknown[]];
+  await analysis.update(
+    field,
+    value,
+    ...more,
+    'tokenCostUsd',
+    increment(used.usd),
+  );
+}
+
 export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
   const analysis = db.doc(`analyses/${analysisId}`);
   const data = (await analysis.get()).data()!;
@@ -485,7 +515,14 @@ export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
   for (const stage of STAGES) {
     if (stage.status !== status) continue;
     try {
-      await stage.run(analysis, AnalysisMeta.parse(data.meta), deadline);
+      await inStage(
+        {
+          analysisId,
+          stage: stage.status,
+          save: (model, used) => addUsage(analysis, model, used),
+        },
+        () => stage.run(analysis, AnalysisMeta.parse(data.meta), deadline),
+      );
       status = stage.next;
       await analysis.update({
         status,

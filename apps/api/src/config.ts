@@ -5,6 +5,7 @@ import {
   type LawJurisdiction,
 } from '@repo/api-types';
 import type { ScoreWeights } from './engine/score';
+import type { PriceList } from './telemetry';
 
 const Env = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
@@ -30,6 +31,28 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     models: {
       pro: 'gemini-3.1-pro-preview',
       flash: 'gemini-3.8-flash',
+    },
+
+    // Standard paid prices in US dollars per 1M tokens, from
+    // https://ai.google.dev/gemini-api/docs/pricing, read on 2026-10-18.
+    // Thinking tokens are paid as output. Add a dated entry when a price
+    // changes, so older analyses keep the price of their day.
+    prices: {
+      models: {
+        'gemini-3.1-pro-preview': [
+          {
+            from: '2026-01-01',
+            input: 2,
+            cached: 0.2,
+            output: 12,
+            over: { tokens: 200_000, input: 4, cached: 0.4, output: 18 },
+          },
+        ],
+        'gemini-3.8-flash': [
+          { from: '2026-01-01', input: 0.75, cached: 0.075, output: 3.75 },
+          { from: '2027-01-01', input: 1.5, cached: 0.15, output: 7.5 },
+        ],
+      } satisfies PriceList,
     },
 
     limits: {

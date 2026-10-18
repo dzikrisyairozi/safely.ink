@@ -12,6 +12,7 @@ import {
 const model = vi.hoisted(() => ({
   answer: '',
   grounding: [] as { web: { uri: string } }[],
+  queries: [] as string[],
   agent: {} as {
     model: unknown;
     instruction: string;
@@ -33,9 +34,21 @@ vi.mock('@google/adk', () => ({
     }
   },
   InMemoryRunner: class {
-    async *runEphemeral(run: { newMessage: { parts: { text: string }[] } }) {
+    sessionService = {
+      createSession: async () => ({ id: 'session' }),
+      deleteSession: async () => {},
+    };
+    async *runAsync(run: {
+      newMessage: { parts: { text: string }[] };
+      abortSignal: AbortSignal;
+    }) {
       model.message = run.newMessage.parts[0]!.text;
-      yield { groundingMetadata: { groundingChunks: model.grounding } };
+      yield {
+        groundingMetadata: {
+          groundingChunks: model.grounding,
+          webSearchQueries: model.queries,
+        },
+      };
     }
   },
   isFinalResponse: () => true,
@@ -118,6 +131,24 @@ test('the search is told the official sites and grounds on Google Search, withou
   expect(model.message).not.toContain('SECRET');
   expect(model.agent.tools).toEqual([{ name: 'google_search' }]);
   expect(model.agent.outputSchema).toBeUndefined();
+});
+
+test('a search is logged with the number of queries it ran', async () => {
+  model.queries = ['uu perlindungan konsumen pasal 18', 'pojk 22 2023'];
+  const lines: string[] = [];
+  const log = vi
+    .spyOn(console, 'log')
+    .mockImplementation((line) => lines.push(line));
+
+  await searchLaw(rule, meta, ['peraturan.go.id']);
+
+  expect(JSON.parse(lines.at(-1)!)).toMatchObject({
+    message: 'model call answered',
+    call: 'law_search',
+    searches: 2,
+  });
+  log.mockRestore();
+  model.queries = [];
 });
 
 test('a search with an empty answer failed; it did not find nothing', async () => {
