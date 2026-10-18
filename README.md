@@ -76,7 +76,7 @@ pnpm format           # Prettier write
 pnpm check-all        # type-check + lint + format:check
 ```
 
-Run `pnpm type-check && pnpm lint && pnpm test` before pushing; the pre-push hook does the
+Run `pnpm type-check && pnpm lint && pnpm test` before pushing. The pre-push hook does the
 same. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Origin

@@ -50,7 +50,12 @@ citations: the passages that support the status, at most three.
 - url: the URL of that page, exactly as given.
 - instrument: the name of the law ("Insurance Act 1966").
 - section: the section or article ("s 23", "Pasal 18 ayat (1)").
-A status other than "no_finding" needs at least one citation.
+- supports: the status that this passage shows on its own, "conflicts",
+  "restricted" or "permitted". Leave out a passage that only gives context.
+A status other than "no_finding" needs at least one citation whose supports
+is that status. The status is checked against the quotes found on the pages,
+so a status whose quotes are thrown away falls back to what the other quotes
+show.
 
 reasoning: two or three plain English sentences for a person who is not a
 lawyer: what the law says and how it meets the term. Describe; do not

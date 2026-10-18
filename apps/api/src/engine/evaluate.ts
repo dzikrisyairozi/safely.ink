@@ -59,8 +59,9 @@ const moneyNotes = {
 };
 
 // Decides one scenario. The stages run in a fixed order and the first one
-// that settles the result ends the run: benefit, conditions and deadlines,
-// exclusions, unmodeled rules, money.
+// that settles the result decides it: benefit, conditions and deadlines,
+// exclusions, unmodeled rules, money. Unmodeled rules are checked even after
+// a denial, so the trace shows every clause code could not decide.
 export function evaluate(
   rules: Rule[],
   factSchema: FactSchema,
@@ -101,39 +102,53 @@ export function evaluate(
   });
   const denied = (rule: Rule) => outcome('bad', stake ?? 0, rule.id);
 
+  // Only a benefit the scenario is about can pay it. Another benefit that
+  // fires is traced, and it does not stand in for the one that did not.
   const benefits = firedOf('benefit');
-  const targeted = rules.find(
+  const targeted = rules.filter(
     (rule) =>
       rule.kind === 'benefit' && scenario.targetRuleIds.includes(rule.id),
   );
-  if (targeted && benefits.length === 0) {
+  const missed =
+    targeted.length > 0 && !targeted.some((rule) => benefits.includes(rule))
+      ? targeted[0]
+      : undefined;
+  if (missed) {
     trace.push({
-      ruleId: targeted.id,
-      fact: triggerOf(targeted.when, facts),
-      note: 'No benefit in the document applies',
+      ruleId: missed.id,
+      fact: triggerOf(missed.when, facts),
+      note: 'The benefit this scenario is about does not apply',
     });
-    return denied(targeted);
   }
 
-  const breaches = firedOf('condition', 'deadline');
-  if (breaches[0]) return denied(breaches[0]);
+  const denial =
+    missed ?? firedOf('condition', 'deadline')[0] ?? firedOf('exclusion')[0];
 
-  const exclusions = firedOf('exclusion');
-  if (exclusions[0]) return denied(exclusions[0]);
-
+  // An unmodeled rule is reported whenever the scenario reaches its clause:
+  // one of its facts is off neutral, the scenario is about it, or a rule
+  // citing the same clause fired. It is reported beside a denial too, and
+  // the denial still decides.
   const neutral = new Map(factSchema.map((fact) => [fact.key, fact.neutral]));
-  for (const rule of rules) {
-    if (rule.kind !== 'unmodeled') continue;
+  const firedClauses = new Set(fired.flatMap((rule) => rule.clauseIds));
+  const unclear = rules.filter((rule) => {
+    if (rule.kind !== 'unmodeled') return false;
     const fact = rule.touches.find((key) => facts[key] !== neutral.get(key));
-    if (fact !== undefined) {
+    const reached =
+      fact !== undefined ||
+      scenario.targetRuleIds.includes(rule.id) ||
+      rule.clauseIds.some((id) => firedClauses.has(id));
+    if (reached) {
       trace.push({
         ruleId: rule.id,
-        fact,
+        fact: fact ?? null,
         note: 'Depends on wording that code cannot decide',
       });
-      return outcome('undetermined', 0, rule.id);
     }
-  }
+    return reached;
+  });
+
+  if (denial) return denied(denial);
+  if (unclear[0]) return outcome('undetermined', 0, unclear[0].id);
 
   // Money. Caps come first (lowest wins), deductions come off what is left,
   // charges are owed on top, so a loss can exceed the stake.

@@ -107,7 +107,9 @@ the amount claimed. If no fact is about that clause alone, touches is empty.
 Every fact in the message has a neutral value: its value in an uneventful
 situation, in which nothing goes against the user. An exclusion, a condition
 or a deadline must be false when every fact has its neutral value. If yours
-is true there, the condition is the wrong way round. A limit or a charge may
+is true there, the condition is the wrong way round. The days since the start
+are the exception: a waiting period is true early and an expiry late, so such
+a condition only has to be false on some day. A limit or a charge may
 be true there when the document applies it every time, as with a deductible.
 
 Use unmodeled when the clause depends on someone's discretion or on a vague

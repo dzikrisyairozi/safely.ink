@@ -19,6 +19,7 @@ import { proposeFacts, proposeRules } from '../agents/rule-extractor';
 import { judge } from '../agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from '../agents/scenario-fuzzer';
 import { lookUpLaw } from '../legal/research';
+import { versions } from '../versions';
 
 // Run through `pnpm test`: Firestore and Storage are the emulators. Only the
 // token check and the model are replaced.
@@ -109,6 +110,7 @@ test('a policy is read into details and clauses and waits for confirmation', asy
     status: 'awaiting_confirmation',
     meta: { docType: 'insurance', jurisdiction: 'ID', pageCount: 1 },
     counts: { clauses: 3 },
+    versions: { reading: versions },
   });
   const clauses = await db.collection('analyses/analysis-1/clauses').get();
   expect(clauses.docs.map((doc) => doc.id)).toEqual([

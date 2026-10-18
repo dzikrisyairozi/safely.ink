@@ -3,6 +3,7 @@ import {
   Fact,
   RuleDraft,
   type Clause,
+  type Condition,
   type FactSchema,
   type Rule,
 } from '@repo/api-types';
@@ -17,7 +18,9 @@ export const BASE_FACTS: FactSchema = [
     values: null,
     unit: 'days',
     description: 'Days since the agreement started',
-    neutral: 0,
+    // A year in, so a scenario that changes nothing is past a waiting
+    // period. checkRules tries other days too.
+    neutral: 365,
   },
   {
     key: 'userPaidOnTime',
@@ -93,6 +96,21 @@ export const numbered = (drafts: unknown[]): Proposal[] =>
 const real = (clauseIds: string[], clauses: Clause[]) =>
   clauseIds.filter((id) => clauses.some((clause) => clause.id === id));
 
+// Days since the start on which a rule against the user is tried with
+// everything else neutral, from the first day to five years in.
+const UNEVENTFUL_DAYS = [0, 30, 90, 180, 365, 730, 1825];
+
+// The numbers a condition compares the days since the start with.
+function daysIn(condition: Condition): number[] {
+  if ('all' in condition) return condition.all.flatMap(daysIn);
+  if ('any' in condition) return condition.any.flatMap(daysIn);
+  if ('not' in condition) return daysIn(condition.not);
+  return condition.fact === 'daysSinceStart' &&
+    typeof condition.value === 'number'
+    ? [condition.value]
+    : [];
+}
+
 // The kinds that end a scenario as bad on their own (TSD 5.4, stages 2, 3).
 const DENIES: Rule['kind'][] = ['exclusion', 'condition', 'deadline'];
 
@@ -135,14 +153,25 @@ export function checkRules(
   // make every scenario end badly. The usual cause is a condition written
   // the wrong way round. A limit or a charge may apply every time: a
   // deductible is taken from every claim, and that only costs its amount.
+  // Time has no single uneventful value: a waiting period holds early and an
+  // expiry late. So a rule is sent back only when it holds, with everything
+  // else neutral, on every one of the usual days and on the days at and
+  // next to each day its condition names.
   const uneventful = Object.fromEntries(
     factSchema.map((fact) => [fact.key, fact.neutral]),
   );
   for (const { id, kind, when } of candidates) {
     if (issues.has(id) || !DENIES.includes(kind) || !when) continue;
-    if (holds(when, uneventful)) {
+    const days = [
+      ...UNEVENTFUL_DAYS,
+      ...daysIn(when).flatMap((day) => [day - 1, day, day + 1]),
+    ].filter((day) => day >= 0);
+    const always = days.every((daysSinceStart) =>
+      holds(when, { ...uneventful, daysSinceStart }),
+    );
+    if (always) {
       issues.set(id, [
-        'The condition is true when every fact has its neutral value. It may be the wrong way round.',
+        'The condition is true when every fact has its neutral value, on any day since the start. It may be the wrong way round.',
       ]);
     }
   }

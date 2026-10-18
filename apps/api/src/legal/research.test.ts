@@ -24,8 +24,11 @@ const meta = {
   lawChecked: true,
   userRole: 'insured',
 } as AnalysisMeta;
-const rule = (id: string) => ({ id, summary: `Rule ${id}.` }) as Rule;
-const rules = ['r-001', 'r-002', 'r-003', 'r-004', 'r-005', 'r-006'].map(rule);
+const rule = (id: string, kind: Rule['kind'] = 'exclusion') =>
+  ({ id, kind, summary: `Rule ${id}.` }) as Rule;
+const rules = ['r-001', 'r-002', 'r-003', 'r-004', 'r-005', 'r-006'].map((id) =>
+  rule(id),
+);
 const outcome = (
   scenarioId: string,
   result: Outcome['result'],
@@ -69,7 +72,7 @@ beforeEach(() => {
   assess.mockResolvedValue({
     status: 'conflicts',
     reasoning: 'The Act limits it.',
-    citations: [citation],
+    citations: [{ ...citation, supports: 'conflicts' }],
   });
 });
 
@@ -87,16 +90,30 @@ test('a document whose law is not checked is not looked up', async () => {
   expect(sources).not.toHaveBeenCalled();
 });
 
-test('each rule that decides a bad or partly bad outcome is looked up once, most deciding first', async () => {
+test('each rule that can go against the user is looked up once, most deciding first, then most traced', async () => {
+  const traced = (scenarioId: string, ...ruleIds: string[]): Outcome => ({
+    ...outcome(scenarioId, 'fine', null),
+    trace: ruleIds.map((ruleId) => ({ ruleId, fact: null, note: '' })),
+  });
+
   await lookUpLaw({
-    rules,
+    rules: [
+      rule('r-001', 'unmodeled'),
+      rule('r-002'),
+      rule('r-003', 'condition'),
+      rule('r-004', 'benefit'),
+      rule('r-005', 'benefit'),
+      rule('r-006', 'charge'),
+    ],
     outcomes: [
       outcome('s-1', 'bad', 'r-002'),
       outcome('s-2', 'partly_bad', 'r-003'),
       outcome('s-3', 'bad', 'r-003'),
-      outcome('s-4', 'fine', 'r-001'),
-      outcome('s-5', 'undetermined', 'r-004'),
+      outcome('s-4', 'bad', 'r-004'),
+      outcome('s-5', 'undetermined', 'r-001'),
       outcome('s-6', 'bad', null),
+      traced('s-7', 'r-006', 'r-006', 'r-005'),
+      traced('s-8', 'r-006', 'r-001'),
     ],
     stored: {},
     meta,
@@ -107,12 +124,15 @@ test('each rule that decides a bad or partly bad outcome is looked up once, most
   expect(sources.mock.calls.map(([looked]) => looked.id)).toEqual([
     'r-003',
     'r-002',
+    'r-004',
+    'r-006',
+    'r-001',
   ]);
 });
 
 test('a finding is checked against the pages, saved and returned', async () => {
   const findings = await lookUpLaw({
-    rules,
+    rules: [rules[1]!],
     outcomes: [outcome('s-1', 'bad', 'r-002')],
     stored: {},
     meta,
@@ -136,7 +156,11 @@ test('a citation whose quote is not on its page does not survive', async () => {
     status: 'conflicts',
     reasoning: 'r',
     citations: [
-      { ...citation, quote: 'An insurer shall never refuse any claim at all.' },
+      {
+        ...citation,
+        quote: 'An insurer shall never refuse any claim at all.',
+        supports: 'conflicts',
+      },
     ],
   });
 
@@ -171,7 +195,7 @@ test('a quote on a page only the model read is not taken as checked', async () =
   expect(assess).toHaveBeenCalledWith(rules[1], meta, [{ url: page, text }]);
   expect(findings['r-002']).toEqual({
     status: 'no_finding',
-    reasoning: 'The Act limits it.',
+    reasoning: '',
     citations: [],
     error: null,
   });
@@ -220,7 +244,7 @@ test('a stored finding is kept, and only an unavailable one is looked up again',
   const kept: LegalFinding = { ...unavailable, error: null };
 
   const findings = await lookUpLaw({
-    rules,
+    rules: rules.slice(1, 3),
     outcomes: [outcome('s-1', 'bad', 'r-002'), outcome('s-2', 'bad', 'r-003')],
     stored: { 'r-002': kept, 'r-003': unavailable },
     meta,

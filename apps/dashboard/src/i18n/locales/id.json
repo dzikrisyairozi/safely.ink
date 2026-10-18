@@ -334,7 +334,9 @@
       "penalty_one": "{{severity}}: {{count}} poin",
       "penalty_other": "{{severity}}: {{count}} poin",
       "bands": "Lalu nilainya: {{bands}}.",
-      "this": "Laporan ini: {{score}} poin, nilai {{grade}}."
+      "this": "Laporan ini: {{score}} poin, nilai {{grade}}.",
+      "untested": "Analisis yang tidak menjangkau semua aturan paling tinggi mendapat nilai {{grade}}, karena aturan yang belum diuji bisa menyembunyikan jebakan.",
+      "coverage": "Skenario menjangkau {{rules}}% aturan dan mencoba {{branches}}% kemungkinan hasil dari syarat-syaratnya."
     }
   },
   "trap": {

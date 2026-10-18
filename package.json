@@ -19,6 +19,7 @@
     "lint:check": "turbo run lint:check",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,js,jsx,css,scss,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,js,jsx,css,scss,yaml,yml}\"",
+    "lint:prose": "node scripts/lint-prose.mjs README.md docs/PRD.md docs/ROADMAP.md docs/FLOW.md docs/SETUP.md docs/research",
     "type-check": "turbo run type-check",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",

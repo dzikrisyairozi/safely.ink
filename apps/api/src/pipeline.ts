@@ -19,7 +19,12 @@ import {
 } from './agents/rule-extractor';
 import { Judged, judge, judgeInput } from './agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from './agents/scenario-fuzzer';
-import { trapBriefs, worded, writeTraps } from './agents/trap-writer';
+import {
+  rewriteTells,
+  trapBriefs,
+  worded,
+  writeTraps,
+} from './agents/trap-writer';
 import { config } from './config';
 import { evaluate } from './engine/evaluate';
 import { score } from './engine/score';
@@ -36,6 +41,7 @@ import {
 } from './pipeline/rule-check';
 import { checkScenarios } from './pipeline/scenario-check';
 import { releaseDailySlot } from './usage';
+import { versions } from './versions';
 
 const BATCH = 500; // Firestore's limit of writes in one batch
 
@@ -354,8 +360,9 @@ async function compare(
     true,
   );
 
-  const { traps, points, grade, confidence } = score(
+  const { traps, points, grade, confidence, coverage } = score(
     {
+      rules,
       scenarios,
       outcomes,
       expectations,
@@ -371,6 +378,7 @@ async function compare(
     // A scenario that was not judged cannot be a trap, so the grade may be
     // too good, and the analysis does not claim to be sure of it.
     confidence: missed > 0 && confidence === 'high' ? 'medium' : confidence,
+    coverage,
     'counts.judged': judged.length,
     'counts.traps': traps.length,
     updatedAt: updatedAt(),
@@ -387,14 +395,20 @@ async function compare(
       expectation: expectations[scenario.id],
     })),
   );
-  const words = await writeTraps(
-    briefs,
-    meta,
-    config.limits.modelCallSeconds.wording,
-  ).catch((err) => {
+  const { wording: wordingSeconds } = config.limits.modelCallSeconds;
+  const first = await writeTraps(briefs, meta, wordingSeconds).catch((err) => {
     console.error(err);
     return [];
   });
+  // One more call for words with a tell, if it can end in time; `worded`
+  // drops what still has one.
+  const words =
+    Date.now() + wordingSeconds * 1000 <= deadline
+      ? await rewriteTells(first, briefs, meta, wordingSeconds).catch((err) => {
+          console.error(err);
+          return first;
+        })
+      : first;
   await saveAll(analysis, 'traps', worded(traps, words, briefs));
 }
 
@@ -473,7 +487,11 @@ export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
     try {
       await stage.run(analysis, AnalysisMeta.parse(data.meta), deadline);
       status = stage.next;
-      await analysis.update({ status, updatedAt: updatedAt() });
+      await analysis.update({
+        status,
+        [`versions.${stage.status}`]: versions,
+        updatedAt: updatedAt(),
+      });
     } catch (err) {
       console.error(err);
       await analysis

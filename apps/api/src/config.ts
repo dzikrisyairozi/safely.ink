@@ -112,6 +112,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       ],
       ...GRADE_FORMULA,
       undeterminedShare: { high: 0.1, medium: 0.25 },
+      coverage: { branches: 0.75, rules: 0.75 },
     } satisfies ScoreWeights,
   });
 }

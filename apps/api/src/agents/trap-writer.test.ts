@@ -1,7 +1,15 @@
 import { expect, test, vi } from 'vitest';
 import type { Rule, StoredScenario, Trap } from '@repo/api-types';
 import { config } from '../config';
-import { neutral, trapBriefs, worded, writeTraps } from './trap-writer';
+import {
+  neutral,
+  rewriteTells,
+  tellsIn,
+  trapBriefs,
+  withoutTells,
+  worded,
+  writeTraps,
+} from './trap-writer';
 
 // Only the model is replaced.
 const model = vi.hoisted(() => ({
@@ -188,4 +196,57 @@ test('the model has no tool, is the fast one and is told to stay neutral', async
   expect(model.agent.model).toMatchObject({
     options: { model: config.models.flash },
   });
+});
+
+test.each([
+  ['A crucial waiting period', ['crucial']],
+  ['The cover ends \u2014 after 30 days', ['\u2014']],
+  ['It pays; it caps the amount', [';']],
+  ['Additionally, it fosters doubt', ['Additionally']],
+  ['Ask before you sign!', ['!']],
+  ['An illness in the first 30 days is not paid', []],
+])('the tells in "%s"', (text, found) => {
+  expect(tellsIn(text)).toEqual(found);
+});
+
+test('a sentence with a tell is dropped and the rest is kept', () => {
+  expect(
+    withoutTells(
+      'Is an emergency covered? Is this a crucial limit? Who decides?',
+    ),
+  ).toBe('Is an emergency covered? Who decides?');
+  expect(withoutTells('A robust exclusion')).toBeNull();
+  expect(withoutTells('Is \u201Cillness\u201D defined?')).toBe(
+    'Is "illness" defined?',
+  );
+});
+
+test('a question with a tell is dropped from the words of a trap', () => {
+  const action =
+    'Does the waiting period apply to an emergency? Is it a pivotal rule?';
+
+  expect(wordedFor([{ ...words, action }])[0]!.action).toBe(
+    'Does the waiting period apply to an emergency?',
+  );
+});
+
+test('words with a tell are written once more, told what to avoid', async () => {
+  const briefs = trapBriefs([trap], [rule], [scenario('s-001')]);
+  const flagged = { ...words, title: 'A crucial 30 days wait' };
+  model.answer = JSON.stringify({ traps: [words] });
+
+  const answers = await rewriteTells([flagged], briefs, {} as never, 60);
+
+  expect(answers).toEqual([words]);
+  expect(JSON.parse(model.message).findings).toEqual([
+    { ...briefs[0], rewrite: { ...flagged, avoid: ['crucial'] } },
+  ]);
+});
+
+test('words without a tell are not sent again', async () => {
+  const briefs = trapBriefs([trap], [rule], [scenario('s-001')]);
+  model.message = '';
+
+  expect(await rewriteTells([words], briefs, {} as never, 60)).toEqual([words]);
+  expect(model.message).toBe('');
 });

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import type { LegalAssessment } from '@repo/api-types';
+import type { ClaimedCitation, LegalAssessment } from '@repo/api-types';
 import { isAllowlisted, normalise, quoteFound, verify } from './verify';
 
 const page =
@@ -84,12 +84,13 @@ test.each([
 });
 
 const url = 'https://sso.agc.gov.sg/Act/IA1966?ProvIds=P12-';
-const citation = {
+const checked = {
   instrument: 'Insurance Act 1966',
   section: 's 23',
   quote: 'the proposer may receive nothing',
   url,
 };
+const citation: ClaimedCitation = { ...checked, supports: 'conflicts' };
 const assessment: LegalAssessment = {
   status: 'conflicts',
   reasoning: 'The Act limits the duty to what the proposer knows.',
@@ -99,7 +100,71 @@ const assessment: LegalAssessment = {
 test('a finding keeps the citations whose quote is on their page', () => {
   expect(verify(assessment, [{ url, text: page }], 'SG')).toEqual({
     ...assessment,
+    citations: [checked],
     error: null,
+  });
+});
+
+test('a status whose own quote fails falls back to what the surviving quotes show', () => {
+  const restriction: ClaimedCitation = {
+    ...checked,
+    section: 's 23(1)',
+    quote: 'a form of proposal which does not have prominently displayed',
+    supports: 'restricted',
+  };
+  const invented: ClaimedCitation = {
+    ...citation,
+    quote: 'An insurer shall never refuse a claim on this ground',
+  };
+
+  const finding = verify(
+    { ...assessment, citations: [invented, restriction] },
+    [{ url, text: page }],
+    'SG',
+  );
+
+  expect(finding).toEqual({
+    status: 'restricted',
+    reasoning: '',
+    citations: [
+      {
+        instrument: restriction.instrument,
+        section: restriction.section,
+        quote: restriction.quote,
+        url,
+      },
+    ],
+    error: null,
+  });
+});
+
+test('a quote showing a stronger status than the claim does not raise it', () => {
+  const finding = verify(
+    { ...assessment, status: 'restricted' },
+    [{ url, text: page }],
+    'SG',
+  );
+
+  expect(finding).toMatchObject({ status: 'no_finding', citations: [] });
+});
+
+test('only the quotes that show the status stay with the finding', () => {
+  const permission: ClaimedCitation = {
+    ...checked,
+    quote: 'A Singapore insurer must not use, in the course of carrying',
+    supports: 'permitted',
+  };
+
+  const finding = verify(
+    { ...assessment, citations: [permission, citation] },
+    [{ url, text: page }],
+    'SG',
+  );
+
+  expect(finding).toMatchObject({
+    status: 'conflicts',
+    reasoning: assessment.reasoning,
+    citations: [checked],
   });
 });
 
@@ -114,7 +179,7 @@ test('a citation is dropped when its quote is not on its page', () => {
     'SG',
   );
 
-  expect(finding.citations).toEqual([citation]);
+  expect(finding.citations).toEqual([checked]);
 });
 
 test('a citation is dropped when it points at a page the model was not given', () => {
@@ -154,7 +219,7 @@ test('a finding left with no citation says nothing was found', () => {
 
   expect(finding).toEqual({
     status: 'no_finding',
-    reasoning: assessment.reasoning,
+    reasoning: '',
     citations: [],
     error: null,
   });
