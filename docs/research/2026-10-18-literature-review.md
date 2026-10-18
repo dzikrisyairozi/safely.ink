@@ -304,8 +304,10 @@ These were not confirmed in searches on 2026-10-18, and the roadmap carries them
 
 - The text and status of PP 33/2026 implementing UU PDP. One law-firm alert dates it 2026-07-16
   and says it takes effect on 2027-01-16.
-- Whether Postgres full-text search on Cloud SQL ships an Indonesian stemmer.
-- Which Gemini models Vertex AI serves in asia-southeast2.
+- PostgreSQL ships an `indonesian` text search configuration. It was tried on 2026-10-18 on
+  PostgreSQL 17, and the [technical stack note](./2026-10-18-technical-stack.md) has the result.
+- Which Gemini models Vertex AI serves in asia-southeast1. On 2026-10-18 it served none in
+  asia-southeast2.
 - The terms of use for bulk reading of peraturan.go.id and pasal.id.
 
 ## Codex review of this direction

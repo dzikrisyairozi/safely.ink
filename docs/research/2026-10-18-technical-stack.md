@@ -266,6 +266,9 @@ That function is unit tested like the engine, because a wrong branch sends a use
 wrong path. Answers save as the user goes, so a user who leaves can come back. Every label and
 help text goes through `t()` in both locales.
 
+Generated report text follows the interface language, so the trap writer gets the user's locale
+and the same writing filters run on Indonesian text.
+
 The counterparty check reads OJK's published lists of licensed lenders and finance companies.
 The ingest keeps a dated copy so the report can say "licensed according to the OJK list of
 <date>".

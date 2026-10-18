@@ -30,7 +30,7 @@ consultation.
 
 The method is fuzzing, borrowed from software testing. A model turns the wording into rules and
 invents tricky but realistic scenarios, and plain code works out what happens to the user in each
-one, so the same document always gives the same outcomes. Every outcome where the user ends up worse off than a reasonable person expects, or
+one, so the same rules and scenarios always give the same outcomes. Every outcome where the user ends up worse off than a reasonable person expects, or
 worse off than Indonesian law allows, becomes a finding with the clause and the scenario behind it, and the law passage
 when the lookup finds one.
 
@@ -155,8 +155,8 @@ report and each finding.
 ## 11. History
 
 Revision 2 planned a five-day build for the AI Builder Cup 2026, judged on technical merit,
-problem fit, innovation and design, with Gemini through ADK on Cloud Run and Firebase. The build
-shipped as v1.0.1 with sign-in, upload, read and confirm, rules, fuzzing, the deterministic run,
+problem fit, innovation and design. The build
+shipped as v1.0.1 with sign-in, upload, read and confirm, rules, scenarios, the run,
 the expectation judge, the legal lookup with quote checks, the report, history and delete, an
 Indonesian and English interface, and the landing page. The legal lookup worked for Indonesia,
 Singapore and Australia, and it found a source for 5 of 13 lookups in one live Indonesian run.

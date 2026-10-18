@@ -124,6 +124,8 @@ R2 ── R4
 R3 ─────────────── R14 ── R17 ── R18
 ```
 
+R14 also waits for R1 and R4, as the table says.
+
 ### R0 Engine fixes
 
 Scope the benefit check to the targeted benefit. Evaluate unmodeled rules even when a denial
@@ -203,7 +205,8 @@ Replace the single upload form with structured questions in the order a legal ai
 country, document type, signed or not, the user's role, the counterparty and whether OJK licenses
 it, amounts and dates, and urgency. Capture an event timeline for users who are already in
 trouble. Questions are radio buttons and fields, with no open chat. The product asks a question when
-it is unsure, and does not guess.
+it is unsure, and does not guess. Report text is written in Indonesian for users of the Indonesian
+interface.
 
 ### R7 Consumer-finance packs
 
