@@ -275,7 +275,8 @@ safely.ink is a policy fuzzer: it reads a policy or contract, turns it into rule
 generates tricky scenarios, runs them through a deterministic engine, and compares the
 outcomes with what a reasonable person expects and what the law allows. Product,
 functional and technical specifications are in `docs/PRD.md`, `docs/FSD.md` and
-`docs/TSD.md`. Read the relevant one before changing behaviour.
+`docs/TSD.md`. Read the relevant one before changing behaviour. The plan after v1.0.1 is in
+`docs/ROADMAP.md`, with `docs/FLOW.md`, `docs/SETUP.md` and the notes in `docs/research/`.
 
 ### Commands
 
@@ -291,9 +292,8 @@ pnpm format           # Format with Prettier
 pnpm format:check     # Check formatting
 pnpm check-all        # type-check + lint + format:check
 pnpm test             # Run tests for every workspace that defines one
-                       # (apps/api, apps/dashboard, packages/api-types,
-                       # packages/ui — apps/web has no test script, so turbo
-                       # skips it rather than failing)
+                       # (apps/api, apps/dashboard, apps/web,
+                       # packages/api-types, packages/ui)
 pnpm clean            # Clean build artifacts
 ```
 

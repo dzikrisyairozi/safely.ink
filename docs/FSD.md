@@ -1,11 +1,11 @@
-# safely.ink — Functional Specification Document (FSD)
+# safely.ink functional specification
 
-|         |                                             |
-| ------- | ------------------------------------------- |
-| Status  | Draft, revision 2                           |
-| Date    | 2026-10-13                                  |
-| Scope   | Hackathon build (P0 in the [PRD](./PRD.md)) |
-| Related | [PRD](./PRD.md) · [TSD](./TSD.md)           |
+|         |                                                                                                                         |
+| ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Status  | Revision 3                                                                                                              |
+| Date    | 2026-10-18                                                                                                              |
+| Scope   | The deployed build, v1.0.1. Planned behaviour is in the [roadmap](./ROADMAP.md) and moves here when its milestone ships |
+| Related | [PRD](./PRD.md) · [TSD](./TSD.md) · [Roadmap](./ROADMAP.md) · [Flow](./FLOW.md)                                         |
 
 This document says **what the system does** from the outside. How it is built is in the TSD.
 
@@ -81,16 +81,16 @@ Each requirement has an ID used by the TSD and by tests.
 
 ### 4.3 Read and confirm
 
-| ID       | Requirement                                                                                                                                                                                                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F-READ-1 | The system extracts the clauses with clause number (if any), heading, verbatim text and page number.                                                                                                                                                                                  |
-| F-READ-2 | The system detects document type, title, the named parties and their roles, jurisdiction (from the governing-law clause, else from other evidence) and document language. Type and jurisdiction are a check on the user's pick (F-UP-6), not a replacement for it.                    |
-| F-READ-3 | Before the run continues, the user confirms or changes the document type and country, and selects which party they are. When the detected type or country differs from the pick, the screen says so and one click takes it; a detected country outside the list is offered as Global. |
-| F-READ-4 | If the upload is not a policy or contract (for example a letter, an invoice, a photo of something else), the run stops with a clear message and nothing is counted against the daily limit.                                                                                           |
-| F-READ-5 | A policy or contract that is not one of the six tuned types is analysed with the general pack, and its report is labelled "general analysis".                                                                                                                                         |
-| F-READ-6 | A jurisdiction other than Indonesia, Singapore or Australia, or Global, does not stop the run. The legal comparison is skipped and the report says so.                                                                                                                                |
-| F-READ-7 | Documents in any language are accepted. The report is always written in English; quoted clauses stay in the original language with an English gloss.                                                                                                                                  |
-| F-READ-8 | If pages are unreadable (blurred, cut off), the system says which pages and continues with the rest; the report carries a visible "incomplete document" warning.                                                                                                                      |
+| ID       | Requirement                                                                                                                                                                                                                                                                                                   |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-READ-1 | The system extracts the clauses with clause number (if any), heading, verbatim text and page number.                                                                                                                                                                                                          |
+| F-READ-2 | The system detects document type, title, the named parties and their roles, jurisdiction (from the governing-law clause, else from other evidence) and document language. Type and jurisdiction are a check on the user's pick (F-UP-6), not a replacement for it.                                            |
+| F-READ-3 | Before the run continues, the user confirms or changes the document type and country, and selects which party they are. When the detected type or country differs from the pick, the screen says so and one click takes it; a detected country outside the list is offered as Global.                         |
+| F-READ-4 | If the upload is not a policy or contract (for example a letter, an invoice, a photo of something else), the run stops with a clear message and nothing is counted against the daily limit.                                                                                                                   |
+| F-READ-5 | A policy or contract that is not one of the six tuned types is analysed with the general pack, and its report is labelled "general analysis".                                                                                                                                                                 |
+| F-READ-6 | The legal comparison runs for Indonesia, Singapore and Australia. Indonesia is the maintained jurisdiction. Singapore and Australia keep the v1.0.1 search-based check without maintenance. Any other jurisdiction, or Global, does not stop the run. The legal comparison is skipped and the report says so. |
+| F-READ-7 | Documents in any language are accepted. The interface is in English and Indonesian. Generated report text is written in English, and quoted clauses stay in the original language with an English gloss. Report text in Indonesian is a task in R6.                                                           |
+| F-READ-8 | If pages are unreadable (blurred, cut off), the system says which pages and continues with the rest; the report carries a visible "incomplete document" warning.                                                                                                                                              |
 
 ### 4.4 Rules
 
@@ -224,6 +224,9 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
 
 ## 8. Acceptance criteria (demo-level)
 
+On 2026-10-18 nobody had walked these criteria end to end on the deployed build. The walk-through
+is open in issue #16. Criterion 4 covers the three countries v1.0.1 checks.
+
 1. **Happy path.** Given a real 20–40 page Indonesian insurance policy PDF, when the user
    uploads it and confirms the details, then within 150 seconds a report appears with a
    grade, at least 20 scenarios tested, and at least one trap that shows a clause quote
@@ -250,5 +253,6 @@ uploaded ─► reading ─► awaiting_confirmation ─► extracting_rules ─
 
 ## 9. Out of scope
 
-Brochure comparison, two-document comparison, chat, legal comparison outside ID / SG / AU,
-non-English UI, public share links, payments. See PRD section 5 (P1).
+Not in v1.0.1: brochure comparison, two-document comparison, chat, legal comparison outside
+Indonesia, Singapore and Australia, report text in Indonesian, public share links and payments.
+The [roadmap](./ROADMAP.md) orders what comes next.
