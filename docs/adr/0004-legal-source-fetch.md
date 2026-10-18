@@ -1,4 +1,4 @@
-# 4. Fetch legal pages directly with browser-like headers; use URL context where the law is a PDF
+# 4. Fetch legal pages directly with browser-like headers, and use URL context where the law is a PDF
 
 ## Status
 
@@ -16,12 +16,12 @@ Indonesia, with a 10-second timeout, following redirects, then stripped the HTML
 
 | Jurisdiction | Host                  | Plain request                | With browser headers | Law text in the HTML                          |
 | ------------ | --------------------- | ---------------------------- | -------------------- | --------------------------------------------- |
-| ID           | `peraturan.go.id`     | 200                          | not needed           | No. Metadata page; the law is a PDF           |
-| ID           | `peraturan.bpk.go.id` | 200                          | not needed           | No. Metadata page; the law is in a viewer     |
+| ID           | `peraturan.go.id`     | 200                          | not needed           | No. Metadata page. The law is a PDF           |
+| ID           | `peraturan.bpk.go.id` | 200                          | not needed           | No. Metadata page. The law is in a viewer     |
 | ID           | `jdih.kemnaker.go.id` | 200                          | not needed           | Not checked beyond the home page              |
 | ID           | `jdih.kemenkeu.go.id` | 200                          | not needed           | Not checked beyond the home page              |
-| ID           | `ojk.go.id`           | 200                          | not needed           | Listing pages yes; regulations are PDFs       |
-| ID           | `pasal.id`            | 200                          | not needed           | Search results yes; article pages not checked |
+| ID           | `ojk.go.id`           | 200                          | not needed           | Listing pages yes. Regulations are PDFs       |
+| ID           | `pasal.id`            | 200                          | not needed           | Search results yes. Article pages not checked |
 | SG           | `sso.agc.gov.sg`      | **403** from the CDN         | 200, 15,000 chars    | Yes                                           |
 | SG           | `mas.gov.sg`          | 200 but a "maintenance" page | 200, 10,500 chars    | Yes                                           |
 | SG           | `mom.gov.sg`          | 200                          | not needed           | Yes                                           |
@@ -41,7 +41,7 @@ of HTML for one Act, close to the 2 MB cap in the TSD.
 
 - `legal/fetch.ts` sends browser-like headers on every request and follows redirects,
   but only while the redirect target is still on the allowlist.
-- The fetch size cap rises from 2 MB to 5 MB; a consolidated Australian Act does not fit
+- The fetch size cap rises from 2 MB to 5 MB. A consolidated Australian Act does not fit
   comfortably under 2 MB.
 - A response is unusable when the status is not 200, the content type is not HTML, or
   the stripped text is shorter than 1,000 characters. For an unusable response the
@@ -51,7 +51,7 @@ of HTML for one Act, close to the 2 MB cap in the TSD.
   `peraturan.go.id`, `peraturan.bpk.go.id` and `ojk.go.id` publish the law as PDF, not as
   page text. A citation whose quote cannot be found in the retrieved text is dropped,
   as everywhere else.
-- No host is removed from the allowlist. `jdih.*.go.id` stays a pattern; the two
+- No host is removed from the allowlist. `jdih.*.go.id` stays a pattern. The two
   ministries tested answered normally.
 
 ## Consequences
@@ -84,5 +84,5 @@ RECITATION`, no text), and when it answered, it gave a partial copy with a pream
   developer that copies the official PDFs on a best-effort basis, not an official source,
   and the report calls every citation's link the official source.
 - There is no Blaze plan yet, so there is no Cloud Run deploy. The check from Cloud Run
-  above is moved to M12 (#16); the legal stage was built and run from a developer
+  above is moved to M12 (#16). The legal stage was built and run from a developer
   machine.

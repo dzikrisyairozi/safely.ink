@@ -1,6 +1,6 @@
 // Checks Markdown prose for the signs of machine-written text that the docs
-// are written against (docs/ROADMAP.md, "How we write"). Code, URLs and
-// front matter are skipped. Usage: node scripts/lint-prose.mjs <file|dir>...
+// are written against (docs/ROADMAP.md, "How we write"). Code blocks, inline
+// code and URLs are skipped. Usage: node scripts/lint-prose.mjs <file|dir>...
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
