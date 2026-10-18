@@ -290,6 +290,7 @@ pnpm lint:check       # Lint with zero warnings allowed
 pnpm type-check       # TypeScript type checking
 pnpm format           # Format with Prettier
 pnpm format:check     # Check formatting
+pnpm lint:prose       # Check README and docs/ for the banned writing tells
 pnpm check-all        # type-check + lint + format:check
 pnpm test             # Run tests for every workspace that defines one
                        # (apps/api, apps/dashboard, apps/web,

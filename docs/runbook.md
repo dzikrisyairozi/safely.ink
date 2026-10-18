@@ -3,7 +3,7 @@
 How to stand the project up from nothing and how to deploy it. Project ID used below:
 `safely-ink` (number 774697783852), on the Blaze plan. Region: `asia-southeast2`
 (Jakarta), except the Storage bucket, which the console created in `US-EAST1`. A
-bucket's region cannot be changed; the API reads each upload once and uploads are
+bucket's region cannot be changed. The API reads each upload once and uploads are
 deleted after 7 days, so the distance costs little.
 
 Until 2026-10-14 the app ran on an earlier project on the free Spark plan, which had no
@@ -64,7 +64,7 @@ Set a budget alert on the billing account (Billing → Budgets & alerts).
 ## 2. Local development
 
 Each app has a committed `.env.example` that already holds every value except the
-Gemini key. Copy each one to `.env`; `.env` files are ignored by git.
+Gemini key. Copy each one to `.env`. `.env` files are ignored by git.
 
 | File                  | Values to fill in                  |
 | --------------------- | ---------------------------------- |
@@ -118,7 +118,7 @@ Windows `PATH` note).
 
 The eval script (TSD 9) writes to the real project as `--owner`, so it needs
 Application Default Credentials: `gcloud auth login --update-adc` once. Use your own uid
-as the owner to open each eval report from `/history`; eval runs count against that
+as the owner to open each eval report from `/history`. Eval runs count against that
 user's daily limit.
 
 ```bash
@@ -145,7 +145,7 @@ pnpm exec firebase deploy --only hosting,firestore,storage   # rules and the his
 ```
 
 The dashboard is served at `https://safely-ink.web.app`. That domain and
-`localhost` are authorised for sign-in by default; a custom domain must be added under
+`localhost` are authorised for sign-in by default. A custom domain must be added under
 Authentication → Settings → Authorised domains.
 
 ### Landing on App Hosting
@@ -163,7 +163,7 @@ pnpm exec firebase apphosting:backends:create --project safely-ink --non-interac
 
 Then connect GitHub once in the Firebase console: App Hosting → `web` → Settings → Git:
 repository `dzikrisyairozi/safely.ink`, root directory `apps/web`, live branch `main`.
-Automatic rollouts are off, so a push to `main` does not deploy; a release tag does
+Automatic rollouts are off, so a push to `main` does not deploy. A release tag does
 (see "Releases"). By hand:
 
 ```bash
@@ -180,7 +180,7 @@ Cloud Run service `web` in `asia-southeast2`.
 ### Custom domains **(not yet run)**
 
 The landing page is served from `safely.ink` and the dashboard from `app.safely.ink`.
-Until then, `apps/web/apphosting.yaml` points at the Firebase URLs; switch its two values
+Until then, `apps/web/apphosting.yaml` points at the Firebase URLs. Switch its two values
 to `https://safely.ink` and `https://app.safely.ink` once both domains work.
 
 1. Firebase console → App Hosting → the web backend → Settings → Domains: add
@@ -188,14 +188,14 @@ to `https://safely.ink` and `https://app.safely.ink` once both domains work.
    at the registrar and wait for the certificate.
 2. Firebase console → Hosting → Add custom domain: `app.safely.ink`, same steps.
 3. Authentication → Settings → Authorised domains: add `app.safely.ink`.
-4. Set `ALLOWED_ORIGIN=https://app.safely.ink` on the Cloud Run service and redeploy it;
-   the API allows one origin only.
+4. Set `ALLOWED_ORIGIN=https://app.safely.ink` on the Cloud Run service and redeploy it.
+   The API allows one origin only.
 5. Search Console: add the domain property `safely.ink` and put its TXT record in DNS.
 
 ### API on Cloud Run
 
 The build context is the repository root. `docker push` signs in through
-`docker-credential-gcloud`, which lives in the gcloud `bin` folder; that folder must be
+`docker-credential-gcloud`, which lives in the gcloud `bin` folder. That folder must be
 on `PATH`. The service URL is `https://api-774697783852.asia-southeast2.run.app`.
 
 ```bash

@@ -1,5 +1,6 @@
 {
   "**/*.{js,jsx,ts,tsx,json,css,scss,md,html,yaml,yml}": [
     "npx prettier --check"
-  ]
+  ],
+  "{docs/**/*.md,README.md}": ["node scripts/lint-prose.mjs"]
 }

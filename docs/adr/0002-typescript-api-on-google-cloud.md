@@ -30,14 +30,14 @@ watch live while the pipeline runs.
 - Shared types are Zod schemas in `@repo/api-types`. The same schema validates request
   bodies, constrains model output, and types Firestore documents and UI code. This
   replaces the `ts-rs` generation step.
-- Persistence is Firestore and Cloud Storage; authentication is Firebase Auth. PostgreSQL,
+- Persistence is Firestore and Cloud Storage. Authentication is Firebase Auth. PostgreSQL,
   SQLx and the `db:*` scripts are removed.
 - The template's documentation app, Vercel configuration and SSH-based release workflow
   are removed. Deployment targets are Cloud Run and Firebase only.
 
 ## Consequences
 
-- One language across the monorepo; a schema change is visible to the API and the
+- One language across the monorepo. A schema change is visible to the API and the
   dashboard in the same type-check.
 - The outcome engine must stay free of I/O and model calls so that it remains testable and
   deterministic in a codebase where everything around it is asynchronous and model-driven.

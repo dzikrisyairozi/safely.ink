@@ -311,3 +311,8 @@ the patterns in Wikipedia's
 length, a definite statement where the source supports it and a real "perhaps" where it does not.
 No puffery, no "not X but Y", no trailing "-ing" analysis, no vague attribution, no hedging about
 what sources might say, and every link checked before it is committed.
+
+`pnpm lint:prose` checks `README.md` and `docs/` for dashes, semicolons, curly quotes, tracking
+parameters, chatbot citation artifacts and a list of inflated words, and lint-staged runs it on
+those files at each commit. The trap writer checks the product's generated text against a similar
+list (`TELLS` in `apps/api/src/agents/trap-writer.ts`).
