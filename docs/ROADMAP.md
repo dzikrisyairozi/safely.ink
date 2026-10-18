@@ -1,10 +1,10 @@
 # Where safely.ink goes next
 
-|         |                                                                                                                                                                                   |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status  | Living document                                                                                                                                                                   |
-| Date    | 2026-10-18                                                                                                                                                                        |
-| Related | [PRD](./PRD.md) · [FSD](./FSD.md) · [TSD](./TSD.md) · [Literature review](./research/2026-10-18-literature-review.md) · [Market](./research/2026-10-18-market-and-competitors.md) |
+|         |                                                                                                                                                                                                                                                                                           |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status  | Living document                                                                                                                                                                                                                                                                           |
+| Date    | 2026-10-18                                                                                                                                                                                                                                                                                |
+| Related | [PRD](./PRD.md) · [FSD](./FSD.md) · [TSD](./TSD.md) · [Literature review](./research/2026-10-18-literature-review.md) · [Market](./research/2026-10-18-market-and-competitors.md) · [Technical stack](./research/2026-10-18-technical-stack.md) · [Flow](./FLOW.md) · [Setup](./SETUP.md) |
 
 ## The goal
 
@@ -98,7 +98,7 @@ means labels, legal review or a partner set its pace.
 | H1                  | R4  | Staging environment                                             | GCP access                          | R2         |
 | H2 Indonesian depth | R5  | Indonesian legal corpus                                         | Code, a legal check of the corpus   | R1         |
 | H2                  | R6  | Counsellor-style intake                                         | Code                                | R0         |
-| H2                  | R7  | Consumer-finance packs                                          | Code                                | R0, R1     |
+| H2                  | R7  | Consumer-finance packs                                          | Code                                | R0, R1, R5 |
 | H2                  | R8  | Clause highlighting                                             | Code                                | R0         |
 | H3 Act on findings  | R9  | Referral with an evidence packet                                | Code, partner directory             | R6         |
 | H3                  | R10 | Document comparison                                             | Code                                | R7         |
@@ -112,9 +112,10 @@ means labels, legal review or a partner set its pace.
 | H5 Region           | R18 | Standard-contract regimes in Thailand and Vietnam               | People                              | R17        |
 
 ```
-R0 ─┬─ R1 ─┬─ R5 ─┬─ R11
+R0 ─┬─ R1 ─┬─ R5 ─┬─ R7 ── R10
+    │      │      ├─ R11
     │      │      └─ R12 ─┬─ R15
-    │      ├─ R7 ── R10   └─ R16
+    │      │              └─ R16
     │      └─ R13
     ├─ R6 ─┬─ R9
     │      └─ R11
@@ -156,9 +157,11 @@ measure.
 ### R2 Durable runs
 
 Move pipeline stages to Cloud Tasks workers with leases, attempt IDs and idempotent writes, and
-recover expired leases. Cancel model calls on timeout. Log JSON with analysis ID, stage, duration,
-model and token counts, never document text, and keep a cost figure per analysis. Set a budget
-alert and a Cloud Run instance cap. Several of these tasks are carried over from #16.
+recover expired leases. Cancel model calls on timeout: ADK's `runEphemeral` takes no abort
+signal, so agent calls move to `runAsync`, which does. Log JSON with analysis ID, stage, duration,
+model and token counts, never document text, and keep a cost figure per analysis. A budget alert
+does not stop spending, so the budget publishes to Pub/Sub and a small function pauses new
+analyses. Cloud Run's instance cap stays as the ceiling. Several of these tasks are carried over from #16.
 
 ### R3 Data protection
 
@@ -166,7 +169,11 @@ Set retention for reports, usage counters and logs, and fill the `[TBD]` fields 
 page with a named operator. Decide between Cloud KMS keys and field-level encryption for clause
 text. Create an upload bucket in asia-southeast2 and expire or move the US-EAST1 objects. Record
 consent for each processing purpose, and write a data protection impact assessment against UU PDP
-and its implementing regulation.
+and its implementing regulation, PP 33/2026, which takes full effect on 2027-01-16. Move model
+calls from the AI Studio key to Vertex AI in asia-southeast1, because Vertex does not serve
+Gemini in Jakarta. Contract text therefore leaves Indonesia on every model call, and Google
+Search grounding keeps what it is sent for up to three days, so both go to counsel as
+transfers.
 
 ### R4 Staging environment
 
@@ -177,13 +184,14 @@ production only after they have run on staging.
 ### R5 Indonesian legal corpus
 
 Ingest the consumer-finance instruments first: UU 8/1999 on consumer protection, POJK 22/2023,
-the OJK rules for online lending and for multifinance, UU 27/2022 on personal data and its
+POJK 40/2024 on online lending with the OJK circulars that set its daily cost ceilings, POJK 46/2024 on finance
+companies as amended by POJK 35/2025, UU 27/2022 on personal data and its
 implementing regulation, and Book III of the Civil Code. Insurance follows. Instrument numbers
 and amendment status are confirmed against the official text at ingest. Chunk by Bab, Pasal, Ayat
 and huruf with the parent text, definitions and Penjelasan attached, and store each version with
 dates and a source hash.
 
-Store the corpus in Cloud SQL for PostgreSQL with pgvector, behind a retrieval interface. Search
+Store the corpus in Cloud SQL for PostgreSQL 17 with pgvector, behind a retrieval interface. Search
 with exact citation lookup, BM25 and dense vectors fused by reciprocal rank, filtered by date and
 sector. Compare Gemini embeddings with BGE-M3 on our own queries, and add a reranker only if it
 measures better. Statute links (amends, repeals, implements, interprets) are rows in the same
@@ -194,7 +202,7 @@ database. Google Search grounding stays only to find sources the corpus lacks.
 Replace the single upload form with structured questions in the order a legal aid intake uses:
 country, document type, signed or not, the user's role, the counterparty and whether OJK licenses
 it, amounts and dates, and urgency. Capture an event timeline for users who are already in
-trouble. Questions are radio buttons and fields, not open chat. The product asks a question when
+trouble. Questions are radio buttons and fields, with no open chat. The product asks a question when
 it is unsure, and does not guess.
 
 ### R7 Consumer-finance packs
@@ -234,31 +242,21 @@ test our own judge for a lean toward the drafting party.
 R13 runs Jev beside Gemini on passage relevance, quote support and sole-discretion detection,
 logged only, until calibration on R1 data shows it helps.
 
-R14 to R18 are the launch with counsel's sign-off, the B2B design partner, a rewording library
+R14 to R18 are the launch with counsel's sign-off and the PSE registration with Komdigi, the B2B design partner, a rewording library
 reviewed by lawyers, the published Indonesian benchmark with reviewed product comparisons, and
 regional expansion.
 
 ## What to prepare
 
-This list is what the build passes need beyond the repo. On 2026-10-18 the development machine
-lacked `pnpm`, Java, the gcloud SDK, the Firebase CLI and `age`, and had no `apps/*/.env` files.
+The full checklist is in [SETUP.md](./SETUP.md), grouped by the development machine, GitHub,
+Google Cloud, outside accounts, data, people and decisions, with the milestone that first needs
+each item and a "ready to start" row per milestone. The path a user and a request take through
+the finished product is in [FLOW.md](./FLOW.md), and the technology chosen for each milestone is
+in the [technical stack note](./research/2026-10-18-technical-stack.md).
 
-| Area          | Item                                                                                                                                                      | Who           |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| Local machine | pnpm 9 through corepack or mise, Java 21, firebase-tools, gcloud SDK, `age` and `oras` to decrypt `apps/api/.env`, a Postgres container with pgvector     | Developer     |
-| Local machine | Being on the recipients list for the shared `.env` (runbook section 2)                                                                                    | Repo owner    |
-| GCP           | A `safely-ink-staging` project on Blaze with Auth, Firestore and Storage in asia-southeast2, Workload Identity for GitHub Actions, and a budget alert     | Project owner |
-| GCP           | Cloud Tasks, Cloud SQL for PostgreSQL, Secret Manager and Vertex AI enabled in both projects, with Gemini model availability in asia-southeast2 confirmed | Project owner |
-| GCP           | An upload bucket in asia-southeast2 and a decision on the US-EAST1 objects                                                                                | Project owner |
-| Keys          | A Vertex service account in place of the AI Studio key                                                                                                    | Project owner |
-| Keys          | A TypeSafe key for the app, separate from the developer plugin key, with a processing agreement                                                           | Product owner |
-| Keys          | A pasal.id account, if used, with its terms checked                                                                                                       | Product owner |
-| Access        | DNS for `safely.ink` and `app.safely.ink`, and GitHub admin rights for environments and secrets                                                           | Repo owner    |
-| Data          | About 100 agreements with a clear right to use, and statute PDFs fetched from a host BPK does not block                                                   | Team          |
-| People        | Two legal annotators, an adjudicator and a small lay rater panel                                                                                          | Product owner |
-| People        | Indonesian counsel for the product claims, complaint drafting, rewording, UU PDP and publication                                                          | Product owner |
-| People        | A named operator and contact for the privacy page, one B2B design partner, and an LBH or YLKI contact                                                     | Product owner |
-| Decisions     | A monthly budget ceiling, whether user documents may go to TypeSafe, and whether to move the bucket region                                                | Product owner |
+The items that only you can supply are a monthly budget ceiling, the encryption and bucket
+decisions, whether user documents may go to TypeSafe, Indonesian counsel, legal annotators, a
+named operator entity, about 100 agreements with a clear right to use, and one design partner.
 
 ## The earlier to-do list
 
@@ -280,14 +278,15 @@ lacked `pnpm`, Java, the gcloud SDK, the Firebase CLI and `age`, and had no `app
 
 ## Decisions
 
-| Date       | Decision                                                                                               | Why                                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| 2026-10-18 | Law checks cover Indonesia only. Singapore and Australia keep the search-based check, unmaintained     | Depth in one jurisdiction beats thin coverage of three                          |
-| 2026-10-18 | Consumer finance is the wedge, insurance second                                                        | Complaint volume, a clear legal yardstick, and harm that shows up in arithmetic |
-| 2026-10-18 | The scope grows to referral, comparison, after-the-fact help and rewording, in that order              | Each step adds value with less legal risk than the next                         |
-| 2026-10-18 | The law corpus goes in Cloud SQL for PostgreSQL with pgvector. Graphs are rows, with no graph database | Small corpus, small team, and dated joins matter                                |
-| 2026-10-18 | Jev runs in shadow mode only, and nothing is decided by vote                                           | Typed output is a format guarantee. Correctness has to be measured              |
-| 2026-10-18 | No public per-lender grades until counsel reviews publication                                          | One lender has many products and versions, and publication carries legal risk   |
+| Date       | Decision                                                                                               | Why                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 2026-10-18 | Law checks cover Indonesia only. Singapore and Australia keep the search-based check, unmaintained     | Depth in one jurisdiction beats thin coverage of three                                               |
+| 2026-10-18 | Consumer finance is the wedge, insurance second                                                        | Complaint volume, a clear legal yardstick, and harm that shows up in arithmetic                      |
+| 2026-10-18 | The scope grows to referral, comparison, after-the-fact help and rewording, in that order              | Each step adds value with less legal risk than the next                                              |
+| 2026-10-18 | The law corpus goes in Cloud SQL for PostgreSQL with pgvector. Graphs are rows, with no graph database | Small corpus, small team, and dated joins matter                                                     |
+| 2026-10-18 | Jev runs in shadow mode only, and nothing is decided by vote                                           | Typed output is a format guarantee. Correctness has to be measured                                   |
+| 2026-10-18 | Model calls move to Vertex AI in asia-southeast1 (Singapore)                                           | Vertex does not serve Gemini in Jakarta, and a regional endpoint keeps processing in one known place |
+| 2026-10-18 | No public per-lender grades until counsel reviews publication                                          | One lender has many products and versions, and publication carries legal risk                        |
 
 ## Questions for Indonesian counsel
 
