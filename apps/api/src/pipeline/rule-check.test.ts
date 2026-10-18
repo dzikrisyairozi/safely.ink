@@ -202,3 +202,36 @@ test('a deduction or a charge may apply when nothing happened', () => {
   expect(valid.map((rule) => rule.kind)).toEqual(['limit', 'charge']);
   expect(invalid).toEqual([]);
 });
+
+test.each([
+  ['a waiting period', { fact: 'daysSinceStart', op: 'lt', value: 30 }],
+  ['an expiry', { fact: 'daysSinceStart', op: 'gte', value: 90 }],
+  [
+    'a window in the term',
+    {
+      all: [
+        { fact: 'daysSinceStart', op: 'gte', value: 30 },
+        { fact: 'daysSinceStart', op: 'lt', value: 60 },
+      ],
+    },
+  ],
+  [
+    'everything outside a short window of cover',
+    {
+      any: [
+        { fact: 'daysSinceStart', op: 'lt', value: 45 },
+        { fact: 'daysSinceStart', op: 'gte', value: 60 },
+      ],
+    },
+  ],
+])(
+  '%s is false on some day when nothing happened, so it is kept',
+  (_, when) => {
+    const draft = { ...exclusion, when, touches: ['daysSinceStart'] };
+
+    const { valid, invalid } = check([benefit, draft]);
+
+    expect(invalid).toEqual([]);
+    expect(valid.map((rule) => rule.id)).toEqual(['r-001', 'r-002']);
+  },
+);

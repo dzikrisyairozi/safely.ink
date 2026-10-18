@@ -355,6 +355,19 @@ export function ReportView({
                 .join(', '),
             })}
           </p>
+          <p>
+            {t('report.formula.untested', {
+              grade: GRADE_FORMULA.untestedBest,
+            })}
+          </p>
+          {analysis.coverage && (
+            <p>
+              {t('report.formula.coverage', {
+                rules: Math.round(analysis.coverage.rules * 100),
+                branches: Math.round(analysis.coverage.branches * 100),
+              })}
+            </p>
+          )}
           {analysis.points !== undefined && (
             <p>
               {t('report.formula.this', {

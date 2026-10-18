@@ -1,4 +1,5 @@
 import type {
+  ClaimedCitation,
   LawJurisdiction,
   LegalAssessment,
   LegalFinding,
@@ -52,9 +53,15 @@ export function isAllowlisted(url: string, jurisdiction: LawJurisdiction) {
 
 const sameUrl = (url: string) => (URL.canParse(url) ? new URL(url).href : url);
 
+const weight = { permitted: 0, restricted: 1, conflicts: 2 };
+
 /**
  * Keeps the citations whose quote code found in the text stored for their
- * page; a finding left with none found nothing. `pages` are the pages the
+ * page, then decides the status on those alone: the status the model claimed
+ * when a surviving quote shows it, else the strongest status a surviving
+ * quote shows that is no stronger than the claim, else nothing found. The
+ * finding keeps the quotes that show its status, and the model's reasoning
+ * only when that is the status it claimed. `pages` are the pages the
  * model was given that we fetched ourselves.
  */
 export function verify(
@@ -63,18 +70,38 @@ export function verify(
   jurisdiction: LawJurisdiction,
 ): LegalFinding {
   const texts = new Map(pages.map(({ url, text }) => [sameUrl(url), text]));
-  const citations = assessment.citations.filter((citation) => {
-    const text = texts.get(sameUrl(citation.url));
-    return (
-      text !== undefined &&
-      isAllowlisted(citation.url, jurisdiction) &&
-      quoteFound(citation.quote, text)
-    );
-  });
+  const claim = assessment.status;
+  const survivors =
+    claim === 'no_finding'
+      ? []
+      : assessment.citations.filter((citation) => {
+          const text = texts.get(sameUrl(citation.url));
+          return (
+            text !== undefined &&
+            weight[citation.supports] <= weight[claim] &&
+            isAllowlisted(citation.url, jurisdiction) &&
+            quoteFound(citation.quote, text)
+          );
+        });
+  const strongest = survivors.reduce<ClaimedCitation['supports'] | null>(
+    (best, { supports }) =>
+      best === null || weight[supports] > weight[best] ? supports : best,
+    null,
+  );
+
+  const status = strongest ?? 'no_finding';
   return {
-    status: citations.length > 0 ? assessment.status : 'no_finding',
-    reasoning: assessment.reasoning,
-    citations,
+    status,
+    // The model argued for its claim, which is no longer the status.
+    reasoning: status === claim ? assessment.reasoning : '',
+    citations: survivors
+      .filter(({ supports }) => supports === strongest)
+      .map(({ instrument, section, quote, url }) => ({
+        instrument,
+        section,
+        quote,
+        url,
+      })),
     error: null,
   };
 }

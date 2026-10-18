@@ -196,7 +196,7 @@ test('a targeted benefit that does not apply loses the whole stake', () => {
   });
 });
 
-test('any benefit that applies satisfies the benefit stage', () => {
+test('another benefit that applies does not pay a targeted one that does not', () => {
   const rules = [
     rule('benefit', early, { id: 'b-early' }),
     rule('benefit', always, { id: 'b-always' }),
@@ -206,6 +206,25 @@ test('any benefit that applies satisfies the benefit stage', () => {
     rules,
     schema,
     scenario({ targetRuleIds: ['b-early'] }),
+  );
+
+  expect(outcome).toMatchObject({
+    result: 'bad',
+    decidingRuleId: 'b-early',
+    trace: [{ ruleId: 'b-always' }, { ruleId: 'b-early' }],
+  });
+});
+
+test('one of several targeted benefits that applies pays', () => {
+  const rules = [
+    rule('benefit', early, { id: 'b-early' }),
+    rule('benefit', always, { id: 'b-always' }),
+  ];
+
+  const outcome = evaluate(
+    rules,
+    schema,
+    scenario({ targetRuleIds: ['b-early', 'b-always'] }),
   );
 
   expect(outcome.result).toBe('fine');
@@ -271,16 +290,40 @@ test('a failed condition beats an exclusion listed before it', () => {
   expect(outcome.trace.map((step) => step.ruleId)).toEqual(['condition']);
 });
 
-test('an exclusion beats an unmodeled rule', () => {
+test('an exclusion beats an unmodeled rule, which is still traced', () => {
   const rules = [
-    rule('unmodeled', null, { touches: ['cause'] }),
+    rule('unmodeled', null, { clauseIds: ['c-9'], touches: ['cause'] }),
     rule('exclusion', always),
   ];
   const facts = { ...neutralFacts, cause: 'flood' };
 
   const outcome = evaluate(rules, schema, scenario({ facts }));
 
-  expect(outcome).toMatchObject({ result: 'bad', decidingRuleId: 'exclusion' });
+  expect(outcome).toMatchObject({
+    result: 'bad',
+    decidingRuleId: 'exclusion',
+    trace: [{ ruleId: 'exclusion' }, { ruleId: 'unmodeled', fact: 'cause' }],
+  });
+});
+
+test('a denial does not hide an unmodeled rule that the scenario targets', () => {
+  const rules = [
+    rule('unmodeled', null, { clauseIds: ['c-9'] }),
+    rule('condition', unpaid),
+  ];
+  const facts = { ...neutralFacts, userPaidOnTime: false };
+
+  const outcome = evaluate(
+    rules,
+    schema,
+    scenario({ facts, targetRuleIds: ['unmodeled'] }),
+  );
+
+  expect(outcome).toMatchObject({
+    result: 'bad',
+    decidingRuleId: 'condition',
+    trace: [{ ruleId: 'condition' }, { ruleId: 'unmodeled', fact: null }],
+  });
 });
 
 test('an unmodeled rule whose fact is off neutral leaves the outcome undetermined', () => {
@@ -307,13 +350,43 @@ test('an unmodeled rule whose facts are all neutral changes nothing', () => {
   expect(outcome).toMatchObject({ result: 'fine', decidingRuleId: null });
 });
 
-test('an unmodeled rule that touches no fact never decides', () => {
-  const rules = [rule('unmodeled', null, { touches: [] })];
+test('an unmodeled rule that touches no fact stays quiet while nothing reaches its clause', () => {
+  const rules = [rule('unmodeled', null, { clauseIds: ['c-9'], touches: [] })];
   const facts = { ...neutralFacts, cause: 'flood' };
 
   const outcome = evaluate(rules, schema, scenario({ facts }));
 
   expect(outcome).toMatchObject({ result: 'fine', decidingRuleId: null });
+});
+
+test('an unmodeled rule that touches no fact decides when the scenario targets it', () => {
+  const rules = [rule('unmodeled', null, { touches: [] })];
+
+  const outcome = evaluate(
+    rules,
+    schema,
+    scenario({ targetRuleIds: ['unmodeled'] }),
+  );
+
+  expect(outcome).toMatchObject({
+    result: 'undetermined',
+    decidingRuleId: 'unmodeled',
+    trace: [{ ruleId: 'unmodeled', fact: null }],
+  });
+});
+
+test('an unmodeled rule decides when a rule citing the same clause fires', () => {
+  const rules = [
+    rule('benefit', always, { clauseIds: ['c-5'] }),
+    rule('unmodeled', null, { clauseIds: ['c-5'], touches: [] }),
+  ];
+
+  const outcome = evaluate(rules, schema, scenario());
+
+  expect(outcome).toMatchObject({
+    result: 'undetermined',
+    decidingRuleId: 'unmodeled',
+  });
 });
 
 type Effect = NonNullable<Rule['effect']>;
@@ -533,7 +606,10 @@ test('the same input gives the same outcome and is left untouched', () => {
   const rules = deepFreeze([
     rule('benefit', { not: early }),
     rule('exclusion', { fact: 'cause', op: 'in', value: ['riot'] }),
-    rule('unmodeled', null, { touches: ['userPaidOnTime'] }),
+    rule('unmodeled', null, {
+      clauseIds: ['c-9'],
+      touches: ['userPaidOnTime'],
+    }),
     limit(share('cap', 80)),
     limit(fixed('deduct', 75), 'deductible'),
     charge(fixed('charge', 20)),

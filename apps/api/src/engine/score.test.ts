@@ -1,10 +1,14 @@
 import { expect, test } from 'vitest';
 import type {
+  Condition,
   Expectation,
+  FactSchema,
   LegalFinding,
   Outcome,
+  Rule,
   Scenario,
 } from '@repo/api-types';
+import { evaluate } from './evaluate';
 import { score, type ScoreInput, type ScoreWeights } from './score';
 
 // The numbers of TSD 5.7.
@@ -31,7 +35,9 @@ const weights: ScoreWeights = {
     { from: 40, value: 'D' },
     { from: 0, value: 'F' },
   ],
+  untestedBest: 'B',
   undeterminedShare: { high: 0.1, medium: 0.25 },
+  coverage: { branches: 0.75, rules: 0.75 },
 };
 
 type Case = {
@@ -54,6 +60,7 @@ const citation = {
 // One scenario per case, numbered s-1, s-2, … in order.
 function input(cases: Case[], meta: Partial<ScoreInput['meta']> = {}) {
   const built: ScoreInput = {
+    rules: [],
     scenarios: [],
     outcomes: [],
     expectations: {},
@@ -368,4 +375,145 @@ test('the numbers come from the weights', () => {
     points: 70,
     grade: 'C',
   });
+});
+
+const paidLate: Condition = { fact: 'paidLate', op: 'eq', value: true };
+
+function rule(id: string, kind: Rule['kind'], when: Condition | null): Rule {
+  return {
+    id,
+    kind,
+    summary: id,
+    clauseIds: ['c-1'],
+    when,
+    effect: null,
+    touches: [],
+  };
+}
+
+const lateSchema: FactSchema = [
+  {
+    key: 'paidLate',
+    type: 'boolean',
+    values: null,
+    unit: null,
+    description: 'A payment was late',
+    neutral: false,
+  },
+];
+
+// Ten scenarios, the first `late` of them with a late payment, run by the
+// engine.
+function tested(rules: Rule[], late: number) {
+  const built = input(unclear(0, 10));
+  built.rules = rules;
+  built.scenarios = built.scenarios.map((scenario, n) => ({
+    ...scenario,
+    facts: { paidLate: n < late },
+  }));
+  built.outcomes = built.scenarios.map((scenario) =>
+    evaluate(rules, lateSchema, scenario),
+  );
+  return built;
+}
+
+test('a run that never reaches an exclusion gets no A and no high confidence', () => {
+  const rules = [
+    rule('r-late', 'condition', paidLate),
+    rule('r-never', 'exclusion', { fact: 'paidLate', op: 'eq', value: 'x' }),
+  ];
+
+  const result = score(tested(rules, 3), weights);
+
+  expect(result).toMatchObject({
+    points: 100,
+    grade: 'B',
+    coverage: { rules: 0.5, branches: 0.75 },
+  });
+  expect(result.confidence).not.toBe('high');
+});
+
+test('a run that reaches every rule both ways keeps its A and high confidence', () => {
+  const result = score(
+    tested([rule('r-late', 'condition', paidLate)], 3),
+    weights,
+  );
+
+  expect(result).toMatchObject({
+    grade: 'A',
+    confidence: 'high',
+    coverage: { rules: 1, branches: 1 },
+  });
+});
+
+test('a rule reached only one way leaves confidence below high', () => {
+  const result = score(
+    tested([rule('r-late', 'condition', paidLate)], 10),
+    weights,
+  );
+
+  expect(result).toMatchObject({
+    grade: 'A',
+    confidence: 'medium',
+    coverage: { rules: 1, branches: 0.5 },
+  });
+});
+
+test('a rule whose condition held only after another rule decided is not reached', () => {
+  const rules = [
+    rule('r-late', 'condition', paidLate),
+    rule('r-hidden', 'exclusion', paidLate),
+  ];
+  const built = tested(rules, 3);
+  for (const id of ['s-1', 's-2', 's-3']) {
+    built.expectations[id] = { result: 'bad', reason: '' };
+  }
+  built.findings['r-hidden'] = {
+    status: 'restricted',
+    reasoning: '',
+    citations: [citation],
+    error: null,
+  };
+
+  const result = score(built, weights);
+
+  expect(result.traps).toEqual([]);
+  expect(result).toMatchObject({ grade: 'B', coverage: { rules: 0.5 } });
+  expect(result.confidence).not.toBe('high');
+});
+
+test('a grade below the cap is kept when a rule was not reached', () => {
+  const built = input(many(critical, 3, 'c'));
+  built.rules = [rule('r-never', 'exclusion', paidLate)];
+
+  expect(score(built, weights).grade).toBe('D');
+});
+
+test('an unmodeled rule the law restricts is a trap when a run traced it', () => {
+  const built = input([{ rule: 'r-unclear', result: 'undetermined' }]);
+  built.outcomes[0]!.trace = [
+    { ruleId: 'r-unclear', fact: null, note: 'Depends on wording' },
+  ];
+  built.findings['r-unclear'] = {
+    status: 'restricted',
+    reasoning: '',
+    citations: [citation],
+    error: null,
+  };
+
+  expect(score(built, weights).traps).toMatchObject([
+    { ruleId: 'r-unclear', scenarioIds: ['s-1'] },
+  ]);
+});
+
+test('a law finding on a rule that no run traced is no trap', () => {
+  const built = input([{ rule: 'r-other', result: 'fine' }]);
+  built.findings['r-quiet'] = {
+    status: 'conflicts',
+    reasoning: '',
+    citations: [citation],
+    error: null,
+  };
+
+  expect(score(built, weights).traps).toEqual([]);
 });

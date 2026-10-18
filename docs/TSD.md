@@ -146,7 +146,13 @@ language is derived from the document, not hard-coded per document type:
 
 1. RuleExtractor step 1 reads the clauses and returns a `FactSchema` (about 15–40 facts).
    A small fixed base is always included: `daysSinceStart`, `userPaidOnTime`,
-   `userGaveNoticeDays`, `userDisclosedEverything`, `paperworkComplete`.
+   `userGaveNoticeDays`, `userDisclosedEverything`, `paperworkComplete`. The neutral value
+   of `daysSinceStart` is 365, so a scenario that changes nothing is past a waiting period.
+   Time has no single uneventful value, so the check that a rule against the user is false
+   at neutral tries `daysSinceStart` at 0, 30, 90, 180, 365, 730 and 1,825 days, and at
+   each day the condition names and the days either side of it. It sends the rule back
+   only when the condition holds on all of them. A waiting period, an expiry and an
+   exclusion outside a window of cover all pass.
 2. RuleExtractor step 2 writes rules whose `when` uses only those keys.
 3. ScenarioFuzzer fills every key for every scenario.
 4. Code validates all three against each other (section 5). Anything that does not fit is
@@ -171,7 +177,8 @@ analyses/{analysisId}
           detected: { docType, jurisdiction }, language, pageCount, unreadablePages[] }
   factSchema: Fact[]
   counts: { clauses, rules, scenarios, fine, partlyBad, bad, undetermined, traps }
-  grade, confidence
+  grade, points, confidence, coverage: { rules, branches }
+  versions: { [stage]: { models, prompts, packs, engine, corpus } }
   clauses/{clauseId}        Clause
   rules/{ruleId}            Rule
   scenarios/{scenarioId}    Scenario + outcome: Outcome + expectation { result, reason }
@@ -333,31 +340,41 @@ Pure function `evaluate(rules: Rule[], factSchema: FactSchema, scenario: Scenari
 The fact schema supplies the `neutral` values for stage 4. A rule "fires" when its `when`
 is true for the scenario's facts.
 
-Order (the first stage that settles the result ends the run):
+Order (the first stage that settles the result decides it):
 
-1. **Benefit** — if the scenario's `targetRuleIds` include a `benefit` rule and no
-   `benefit` rule in the document fires → `bad` ("the document gives you nothing here").
-   The first targeted benefit is the deciding rule.
-2. **Conditions and deadlines** — any fires → `bad`.
-3. **Exclusions** — any fires → `bad`.
-4. **Unmodeled** — if an unmodeled rule's `touches` include a fact whose value differs
-   from its `neutral` → `undetermined` (F-RUN-5), `loss` 0.
-5. **Money** — for `limit` and `charge` rules that fire. An effect's value is its
+1. **Benefit.** If the scenario's `targetRuleIds` include `benefit` rules and none of
+   those fires, the result is `bad` ("the benefit this scenario is about does not apply").
+   A benefit the scenario is not about can fire and is traced, but it never stands in for
+   a targeted one. The first targeted benefit is the deciding rule.
+2. **Conditions and deadlines.** Any fires, and the result is `bad`.
+3. **Exclusions.** Any fires, and the result is `bad`.
+4. **Unmodeled.** An unmodeled rule is reached when one of its `touches` facts differs
+   from its `neutral` value, when the scenario targets it, or when a rule citing one of
+   its clauses fires. Every reached unmodeled rule is traced, also when stages 1 to 3
+   gave `bad`, and the denial still decides. Without a denial the result is
+   `undetermined` (F-RUN-5) with `loss` 0, and the first reached rule decides.
+5. **Money.** For `limit` and `charge` rules that fire. An effect's value is its
    `amount`, else `percent` of the stake. The lowest `cap` is applied first, then every
-   `deduct` (what is payable never goes below 0); `charge` values are owed on top, so
-   `loss` = unpaid part of the stake + charges and can exceed the stake. With no stake,
-   only fixed-amount charges count. `loss == 0` → `fine`; `loss >= stake` (or no stake
-   and a loss) → `bad`; otherwise `partly_bad`.
+   `deduct` (what is payable never goes below 0). `charge` values are owed on top, so
+   `loss` is the unpaid part of the stake plus charges and can exceed the stake. With no
+   stake, only fixed-amount charges count. `loss == 0` gives `fine`, `loss >= stake` (or
+   no stake and a loss) gives `bad`, and anything between gives `partly_bad`.
 
-A `bad` from stages 1 to 3 has `loss` = the stake (0 if there is none).
+A `bad` from stages 1 to 3 has `loss` equal to the stake (0 if there is none).
 
 Every rule that fires in a stage that ran is appended to `trace` with the fact that
 triggered it. `decidingRuleId` is the first rule, in the order the rules are listed, that
-fired in the deciding stage; in the money stage, the first that cost the user something.
+fired in the deciding stage. In the money stage it is the first that cost the user
+something.
 
 `evaluate()` expects input that passed the cross-validation in `engine/validate.ts`
 (sections 5.2 and 5.3). A condition on a fact the scenario lacks, or an ordering
-comparison on a non-number, throws instead of quietly evaluating to false.
+comparison on a non-number, throws instead of evaluating to false.
+
+Property tests in `engine/evaluate.property.test.ts` (`fast-check`) generate rules and
+facts and check three invariants: a benefit on another clause never changes how a
+scenario ends, a reached unmodeled rule is always traced, and the same input gives the
+same output.
 
 ### 5.5 ExpectationJudge (agent, Flash)
 
@@ -384,9 +401,11 @@ comparison on a non-number, throws instead of quietly evaluating to false.
 
 ### 5.6 LegalResearcher (agents, Flash search, Pro assessment)
 
-`lookUpLaw()` in `legal/research.ts` runs once per **deciding rule** of a `bad` or
-`partly_bad` scenario (deduplicated), the rules deciding the most such scenarios first,
-`limits.law.atOnce` at a time, after the ExpectationJudge: side by side, every call slowed
+`lookUpLaw()` in `legal/research.ts` runs once per rule that can go against the user:
+every rule except a `benefit`, and a `benefit` only when it decided a `bad` or
+`partly_bad` scenario. A rule that decided no bad outcome, such as a discretionary
+`unmodeled` clause, is looked up too. The rules deciding the most bad or partly bad
+scenarios go first, then the rules the runs traced most, `limits.law.atOnce` at a time, after the ExpectationJudge: side by side, every call slowed
 and judge batches did not answer in 90 s (eval of 2026-10-14). A rule not done by the request
 deadline minus the wording call is `lookup_unavailable`. Each finding is written to
 `findings/{ruleId}` as soon as it exists. Skipped entirely when the jurisdiction has no
@@ -420,7 +439,8 @@ Steps:
    did not end in `RECITATION`, and is stored with `via: 'url_context'`. A page that
    cannot be fetched again keeps its old text.
 3. **Assess.** Pro, no tools, `LegalAssessment` schema, given the same input as the search
-   and the page texts: `{ status, reasoning, citations: [{ instrument, section, quote, url }] }`.
+   and the page texts: `{ status, reasoning, citations: [{ instrument, section, quote, url,
+supports }] }`. `supports` is the status that the passage shows on its own.
    The pages share a budget of 1.5 million characters, in the order found: s 117 of the
    Fair Work Act starts at character 393,000 of one page, and the whole page took 38 s.
 4. **Verify** (`legal/verify.ts`, F-CMP-4). Quote and page text are normalised (NFKC,
@@ -429,7 +449,11 @@ Steps:
    (`via: 'fetch'`), its host is allowlisted, and the quote, at least 30 normalised
    characters, is a substring of the stored text. A page read with the URL context tool
    is the model's own copy: it informs the assessment but never verifies a quote. A
-   finding left with no citation becomes `no_finding`.
+   citation whose `supports` is stronger than the claimed status is dropped. The status
+   is then decided on the citations that survive: the claimed status when one of them
+   supports it, else the strongest status one of them supports, else `no_finding`. The
+   finding keeps the citations that support its status, without `supports`, and keeps
+   the model's reasoning only when the status is the one it claimed.
 
 If the search, every page or the assessment fails, or the deadline passes, the finding is
 `no_finding` with `error: 'lookup_unavailable'` and the pipeline continues; the report
@@ -440,21 +464,34 @@ The document's own text never reaches the lookup; only the rule summary does.
 
 ### 5.7 score() (code)
 
-`score(input, weights)`, where `input` holds the scenarios, outcomes, expectations (by
-scenario ID), legal findings (by rule ID) and the analysis meta.
+`score(input, weights)`, where `input` holds the rules, scenarios, outcomes, expectations
+(by scenario ID), legal findings (by rule ID) and the analysis meta.
 
-- Trap detection per F-TRAP-1, merge per deciding rule (F-TRAP-2). An `undetermined`
-  outcome is never a trap (F-TRAP-5). `score()` leaves a trap's `title` and `action` null.
+- Trap detection per F-TRAP-1, merged per rule (F-TRAP-2). A rule that decided a `bad` or
+  `partly_bad` outcome worse than expected, or with a `conflicts` or `restricted`
+  finding, gets that outcome as an example. So does any rule in an outcome's trace that
+  has such a finding, whatever the result, which is how a restricted `unmodeled` clause
+  becomes a trap. `score()` leaves a trap's `title` and `action` null.
+- Coverage (`coverageOf()`): the share of rules reached, meaning a run traced the rule,
+  and the share of condition branches taken,
+  meaning each rule with a condition counts two branches and a branch is taken when some
+  scenario makes the condition true, or false. A rule whose condition held only after an
+  earlier stage had decided is not traced, so it is not reached: its own trap could not
+  have been seen.
 - Severity points: loss (share of stake lost: ≥ 80% = 3, ≥ 30% = 2, else 1; a scenario
   with no stake counts as 3) + frequency (`common` = 2, `occasional` = 1, `rare` = 0)
   - law (`conflicts` = 3, `restricted` = 2, else 0). Total ≥ 6 critical, 4–5 high,
     2–3 medium, else low. A merged trap takes the highest loss points and the highest
     frequency points among its scenarios.
-- Grade: start at 100; minus 20 / 10 / 5 / 2 per critical / high / medium / low trap;
-  A ≥ 90, B ≥ 75, C ≥ 60, D ≥ 40, else F.
-- Confidence: `high` if undetermined share < 10% and no unreadable pages, `medium` < 25%,
-  else `low`. The general pack caps confidence at `medium`. A run with no outcomes is
-  `low`: nothing tested is not the same as nothing found.
+- Grade: start at 100, minus 20, 10, 5 or 2 per critical, high, medium or low trap.
+  A ≥ 90, B ≥ 75, C ≥ 60, D ≥ 40, else F. When a rule was not reached the grade is at
+  most `GRADE_FORMULA.untestedBest` (B), because an untested rule could hide a trap.
+- Confidence: `high` when the undetermined share is under 10%, no page is unreadable,
+  every rule was reached and at least 75% of branches were taken. `medium` when the
+  undetermined share is under 25% and at least 75% of rules were reached. Otherwise
+  `low`. The general pack caps confidence at `medium`. A run with no outcomes is `low`:
+  nothing tested is not the same as nothing found. The coverage is stored on the
+  analysis and the report states it beside the grade formula.
 - Trap titles and "what you can do" text are written by one final Flash call (60 s) from
   the structured trap data: the deciding rule and up to two example scenarios per trap.
   The numbers above are never produced by the model; only `title` and `action` are read
@@ -468,6 +505,11 @@ scenario ID), legal findings (by rule ID) and the analysis meta.
   or an action with an accusing word (`ACCUSING` in `agents/trap-writer.ts`) is stored as
   null. So is one with a number that is not in what the model was told about that trap:
   the numbers of a trap come from code, never from the model.
+- Writing tells (`TELLS` in the same file: dashes, semicolons, exclamation marks and a
+  list of inflated words) are checked next. An answer with one is sent back once, named
+  under `avoid`, when the call can still end before the request deadline
+  (`rewriteTells()`). A sentence that still has a tell is then dropped, and a field with
+  no sentence left is null. Curly quotes are made straight.
 
 The weights are a first guess and are kept in `config.ts` (`config.scoring`) for tuning
 against real documents. The pipeline passes them to `score()`; the engine does not import
@@ -636,16 +678,24 @@ the analysis document for the eval report.
 
 ### Known faults
 
-A Codex review found these four on 2026-10-18, and each was confirmed in the code. R0 fixes them.
+A Codex review found four faults on 2026-10-18, each confirmed in the code. R0 fixed them,
+each with a test that failed before the fix:
 
-1. `apps/api/src/engine/evaluate.ts:104-116` treats any benefit that fires as the one the scenario
-   targets, so an unrelated benefit can hide a denial.
-2. `evaluate.ts:115-122` returns as soon as a denial fires, so the unmodeled check at line 124 never
-   runs for that scenario. `apps/api/src/legal/research.ts:86` looks up only rules that decided a
-   bad outcome, so a discretionary clause can escape both the run and the law check.
-3. `apps/api/src/legal/verify.ts:66` keeps the legal status when any one quote survives, even if the
-   decisive quote failed.
-4. `apps/api/src/engine/score.ts:119` sets confidence without looking at rule coverage.
+1. An unrelated benefit that fired hid the denial of the targeted one. Section 5.4, stage 1.
+2. A denial ended the run before the unmodeled check, and the law was looked up only for
+   rules that decided a bad outcome. Sections 5.4, stage 4, and 5.6.
+3. One surviving quote kept the whole legal status. Section 5.6, step 4.
+4. Confidence and the grade ignored how much of the document the scenarios reached.
+   Section 5.7.
+
+### Versions
+
+Each stage that finishes writes `versions.{stage}` on the analysis (`apps/api/src/versions.ts`):
+the model IDs from `config.models`, a 16-character SHA-256 of each agent file (the prompts
+live there), one of the packs, one of the engine code with `config.scoring`, and the law
+corpus snapshot, which is null until the law is read from our own corpus. The image runs
+the source through tsx, so the hashed files are the files that run. The model IDs are
+previews that can change under one name, and the analysis `updatedAt` dates them.
 
 ## 13. Open technical questions
 

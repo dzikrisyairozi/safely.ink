@@ -31,6 +31,7 @@
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^26.6.5",
     "eslint": "^9.39.5",
+    "fast-check": "4.10.2",
     "firebase": "^13.0.0",
     "globals": "^17.13.0",
     "typescript": "~6.0.3",

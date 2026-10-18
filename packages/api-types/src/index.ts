@@ -187,23 +187,37 @@ export const Citation = z.object({
 });
 export type Citation = z.infer<typeof Citation>;
 
-// What the model says the law says about one deciding rule, before code has
-// looked for its quotes in the pages (F-CMP-4).
+// A citation as the model gives it: with the status its passage shows on its
+// own, so the status can be checked against the quotes that survive.
+export const ClaimedCitation = Citation.extend({
+  supports: z.enum(['conflicts', 'restricted', 'permitted']),
+});
+export type ClaimedCitation = z.infer<typeof ClaimedCitation>;
+
+// What the model says the law says about one rule, before code has looked
+// for its quotes in the pages (F-CMP-4).
 export const LegalAssessment = z.object({
   status: z.enum(['conflicts', 'restricted', 'permitted', 'no_finding']),
   reasoning: z.string(),
-  citations: z.array(Citation),
+  citations: z.array(ClaimedCitation),
 });
 export type LegalAssessment = z.infer<typeof LegalAssessment>;
 
-const cited: Parameters<typeof LegalAssessment.refine> = [
+const cited: [
+  (finding: {
+    status: LegalAssessment['status'];
+    citations: unknown[];
+  }) => boolean,
+  { path: string[]; message: string },
+] = [
   (finding) => finding.status === 'no_finding' || finding.citations.length > 0,
   { path: ['citations'], message: 'A finding needs at least one citation' },
 ];
 const lookupError = z.literal('lookup_unavailable').nullable();
 
-// What the law says about one deciding rule, once checked.
+// What the law says about one rule, once checked.
 export const LegalFinding = LegalAssessment.extend({
+  citations: z.array(Citation),
   error: lookupError,
 }).refine(...cited);
 export type LegalFinding = z.infer<typeof LegalFinding>;
@@ -211,6 +225,7 @@ export type LegalFinding = z.infer<typeof LegalFinding>;
 // The Firestore document analyses/{id}/findings/{ruleId}. It names its rule,
 // as a trap does, because a listener reads the data and not the ID.
 export const StoredFinding = LegalAssessment.extend({
+  citations: z.array(Citation),
   ruleId: z.string(),
   error: lookupError,
 }).refine(...cited);
@@ -228,8 +243,11 @@ export type Grade = z.infer<typeof Grade>;
 export const GRADE_FORMULA: {
   penalty: Record<Severity, number>;
   gradeBands: { from: number; value: Grade }[];
+  // The best grade when some rule was never reached by a scenario.
+  untestedBest: Grade;
 } = {
   penalty: { critical: 20, high: 10, medium: 5, low: 2 },
+  untestedBest: 'B',
   gradeBands: [
     { from: 90, value: 'A' },
     { from: 75, value: 'B' },
@@ -242,9 +260,17 @@ export const GRADE_FORMULA: {
 export const Confidence = z.enum(['high', 'medium', 'low']);
 export type Confidence = z.infer<typeof Confidence>;
 
+// Shares from 0 to 1 of the rules a scenario reached and of the condition
+// branches, true or false, that a scenario took.
+export const Coverage = z.object({
+  rules: z.number().min(0).max(1),
+  branches: z.number().min(0).max(1),
+});
+export type Coverage = z.infer<typeof Coverage>;
+
 export const Trap = z.object({
   id: z.string(), // "trap-r-004"
-  ruleId: z.string(), // the deciding rule the examples share
+  ruleId: z.string(), // the rule the examples share
   scenarioIds: z.array(z.string()).min(1),
   severity: Severity,
   // Written after scoring by a model; the numbers never are.
@@ -343,6 +369,19 @@ const RunningStatus = AnalysisStatus.extract([
   'comparing',
 ]);
 
+// What produced one stage of an analysis, so a report can be reproduced.
+// Prompts are hashed by the agent file that holds them, the engine by its
+// code and the scoring weights. `corpus` names the law corpus snapshot once
+// the law is read from our own copy.
+export const Versions = z.object({
+  models: z.record(z.string(), z.string()),
+  prompts: z.record(z.string(), z.string()),
+  packs: z.string(),
+  engine: z.string(),
+  corpus: z.string().nullable(),
+});
+export type Versions = z.infer<typeof Versions>;
+
 // The Firestore document analyses/{id}, as far as the dashboard reads it.
 export const Analysis = z.object({
   ownerUid: z.string(),
@@ -373,6 +412,9 @@ export const Analysis = z.object({
   grade: Grade.optional(),
   points: z.number().int().optional(), // what the grade was read from
   confidence: Confidence.optional(),
+  coverage: Coverage.optional(),
+  // By the status of the stage they produced, written when it is done.
+  versions: z.record(z.string(), Versions).optional(),
   // A Firestore timestamp; only its seconds are read, so the Admin and the
   // web SDK's both fit.
   createdAt: z.object({ seconds: z.number() }).optional(),

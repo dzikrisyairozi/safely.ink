@@ -24,6 +24,7 @@ import { lookUpLaw } from './legal/research';
 import { runPipeline } from './pipeline';
 import { writeTraps } from './agents/trap-writer';
 import { BASE_FACTS } from './pipeline/rule-check';
+import { versions } from './versions';
 
 // Run through `pnpm test`: Firestore is the emulator. Only the model is
 // replaced.
@@ -352,6 +353,18 @@ test('running the stored rules and scenarios again gives the same outcomes', asy
   }
 });
 
+test('each stage that is done records the versions that produced it, the same on a second run', async () => {
+  await readyToRun(waiting);
+  await runPipeline('analysis-1');
+  const first = (await stored())!.versions;
+
+  await analysis.update({ status: 'running' });
+  await runPipeline('analysis-1');
+
+  expect(first).toEqual({ running: versions, comparing: versions });
+  expect((await stored())!.versions).toEqual(first);
+});
+
 test('the run adds the outcome and leaves the rest of a scenario as it was', async () => {
   const kept = { addedBy: 'a later stage' };
   await readyToRun([{ ...waiting[0]!, ...kept }]);
@@ -541,17 +554,23 @@ test('the grade can be worked out again from the stored traps', async () => {
 });
 
 test('a scenario the rules cannot decide lowers the confidence and not the grade', async () => {
-  await readyToRun(waiting.slice(0, 2));
-  await runPipeline('analysis-1');
-  const clear = await stored();
-
-  await analysis.update({ status: 'running' });
   await readyToRun(waiting);
   await runPipeline('analysis-1');
-  const unclear = await stored();
 
-  expect([clear!.grade, clear!.confidence]).toEqual(['A', 'high']);
-  expect([unclear!.grade, unclear!.confidence]).toEqual(['A', 'low']);
+  expect(await stored()).toMatchObject({
+    grade: 'A',
+    confidence: 'low',
+    coverage: { rules: 1 },
+  });
+});
+
+test('a rule no scenario reached keeps the grade from A and lowers the confidence', async () => {
+  await readyToRun(waiting.slice(0, 2));
+  await runPipeline('analysis-1');
+
+  const { points, grade, confidence, coverage } = (await stored())!;
+  expect([points, grade, confidence]).toEqual([90, 'B', 'low']);
+  expect(coverage!.rules).toBeCloseTo(2 / 3);
 });
 
 test('an outcome that is what the user expected is no trap', async () => {
@@ -566,9 +585,10 @@ test('an outcome that is what the user expected is no trap', async () => {
   expect(await stored()).toMatchObject({ grade: 'A', counts: { traps: 0 } });
 });
 
-// 21 scenarios are three batches of the judge.
+// 21 scenarios are three batches of the judge. The last two reach the rules
+// the others do not, so the run covers the document.
 const many = Array.from({ length: 21 }, (_, n) => ({
-  ...waiting[1]!,
+  ...waiting[n === 20 ? 2 : n === 19 ? 0 : 1]!,
   id: `s-${String(n + 1).padStart(3, '0')}`,
 }));
 
@@ -636,7 +656,7 @@ test('one batch of the judge that fails twice does not cost the other', async ()
     (await storedScenarios()).filter(({ expectation }) => expectation),
   ).toHaveLength(11);
   const [trap] = await traps();
-  expect(trap!.scenarioIds).toHaveLength(11);
+  expect(trap!.scenarioIds).toHaveLength(9);
   expect(trap!.scenarioIds).not.toContain('s-001');
   // The analysis says how much was compared, and is not sure of the rest.
   expect(await stored()).toMatchObject({

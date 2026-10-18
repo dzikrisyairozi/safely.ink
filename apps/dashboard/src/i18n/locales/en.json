@@ -334,7 +334,9 @@
       "penalty_one": "{{severity}}: {{count}} point",
       "penalty_other": "{{severity}}: {{count}} points",
       "bands": "Then the grade: {{bands}}.",
-      "this": "This report: {{score}} points, grade {{grade}}."
+      "this": "This report: {{score}} points, grade {{grade}}.",
+      "untested": "A run that did not reach every rule gets at most {{grade}}, because a rule nobody tested could hide a trap.",
+      "coverage": "The scenarios reached {{rules}}% of the rules and tried {{branches}}% of the ways their conditions can turn out."
     }
   },
   "trap": {

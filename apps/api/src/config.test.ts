@@ -32,6 +32,7 @@ test('the scoring weights give the grade TSD 5.7 works out by hand', () => {
   // the law restricts (2). Seven points is critical, which costs 20.
   const result = score(
     {
+      rules: [],
       scenarios: [
         {
           id: 's-1',
@@ -111,4 +112,5 @@ test('the grade is computed with the formula the report shows', () => {
 
   expect(config.scoring.penalty).toBe(GRADE_FORMULA.penalty);
   expect(config.scoring.gradeBands).toBe(GRADE_FORMULA.gradeBands);
+  expect(config.scoring.untestedBest).toBe(GRADE_FORMULA.untestedBest);
 });

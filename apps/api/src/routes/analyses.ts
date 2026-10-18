@@ -17,6 +17,7 @@ import { clearStage, isStage, runPipeline, saveAll } from '../pipeline';
 import { checkReading } from '../pipeline/reader-check';
 import { loadUploads } from '../uploads';
 import { nextReset, releaseDailySlot, reserveDailySlot } from '../usage';
+import { versions } from '../versions';
 
 const { limits } = config;
 const megabytes = limits.uploadMaxBytes / (1024 * 1024);
@@ -100,6 +101,7 @@ analyses.post('/', async (c) => {
         status: reading.status,
         meta: reading.meta,
         counts: { clauses: reading.clauses.length },
+        'versions.reading': versions,
         updatedAt,
       });
     }

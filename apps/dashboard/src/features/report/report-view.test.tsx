@@ -61,6 +61,7 @@ const analysis: Analysis = {
   grade: 'B',
   points: 88,
   confidence: 'medium',
+  coverage: { rules: 0.8, branches: 0.625 },
   createdAt: { seconds: 1_760_400_000 },
   counts: {
     scenarios: 3,
@@ -267,6 +268,12 @@ test('the grade formula is there on request and adds up for this report', () => 
   expect(formula.tagName).toBe('DETAILS');
   expect(formula.textContent).toMatch(/Critical: 20 points/);
   expect(formula.textContent).toMatch(/This report: 88 points, grade B/);
+  expect(formula.textContent).toMatch(
+    /did not reach every rule gets at most B/,
+  );
+  expect(formula.textContent).toMatch(
+    /reached 80% of the rules and tried 63% of the ways/,
+  );
 });
 
 test('the points of this report are the ones the API graded with', () => {
