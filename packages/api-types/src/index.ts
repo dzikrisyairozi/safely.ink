@@ -415,6 +415,24 @@ export const Analysis = z.object({
   coverage: Coverage.optional(),
   // By the status of the stage they produced, written when it is done.
   versions: z.record(z.string(), Versions).optional(),
+  // What the model calls used, by model ID, and the cost of their tokens in
+  // US dollars at the price of the day of each call. Search queries and calls
+  // that reported no usage are counted, not priced, so the cost is a floor.
+  usage: z
+    .record(
+      z.string(),
+      z.object({
+        calls: z.number(),
+        input: z.number(),
+        cached: z.number(),
+        output: z.number(),
+        unreported: z.number(),
+        searches: z.number(),
+        usd: z.number(),
+      }),
+    )
+    .optional(),
+  tokenCostUsd: z.number().optional(),
   // A Firestore timestamp; only its seconds are read, so the Admin and the
   // web SDK's both fit.
   createdAt: z.object({ seconds: z.number() }).optional(),

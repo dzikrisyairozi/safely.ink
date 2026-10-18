@@ -21,7 +21,7 @@ import { config } from './config';
 import { evaluate } from './engine/evaluate';
 import { db } from './firebase';
 import { lookUpLaw } from './legal/research';
-import { runPipeline } from './pipeline';
+import { addUsage, runPipeline } from './pipeline';
 import { writeTraps } from './agents/trap-writer';
 import { BASE_FACTS } from './pipeline/rule-check';
 import { versions } from './versions';
@@ -351,6 +351,37 @@ test('running the stored rules and scenarios again gives the same outcomes', asy
   for (const { outcome, ...ran } of await storedScenarios()) {
     expect(evaluate(again, schema, ran)).toEqual(outcome);
   }
+});
+
+test('the usage of each call is added to the analysis by model, with its token cost', async () => {
+  await readyToRun(waiting);
+  const used = {
+    calls: 1,
+    input: 1000,
+    cached: 0,
+    output: 100,
+    unreported: 0,
+    searches: 1,
+    usd: 0.5,
+  };
+
+  await addUsage(analysis, 'gemini-3.8-flash', used);
+  await addUsage(analysis, 'gemini-3.8-flash', { ...used, unreported: 1 });
+
+  expect(await stored()).toMatchObject({
+    usage: {
+      'gemini-3.8-flash': {
+        calls: 2,
+        input: 2000,
+        cached: 0,
+        output: 200,
+        unreported: 1,
+        searches: 2,
+        usd: 1,
+      },
+    },
+    tokenCostUsd: 1,
+  });
 });
 
 test('each stage that is done records the versions that produced it, the same on a second run', async () => {

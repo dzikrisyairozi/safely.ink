@@ -1,3 +1,4 @@
+import { ThinkingLevel } from '@google/genai';
 import { z } from 'zod';
 import {
   Scenario,
@@ -137,6 +138,9 @@ export const proposeScenarios = (
       })),
     },
     seconds,
+    // At the default level the baseline call did not answer in its limit in
+    // 1 run of 3 (2026-10-14).
+    ThinkingLevel.LOW,
   );
 
 const Told = z.looseObject({ n: z.number().int() });
@@ -163,6 +167,7 @@ export async function tellBoundaries(
       situations: drafts.map(({ situation }, n) => ({ n: n + 1, situation })),
     },
     seconds,
+    ThinkingLevel.LOW,
   );
   return stories.flatMap((entry) => {
     const told = Told.safeParse(entry);

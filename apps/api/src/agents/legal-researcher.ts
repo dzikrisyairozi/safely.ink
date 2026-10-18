@@ -12,6 +12,7 @@ import {
 } from '@repo/api-types';
 import { config } from '../config';
 import { KIND } from './expectation-judge';
+import { recordCall } from '../telemetry';
 import { runAgent, runSearch } from './run';
 
 const SEARCH_INSTRUCTION = `You find the official text of the law that applies to one term of a
@@ -124,18 +125,34 @@ export async function readLawPage(url: string): Promise<string | null> {
   const apiKey = config.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set.');
 
-  const response = await new GoogleGenAI({ apiKey }).models.generateContent({
-    model: config.models.flash,
-    contents: `URL: ${url}`,
-    config: {
-      systemInstruction: PAGE_INSTRUCTION,
-      tools: [{ urlContext: {} }],
-      temperature: 0,
-      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-      abortSignal: AbortSignal.timeout(
-        config.limits.modelCallSeconds.lawPage * 1000,
-      ),
-    },
+  const model = config.models.flash;
+  const signal = AbortSignal.timeout(
+    config.limits.modelCallSeconds.lawPage * 1000,
+  );
+  const started = Date.now();
+  const response = await new GoogleGenAI({ apiKey }).models
+    .generateContent({
+      model,
+      contents: `URL: ${url}`,
+      config: {
+        systemInstruction: PAGE_INSTRUCTION,
+        tools: [{ urlContext: {} }],
+        temperature: 0,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        abortSignal: signal,
+      },
+    })
+    .catch((err) => {
+      const outcome = signal.aborted ? 'cancelled' : 'failed';
+      void recordCall({ name: 'law_page', model, started, outcome });
+      throw err;
+    });
+  void recordCall({
+    name: 'law_page',
+    model,
+    started,
+    metadata: response.usageMetadata,
+    outcome: 'answered',
   });
   const [candidate] = response.candidates ?? [];
   const opened = candidate?.urlContextMetadata?.urlMetadata?.some(

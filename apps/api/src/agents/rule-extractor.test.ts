@@ -12,8 +12,16 @@ vi.mock('@google/adk', () => ({
   Gemini: class {},
   LlmAgent: class {},
   InMemoryRunner: class {
-    async *runEphemeral() {
-      if (model.hangs) await new Promise(() => {});
+    sessionService = {
+      createSession: async () => ({ id: 'session' }),
+      deleteSession: async () => {},
+    };
+    async *runAsync(run: { abortSignal: AbortSignal }) {
+      if (model.hangs) {
+        await new Promise((stop) =>
+          run.abortSignal.addEventListener('abort', stop),
+        );
+      }
       yield {};
     }
   },
@@ -85,6 +93,33 @@ test('a model that does not answer in time is an error, not a wait', async () =>
   );
 
   await failed;
+  vi.useRealTimers();
+  model.hangs = false;
+});
+
+test('a call past its limit is cancelled and logged as cancelled', async () => {
+  vi.useFakeTimers();
+  model.hangs = true;
+  const lines: string[] = [];
+  const log = vi
+    .spyOn(console, 'log')
+    .mockImplementation((line) => lines.push(line));
+
+  const call = proposeRules([], factSchema, document);
+  const failed = expect(call).rejects.toThrow(/was cancelled/);
+  await vi.advanceTimersByTimeAsync(
+    config.limits.modelCallSeconds.rules * 1000,
+  );
+
+  await failed;
+  expect(lines.map((line) => JSON.parse(line))).toMatchObject([
+    {
+      severity: 'WARNING',
+      message: 'model call cancelled',
+      model: config.models.pro,
+    },
+  ]);
+  log.mockRestore();
   vi.useRealTimers();
   model.hangs = false;
 });

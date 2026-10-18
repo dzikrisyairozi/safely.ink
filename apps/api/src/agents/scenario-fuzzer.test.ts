@@ -28,10 +28,21 @@ vi.mock('@google/adk', () => ({
     }
   },
   InMemoryRunner: class {
-    async *runEphemeral(run: { newMessage: { parts: { text: string }[] } }) {
+    sessionService = {
+      createSession: async () => ({ id: 'session' }),
+      deleteSession: async () => {},
+    };
+    async *runAsync(run: {
+      newMessage: { parts: { text: string }[] };
+      abortSignal: AbortSignal;
+    }) {
       model.calls += 1;
       model.message = run.newMessage.parts[0]!.text;
-      if (model.hangs) await new Promise(() => {});
+      if (model.hangs) {
+        await new Promise((stop) =>
+          run.abortSignal.addEventListener('abort', stop),
+        );
+      }
       yield {};
     }
   },
