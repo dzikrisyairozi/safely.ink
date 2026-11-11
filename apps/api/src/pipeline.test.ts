@@ -1,9 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import {
-  DocumentReference,
-  FieldValue,
-  Timestamp,
-} from 'firebase-admin/firestore';
+import { FieldValue, Query, Timestamp } from 'firebase-admin/firestore';
 import {
   FactSchema,
   Rule,
@@ -28,6 +24,7 @@ import { lookUpLaw } from './legal/research';
 import {
   abandonRun,
   addUsage,
+  LeaseLost,
   stalledRun,
   runPipeline,
   runStage,
@@ -920,19 +917,38 @@ test('a retried stage removes clearFirst when it fails', async () => {
   expect(await startedOnCreationDay()).toBe(0);
 });
 
+test('a retried stage clears more than 400 documents', async () => {
+  await analysis.update({ clearFirst: true });
+  const batch = db.batch();
+  for (let n = 0; n < 401; n++) {
+    const id = `stale-${n}`;
+    batch.set(analysis.collection('rules').doc(id), { id });
+  }
+  await batch.commit();
+
+  expect(await runStage('analysis-1')).toEqual({
+    status: 'fuzzing',
+    moved: true,
+  });
+
+  expect((await storedRules()).map(({ id }) => id)).toEqual([
+    'r-001',
+    'r-002',
+    'r-003',
+  ]);
+});
+
 test('a retried attempt that loses its lease before cleanup leaves the other attempt trap', async () => {
   await readyToRun(waiting);
   await runStage('analysis-1');
   await analysis.update({ clearFirst: true });
   const trap = analysis.collection('traps').doc('other-attempt');
-  const get = DocumentReference.prototype.get;
+  const get = Query.prototype.get;
   const read = vi
-    .spyOn(DocumentReference.prototype, 'get')
-    .mockImplementation(async function (this: DocumentReference) {
-      if (this.path === analysis.path) {
-        await analysis.update({ lease: leaseFor('other', 60_000) });
-        await trap.set({ id: 'other-attempt' });
-      }
+    .spyOn(Query.prototype, 'get')
+    .mockImplementationOnce(async function (this: Query) {
+      await analysis.update({ lease: leaseFor('other', 60_000) });
+      await trap.set({ id: 'other-attempt' });
       return get.call(this);
     });
   try {
@@ -955,32 +971,51 @@ test('a retried attempt that loses its lease during cleanup leaves the other att
   await readyToRun(waiting);
   await runStage('analysis-1');
   await analysis.update({ clearFirst: true });
-  const trap = analysis.collection('traps').doc('other-attempt');
-  const recursiveDelete = db.recursiveDelete.bind(db);
-  const cleared = vi
-    .spyOn(db, 'recursiveDelete')
-    .mockImplementationOnce(async (...args) => {
-      await recursiveDelete(...args);
-      await analysis.update({
+  const ids = ['trap-001', 'trap-002'];
+  for (const id of ids) {
+    await analysis.collection('traps').doc(id).set({ id, attempt: 'old' });
+  }
+  const get = Query.prototype.get;
+  const read = vi
+    .spyOn(Query.prototype, 'get')
+    .mockImplementationOnce(async function (this: Query) {
+      const round = await get.call(this);
+      expect(round.docs.map((doc) => doc.id)).toEqual(ids);
+      const takeover = db.batch();
+      takeover.update(analysis, {
         lease: leaseFor('other', 60_000),
         grade: 'A',
-        'counts.traps': 1,
+        'counts.traps': ids.length,
       });
-      await trap.set({ id: 'other-attempt' });
+      for (const id of ids) {
+        takeover.set(analysis.collection('traps').doc(id), {
+          id,
+          attempt: 'other',
+        });
+      }
+      await takeover.commit();
+      return round;
     });
+  const transaction = vi.spyOn(db, 'runTransaction');
   try {
     expect(await runStage('analysis-1')).toEqual({ busy: true });
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(transaction).toHaveBeenCalledTimes(2);
+    await expect(transaction.mock.results[1]!.value).rejects.toBeInstanceOf(
+      LeaseLost,
+    );
   } finally {
-    cleared.mockRestore();
+    read.mockRestore();
+    transaction.mockRestore();
   }
 
-  expect((await trap.get()).exists).toBe(true);
+  expect(await traps()).toEqual(ids.map((id) => ({ id, attempt: 'other' })));
   expect(await stored()).toMatchObject({
     status: 'comparing',
     clearFirst: true,
     lease: { attemptId: 'other' },
     grade: 'A',
-    counts: { traps: 1 },
+    counts: { traps: ids.length },
   });
   expect(judged).not.toHaveBeenCalled();
   expect(await startedOnCreationDay()).toBe(1);

@@ -498,17 +498,36 @@ export const isStage = (status: unknown): status is AnalysisStatus =>
  * again leaves nothing of that attempt behind.
  */
 async function clearStage(analysis: DocumentReference, status: AnalysisStatus) {
-  await fence(analysis);
+  const attemptId = currentAttempt();
+  if (attemptId === undefined) {
+    throw new Error('Stage cleanup requires a leased attempt.');
+  }
   const stage = STAGES.find((candidate) => candidate.status === status);
-  if (stage?.writes)
-    await db.recursiveDelete(analysis.collection(stage.writes));
+  if (stage?.writes) {
+    // The rules, scenarios, and traps sub-collections have no nested sub-collections.
+    for (;;) {
+      const round = await analysis
+        .collection(stage.writes)
+        .select()
+        .limit(400)
+        .get();
+      if (round.empty) break;
+      await db.runTransaction(async (tx) => {
+        const data = (await tx.get(analysis)).data();
+        if (data?.lease?.attemptId !== attemptId) throw new LeaseLost();
+        for (const doc of round.docs) tx.delete(doc.ref);
+      });
+    }
+  }
   if (stage?.results) {
-    await fence(analysis);
-    await analysis.update(
-      Object.fromEntries(
-        stage.results.map((field) => [field, FieldValue.delete()]),
-      ),
+    const fields = Object.fromEntries(
+      stage.results.map((field) => [field, FieldValue.delete()]),
     );
+    await db.runTransaction(async (tx) => {
+      const data = (await tx.get(analysis)).data();
+      if (data?.lease?.attemptId !== attemptId) throw new LeaseLost();
+      tx.update(analysis, fields);
+    });
   }
 }
 

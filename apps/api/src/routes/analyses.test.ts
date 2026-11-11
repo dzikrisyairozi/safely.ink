@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import { DocumentReference, Timestamp } from 'firebase-admin/firestore';
+import { DocumentReference, Query, Timestamp } from 'firebase-admin/firestore';
 import {
   ErrorEnvelope,
   ReaderOutput,
@@ -539,7 +539,7 @@ test('a retry whose cleanup fails ends at that stage and gives its slot back onc
   // Another run has a slot, so a second refund would be visible.
   await db.doc(`users/alice/usage/${TODAY}`).update({ started: 1 });
   const cleared = vi
-    .spyOn(db, 'recursiveDelete')
+    .spyOn(Query.prototype, 'get')
     .mockRejectedValueOnce(new Error('delete refused'));
   try {
     const res = await retry('alice', 'analysis-1');

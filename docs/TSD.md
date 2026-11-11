@@ -252,9 +252,10 @@ A lease that has not run out makes the call busy. A lease that ran out belongs t
 that died, so the new attempt clears that stage's output (`clearStage()`) and runs it again.
 The first attempt of a retried stage also clears its output under its lease when
 `clearFirst` is set. Cleanup deletes the sub-collection the stage writes (`rules`,
-`scenarios` or `traps`) and its result fields. It checks the lease before deleting the
-sub-collection and again before clearing result fields. The flag stays until the stage
-moves on or fails, so recovery clears the stage again. Every write of a stage first checks
+`scenarios` or `traps`) and its result fields. Each batch of deletes runs in a transaction
+that checks the lease. Result fields are cleared in a transaction with the same lease
+check. The flag stays until the stage moves on or fails, so recovery clears the stage again.
+Every write of a stage first checks
 that its attempt still holds the lease (`fence()`), so an attempt that stalled past its
 lease and wakes up stops with `LeaseLost` instead of writing over the attempt that took over. A write that starts in the
 moment between the check and the takeover still lands. The status moves on only in a
