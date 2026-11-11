@@ -7,6 +7,8 @@
 | Method  | Web search and reading of abstracts and official pages on the date above                    |
 | Related | [Market and competitors](./2026-10-18-market-and-competitors.md) · [Roadmap](../ROADMAP.md) |
 
+The [plan refresh of 2026-11-11](./2026-11-11-plan-refresh.md) updates this note where they differ.
+
 Every arXiv ID below was checked against its title on 2026-10-18. Most findings come from
 abstracts, so a figure quoted here can differ from the final published version. Where only a
 secondary write-up was available, the text says so.

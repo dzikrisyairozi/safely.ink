@@ -1,10 +1,10 @@
 # Where safely.ink goes next
 
-|         |                                                                                                                                                                                                                                                                                           |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status  | Living document                                                                                                                                                                                                                                                                           |
-| Date    | 2026-10-18                                                                                                                                                                                                                                                                                |
-| Related | [PRD](./PRD.md) · [FSD](./FSD.md) · [TSD](./TSD.md) · [Literature review](./research/2026-10-18-literature-review.md) · [Market](./research/2026-10-18-market-and-competitors.md) · [Technical stack](./research/2026-10-18-technical-stack.md) · [Flow](./FLOW.md) · [Setup](./SETUP.md) |
+|         |                                                                                                                                                                                                                                                                                                                                                   |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status  | Living document                                                                                                                                                                                                                                                                                                                                   |
+| Date    | 2026-11-11                                                                                                                                                                                                                                                                                                                                        |
+| Related | [PRD](./PRD.md) · [FSD](./FSD.md) · [TSD](./TSD.md) · [Literature review](./research/2026-10-18-literature-review.md) · [Market](./research/2026-10-18-market-and-competitors.md) · [Technical stack](./research/2026-10-18-technical-stack.md) · [Plan refresh](./research/2026-11-11-plan-refresh.md) · [Flow](./FLOW.md) · [Setup](./SETUP.md) |
 
 ## The goal
 
@@ -26,48 +26,29 @@ Three guardrails sit beside it:
 3. Trust-boundary breaches. Sponsor influence on findings, or sharing without consent. The target
    is zero.
 
-## Where we are on 2026-10-18
+## Where we are on 2026-11-11
 
-Version 1.0.1 is deployed. A user signs in with Google, uploads a PDF or photos of pages, confirms
-the document type, country and their role, and watches the run. Gemini reads the clauses and
-writes rules, about 40 scenarios run through the deterministic engine, a blinded judge gives the
-reasonable person's expectation, and Indonesian law is looked up with quotes checked against the
-fetched page. The report, trap and rules views, history, delete, the English and Indonesian UI,
-the landing page and blog, and tag-driven release CI all work.
+Version 1.0.1 is deployed and is what users get. A user signs in with Google, uploads a PDF or photos of pages, confirms the document type, country and their role, and watches the run. Gemini reads the clauses and writes rules, about 40 scenarios run through the deterministic engine, a blinded judge gives the reasonable person's expectation, and Indonesian law is looked up with quotes checked against the fetched page.
 
-Some things have not been shown. Nobody has walked the FSD acceptance criteria end to end, and
-issue #16 is still open. There is no labelled document set and no `docs/eval.md`, so the PRD
-targets (95% of rules trace to a clause, 80% of traps confirmed, 150 seconds) have no measurement
-behind them.
+`staging` is ahead of it and has no release yet:
 
-Known weaknesses, all in issue #16 or found while writing this roadmap:
+| Milestone       | State on `staging`                                                                                                                                                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0 Engine fixes | Done (#49). The four faults are fixed with tests, each stage records its versions, grades are capped when a rule goes untested, and generated text passes a writing filter                                                                                    |
+| R2 Durable runs | Part 1 is done (#51): model calls are cancelled at their limit, each call is logged with tokens and cost. Part 2, Cloud Tasks with leases, stop and stall recovery, is done (#53), behind settings that production has not set. The budget pause is not built |
+| Docs            | The FSD, TSD, runbook and ADRs pass `pnpm lint:prose` (#50)                                                                                                                                                                                                   |
 
-- `peraturan.bpk.go.id` blocks Cloud Run, and 8 of 13 law lookups were unavailable in one live
-  Indonesian run.
-- The fuzzer's baseline call timed out in 1 run of 3, and boundary scenarios step by 1 even for
-  rupiah amounts.
-- The run lives inside one HTTP request for up to 850 seconds, and a model call that times out
-  keeps running and costs money.
-- The upload bucket is in US-EAST1, reports have no expiry, and the privacy page has `[TBD]`
-  fields.
-- `staging` is a branch with no environment behind it, and the custom domains are not live.
+Some things have not been shown. Nobody has walked the FSD acceptance criteria end to end, and issue #16 is still open. There is no labelled document set and no `docs/eval.md`, so the accuracy targets have no measurement behind them. Cloud Tasks has only run against mocks, because the queue and worker need the setup in `docs/runbook.md`.
 
-Four engine and citation faults came out of a Codex review and were confirmed in the code:
+Weaknesses still open:
 
-- `apps/api/src/engine/evaluate.ts:104-116` treats any benefit that fires as the one the scenario
-  targets, so an unrelated benefit can hide a denial.
-- `evaluate.ts:115-122` returns as soon as a benefit, condition, deadline or exclusion denies the
-  scenario, so the unmodeled check at line 124 never runs for it, and an unmodeled rule with no
-  `touches` facts never affects any outcome. `apps/api/src/legal/research.ts:86` researches only
-  rules that decided a bad outcome. A discretionary fee clause can escape both the run and the law
-  check.
-- `apps/api/src/legal/verify.ts:66` keeps the legal status when any one quote survives, even if
-  the decisive quote failed.
-- `apps/api/src/engine/score.ts:119` sets confidence without looking at rule coverage, so a run
-  that never tested an exclusion can still get an A with high confidence.
+- `peraturan.bpk.go.id` blocks Cloud Run, and 8 of 13 law lookups were unavailable in one live Indonesian run. R5 fixes this with our own corpus.
+- Boundary scenarios step by 1 even for rupiah amounts (R7).
+- The upload bucket is in US-EAST1, reports have no expiry, and the privacy page has `[TBD]` fields (R3).
+- `staging` is a branch with no environment behind it, and the custom domains are not live (R4).
+- Neither Gemini model in use is listed for processing in Singapore, and our calls still set a parameter Google will reject in a future release. The [plan refresh](./research/2026-11-11-plan-refresh.md) has both.
 
-For the hackathon submission the honest claim is a working demo on an Indonesian insurance
-policy, with legal findings that may be partial and no accuracy figures.
+The honest claim today is a working demo on an Indonesian insurance policy, with legal findings that may be partial and no accuracy figures.
 
 ## The wedge
 
@@ -89,56 +70,48 @@ never sold as proof of compliance with POJK 22/2023.
 Each milestone is tagged by what it needs. "Code" means we can finish it in the repo. "People"
 means labels, legal review or a partner set its pace.
 
-| Horizon             | ID  | Milestone                                                       | Needs                               | Depends on |
-| ------------------- | --- | --------------------------------------------------------------- | ----------------------------------- | ---------- |
-| H1 Trustworthy core | R0  | Engine fixes                                                    | Code                                |            |
-| H1                  | R1  | Evaluation foundation                                           | Code for tooling, people for labels | R0         |
-| H1                  | R2  | Durable runs                                                    | Code                                |            |
-| H1                  | R3  | Data protection                                                 | Decisions, counsel                  |            |
-| H1                  | R4  | Staging environment                                             | GCP access                          | R2         |
-| H2 Indonesian depth | R5  | Indonesian legal corpus                                         | Code, a legal check of the corpus   | R1         |
-| H2                  | R6  | Counsellor-style intake                                         | Code                                | R0         |
-| H2                  | R7  | Consumer-finance packs                                          | Code                                | R0, R1, R5 |
-| H2                  | R8  | Clause highlighting                                             | Code                                | R0         |
-| H3 Act on findings  | R9  | Referral with an evidence packet                                | Code, partner directory             | R6         |
-| H3                  | R10 | Document comparison                                             | Code                                | R7         |
-| H3                  | R11 | After-the-fact mode and complaint drafts                        | Code, counsel                       | R6, R5     |
-| H3                  | R12 | Two-party and defect analysis, graded and party-bias warnings   | Code                                | R1, R5     |
-| H3                  | R13 | Fast classifiers in shadow mode                                 | Code, a processing agreement        | R1         |
-| H4 Reach            | R14 | Counsel review and public launch                                | People                              | R1, R3, R4 |
-| H4                  | R15 | B2B design partner                                              | People                              | R12        |
-| H4                  | R16 | Lawyer-reviewed rewording library                               | People                              | R12        |
-| H4                  | R17 | Published Indonesian benchmark and reviewed product comparisons | People                              | R1, R14    |
-| H5 Region           | R18 | Standard-contract regimes in Thailand and Vietnam               | People                              | R17        |
+| Horizon             | ID  | Milestone                                                       | Needs                               | Depends on      |
+| ------------------- | --- | --------------------------------------------------------------- | ----------------------------------- | --------------- |
+| H1 Trustworthy core | R0  | Engine fixes                                                    | Code                                |                 |
+| H1                  | R1  | Evaluation foundation                                           | Code for tooling, people for labels | R0              |
+| H1                  | R2  | Durable runs                                                    | Code                                |                 |
+| H1                  | R3  | Data protection                                                 | Decisions, counsel                  |                 |
+| H1                  | R3m | Singapore model move                                            | Code, GCP access                    | R1 smoke        |
+| H1                  | R4  | Staging environment                                             | GCP access                          | R2              |
+| H1                  | R13 | Verification layer with Jev (ADR 5), offline first              | Code, the owner's key, R1 for gates | R1 tooling      |
+| H2 Indonesian depth | R5  | Indonesian legal corpus                                         | Code, a legal check of the corpus   | R1              |
+| H2                  | R6  | Counsellor-style intake                                         | Code                                | R0              |
+| H2                  | R7  | Consumer-finance packs and the reviewed ceiling check           | Code, counsel for the ceiling rules | R0, R1, R5, R6  |
+| H2                  | R8  | Clause highlighting                                             | Code                                | R0              |
+| H3 Act on findings  | R9  | Referral with an evidence packet                                | Code, partner directory             | R6              |
+| H3                  | R10 | Document comparison                                             | Code                                | R7              |
+| H3                  | R11 | After-the-fact mode and complaint drafts                        | Code, counsel                       | R6, R5          |
+| H3                  | R12 | Two-party and defect analysis, graded and party-bias warnings   | Code                                | R1, R5          |
+| H4 Reach            | R14 | Counsel review and public launch                                | People                              | R1, R3, R3m, R4 |
+| H4                  | R15 | B2B design partner                                              | People                              | R12             |
+| H4                  | R16 | Lawyer-reviewed rewording library                               | People                              | R12             |
+| H4                  | R17 | Published Indonesian benchmark and reviewed product comparisons | People                              | R1, R14         |
+| H5 Region           | R18 | Standard-contract regimes in Thailand and Vietnam               | People                              | R17             |
 
 ```
-R0 ─┬─ R1 ─┬─ R5 ─┬─ R7 ── R10
-    │      │      ├─ R11
-    │      │      └─ R12 ─┬─ R15
-    │      │              └─ R16
-    │      └─ R13
+R0 ─┬─ R1 ─┬─ R3m
+    │      ├─ R13 offline
+    │      └─ R5 ─┬─ R7 ── R10
+    │             ├─ R11
+    │             └─ R12 ─┬─ R15
+    │                     └─ R16
     ├─ R6 ─┬─ R9
     │      └─ R11
     └─ R8
 R2 ── R4
-R3 ─────────────── R14 ── R17 ── R18
+R3, R3m ────────── R14 ── R17 ── R18
 ```
 
-R14 also waits for R1 and R4, as the table says.
+R14 also waits for R1 and R4, and R7 for R6, as the table says. R13's first live phase waits for R1's gate, R2, R3, R5 and R6.
 
 ### R0 Engine fixes
 
-Scope the benefit check to the targeted benefit. Evaluate unmodeled rules even when a denial
-fires, and send risk-bearing clauses to the law check whether or not they decided an outcome.
-Verify each legal claim against its own quotes and reassess the status on the quotes that
-survive. Make confidence and the grade depend on rule and branch coverage, and withhold a good
-grade when coverage is incomplete.
-
-Record the model, prompt, engine and corpus versions on every analysis, so a report can be
-reproduced. Add a filter on generated trap text for the writing tells listed under "How we
-write", next to the existing `ACCUSING` filter in `apps/api/src/agents/trap-writer.ts`. Delete
-the stale branch `feat/7-upload-read-confirm`, the last place the old "policy police" name and
-Firebase project survive outside git history.
+Done on `staging` in #49, and released with the next tag.
 
 ### R1 Evaluation foundation
 
@@ -153,17 +126,17 @@ Split by provider and template family so near-copies do not leak between train a
 freeze a hidden test set. Extend `apps/api/scripts/eval.ts` to score extraction recall, citation
 support, trap precision, false reassurance and abstention, and publish results in `docs/eval.md`.
 Add adapters for CUAD, ContractNLI, UNFAIR-ToS and CLAUSE so each layer can be tested on public
-data. Add a rating on each report and each trap inside the app, which is the user satisfaction
+data. Report citations in three columns: the quote exists, the quote supports the claim, the provision
+applies.
+
+Perturbation tests start first, because their regression half needs no annotators. Take public Indonesian agreements, make a known edit, and state the expected relation: code checks amounts, extraction and engine outcomes, reviewed expectations cover legal status, and irrelevant edits and legally equivalent paraphrases must change nothing. Role-swapped pairs test the judge for a lean toward the drafter only where the swap keeps the law the same. Each case runs several times. A small smoke set from these gates every model change.
+
+Add a rating on each report and each trap inside the app, which is the user satisfaction
 measure.
 
 ### R2 Durable runs
 
-Move pipeline stages to Cloud Tasks workers with leases, attempt IDs and idempotent writes, and
-recover expired leases. Cancel model calls on timeout: ADK's `runEphemeral` takes no abort
-signal, so agent calls move to `runAsync`, which does. Log JSON with analysis ID, stage, duration,
-model and token counts, never document text, and keep a cost figure per analysis. A budget alert
-does not stop spending, so the budget publishes to Pub/Sub and a small function pauses new
-analyses. Cloud Run's instance cap stays as the ceiling. Several of these tasks are carried over from #16.
+Model calls now cancel at their limit through ADK's `runAsync`, and each call logs its tokens and cost and adds them to the analysis. Each stage can run as a named Cloud Task on a worker, under a Firestore lease with a run generation, and a user can stop a run or recover one that stopped responding. The queue and worker still have to be created (`docs/runbook.md`). Part 3 is the budget: a billing budget alert does not stop spending, so the budget publishes to Pub/Sub and a small endpoint pauses new analyses. Cloud Run's instance cap stays as the ceiling.
 
 ### R3 Data protection
 
@@ -171,9 +144,11 @@ Set retention for reports, usage counters and logs, and fill the `[TBD]` fields 
 page with a named operator. Decide between Cloud KMS keys and field-level encryption for clause
 text. Create an upload bucket in asia-southeast2 and expire or move the US-EAST1 objects. Record
 consent for each processing purpose, and write a data protection impact assessment against UU PDP
-and its implementing regulation, PP 33/2026, which takes full effect on 2027-01-16. Move model
-calls from the AI Studio key to Vertex AI in asia-southeast1, because Vertex does not serve
-Gemini in Jakarta. Contract text therefore leaves Indonesia on every model call, and Google
+and its implementing regulation, PP 33/2026, which takes full effect on 2027-01-16. R3m moves model calls from the AI Studio key to Vertex AI in asia-southeast1, because Vertex does
+not serve Gemini in Jakarta. The residency table lists `gemini-4-argon` and `gemini-3.5-flash` for
+Singapore, so it is also a model change. It runs against the R1 smoke set first, and confirms the
+exact models, the regional endpoint, PDF reading, structured output, grounding and the URL context
+call on Vertex. Contract text leaves Indonesia on every model call, and Google
 Search grounding keeps what it is sent for up to three days, so both go to counsel as
 transfers.
 
@@ -186,7 +161,7 @@ production only after they have run on staging.
 ### R5 Indonesian legal corpus
 
 Ingest the consumer-finance instruments first: UU 8/1999 on consumer protection, POJK 22/2023,
-POJK 40/2024 on online lending with the OJK circulars that set its daily cost ceilings, POJK 46/2024 on finance
+POJK 40/2024 on online lending with SEOJK 19/SEOJK.06/2025, which sets its daily cost ceilings, POJK 46/2024 on finance
 companies as amended by POJK 35/2025, UU 27/2022 on personal data and its
 implementing regulation, and Book III of the Civil Code. Insurance follows. Instrument numbers
 and amendment status are confirmed against the official text at ingest. Chunk by Bab, Pasal, Ayat
@@ -196,7 +171,7 @@ dates and a source hash.
 Store the corpus in Cloud SQL for PostgreSQL 17 with pgvector, behind a retrieval interface. Search
 with exact citation lookup, BM25 and dense vectors fused by reciprocal rank, filtered by date and
 sector. Compare Gemini embeddings with BGE-M3 on our own queries, and add a reranker only if it
-measures better. Statute links (amends, repeals, implements, interprets) are rows in the same
+measures better, with Jev (ADR 5) as a candidate. Statute links (amends, repeals, implements, interprets) are rows in the same
 database. Google Search grounding stays only to find sources the corpus lacks.
 
 ### R6 Counsellor-style intake
@@ -211,9 +186,13 @@ interface.
 ### R7 Consumer-finance packs
 
 Add packs for multifinance, paylater and online loans with cash-flow facts: principal, tenor,
-schedule, fees, late charges and early repayment terms. Accept a repayment schedule or offer
+schedule, fees, late charges and early repayment terms. Where the law states a number, code does the arithmetic from a dated table of the SEOJK 19/SEOJK.06/2025 ceilings, reviewed by counsel. It classifies each charge, states its assumptions, returns `indeterminate` when a fact is missing, and reports a breach as `conflicts` only under a reviewed rule whose applicability is established. The [plan refresh](./research/2026-11-11-plan-refresh.md) lists the conditions. Accept a repayment schedule or offer
 screenshot as input. Keep a versioned registry of recognised templates so a known contract
 reuses reviewed rules and only the personal figures are recomputed.
+
+### R13 Verification layer with Jev
+
+The quote check proves a citation exists. Jev, a fast model that returns typed probabilities, adds two checks it misses: does the passage support the claim, and does the provision apply here. [ADR 5](./adr/0005-jev-verification-cascade.md) has the design. Code still decides every outcome, and a Jev answer can add caution and never remove it. It starts offline on public or consented documents, and each action goes live only after passing a stated error bound on Indonesian labels. Later phases rerank statute passages (R5), flag clauses that no rule covers, which is the false reassurance the PRD names, and measure the judge's lean (R12). Anything that sends contract-derived text waits for masking and agreed processing terms.
 
 ### R8 Clause highlighting
 
@@ -242,9 +221,6 @@ open to dispute, lawful but harsh), the gap from expectations, and confidence. A
 indicator shows whose interest each finding and each suggestion serves, and mirrored scenarios
 test our own judge for a lean toward the drafting party.
 
-R13 runs Jev beside Gemini on passage relevance, quote support and sole-discretion detection,
-logged only, until calibration on R1 data shows it helps.
-
 R14 to R18 are the launch with counsel's sign-off and the PSE registration with Komdigi, the B2B design partner, a rewording library
 reviewed by lawyers, the published Indonesian benchmark with reviewed product comparisons, and
 regional expansion.
@@ -258,7 +234,7 @@ the finished product is in [FLOW.md](./FLOW.md), and the technology chosen for e
 in the [technical stack note](./research/2026-10-18-technical-stack.md).
 
 The items that only you can supply are a monthly budget ceiling, the encryption and bucket
-decisions, whether user documents may go to TypeSafe, Indonesian counsel, legal annotators, a
+decisions, whether contract-derived text may go to TypeSafe, Indonesian counsel, legal annotators, a
 named operator entity, about 100 agreements with a clear right to use, and one design partner.
 
 ## The earlier to-do list
@@ -268,7 +244,7 @@ named operator entity, about 100 agreements with a clear right to use, and one d
 | 1. Research                                                    | The two documents in `docs/research/`, and R1 for the benchmark                                                                             |
 | 2. A flow like a real legal counsellor                         | R6, then R9 and R11                                                                                                                         |
 | 3. User satisfaction rate                                      | R1 in-app ratings, with the north star above                                                                                                |
-| 4. Remove every "policy police"                                | Gone from the working tree. R0 deletes the last stale branch, and #16 deletes the old Firebase project                                      |
+| 4. Remove every "policy police"                                | Gone from the working tree and branches. #16 deletes the old Firebase project                                                               |
 | 5. Clauses that work against the user, labelled by us          | R1 gold set, R12 two-party analysis                                                                                                         |
 | 6. A benchmark dataset                                         | R1, published in R17                                                                                                                        |
 | 7. Launch                                                      | R14                                                                                                                                         |
@@ -281,15 +257,16 @@ named operator entity, about 100 agreements with a clear right to use, and one d
 
 ## Decisions
 
-| Date       | Decision                                                                                               | Why                                                                                                  |
-| ---------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| 2026-10-18 | Law checks cover Indonesia only. Singapore and Australia keep the search-based check, unmaintained     | Depth in one jurisdiction beats thin coverage of three                                               |
-| 2026-10-18 | Consumer finance is the wedge, insurance second                                                        | Complaint volume, a clear legal yardstick, and harm that shows up in arithmetic                      |
-| 2026-10-18 | The scope grows to referral, comparison, after-the-fact help and rewording, in that order              | Each step adds value with less legal risk than the next                                              |
-| 2026-10-18 | The law corpus goes in Cloud SQL for PostgreSQL with pgvector. Graphs are rows, with no graph database | Small corpus, small team, and dated joins matter                                                     |
-| 2026-10-18 | Jev runs in shadow mode only, and nothing is decided by vote                                           | Typed output is a format guarantee. Correctness has to be measured                                   |
-| 2026-10-18 | Model calls move to Vertex AI in asia-southeast1 (Singapore)                                           | Vertex does not serve Gemini in Jakarta, and a regional endpoint keeps processing in one known place |
-| 2026-10-18 | No public per-lender grades until counsel reviews publication                                          | One lender has many products and versions, and publication carries legal risk                        |
+| Date       | Decision                                                                                                        | Why                                                                                                            |
+| ---------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 2026-10-18 | Law checks cover Indonesia only. Singapore and Australia keep the search-based check, unmaintained              | Depth in one jurisdiction beats thin coverage of three                                                         |
+| 2026-10-18 | Consumer finance is the wedge, insurance second                                                                 | Complaint volume, a clear legal yardstick, and harm that shows up in arithmetic                                |
+| 2026-10-18 | The scope grows to referral, comparison, after-the-fact help and rewording, in that order                       | Each step adds value with less legal risk than the next                                                        |
+| 2026-10-18 | The law corpus goes in Cloud SQL for PostgreSQL with pgvector. Graphs are rows, with no graph database          | Small corpus, small team, and dated joins matter                                                               |
+| 2026-11-11 | Jev joins as a verification layer that can add caution and never remove it, offline first                       | A wrong answer must not erase a true warning, and correctness has to be measured on Indonesian data            |
+| 2026-11-11 | Model calls move to Vertex AI in Singapore on `gemini-4-argon` and `gemini-3.5-flash`, after a smoke run        | Vertex does not serve Gemini in Jakarta, and these are the models that process in Singapore                    |
+| 2026-11-11 | Where the law states a number, code does the arithmetic from a reviewed, dated table and states its assumptions | The ceilings are arithmetic, the inputs around them are legal judgments, and a false pass is the worst outcome |
+| 2026-10-18 | No public per-lender grades until counsel reviews publication                                                   | One lender has many products and versions, and publication carries legal risk                                  |
 
 ## Questions for Indonesian counsel
 
@@ -301,6 +278,8 @@ named operator entity, about 100 agreements with a clear right to use, and one d
    Pasal 27A of the ITE Law, and which other rules still apply?
 4. What must the disclaimer and the referral flow say so a user does not believe a lawyer-client
    relationship exists?
+5. Does the right to object to automated processing in PP 33/2026 reach an automatically generated
+   report on a user's own agreement, and what must the product offer?
 
 ## How we write
 
