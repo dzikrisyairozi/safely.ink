@@ -143,7 +143,18 @@ async function attempt(
           result.failures.push(`Reading ${reading.status}`);
           return;
         }
-        const meta = { ...reading.meta, userRole: 'Debitur' };
+        // Production confirms one of the parties the Reader found, so the
+        // borrower is picked from them, never named here.
+        const borrowers = reading.meta.parties.filter((party) =>
+          /borrower|debitur|peminjam/i.test(party.role),
+        );
+        if (borrowers.length !== 1) {
+          result.failures.push(
+            `Expected one borrower among the parties, found ${borrowers.length}`,
+          );
+          return;
+        }
+        const meta = { ...reading.meta, userRole: borrowers[0]!.role };
         result.factSchema = checkFacts(
           await dependencies.proposeFacts(
             reading.clauses,

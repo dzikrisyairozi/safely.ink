@@ -88,3 +88,30 @@ test('ambiguous edits and invalid or mistyped base facts are refused', () => {
     }).success,
   ).toBe(false);
 });
+
+test('the shipped manifest probes both sides of every day boundary', () => {
+  const manifest = Manifest.parse(
+    JSON.parse(
+      readFileSync(
+        new URL('../test/fixtures/smoke/cases.json', import.meta.url),
+        'utf8',
+      ),
+    ),
+  );
+  const ids = (probes: { id: string }[]) => probes.map((probe) => probe.id);
+  const short = manifest.cases.find((c) => c.id === 'short-notice')!;
+
+  expect(ids(manifest.probes)).toEqual(
+    expect.arrayContaining([
+      'notice-on-time',
+      'notice-late',
+      'waiting',
+      'waiting-ended',
+      'charge-last-day',
+      'charge-ended',
+    ]),
+  );
+  expect(ids(short.probes ?? [])).toEqual(
+    expect.arrayContaining(['notice-day-10', 'notice-day-11']),
+  );
+});

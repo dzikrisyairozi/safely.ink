@@ -13,8 +13,8 @@ Kreditur memberikan pinjaman pokok sebesar Rp10.000.000 kepada Debitur.
 Pasal 4. Pembayaran terlambat
 Jika Debitur tidak membayar angsuran tepat waktu, Debitur wajib membayar biaya keterlambatan tetap sebesar Rp100.000. Jika Debitur membayar tepat waktu, biaya ini tidak dikenakan.
 
-Pasal 5. Pelunasan awal
-Jika Debitur melunasi pinjaman pada hari ke-7 sampai dengan hari ke-30 setelah penandatanganan, Debitur wajib membayar biaya pelunasan awal sebesar 2% dari jumlah pelunasan. Di luar periode tersebut, biaya ini tidak dikenakan.
+Pasal 5. Biaya pemeliharaan
+Selama hari ke-7 sampai dengan hari ke-30 setelah penandatanganan, Debitur dikenakan biaya pemeliharaan sebesar 2% dari jumlah yang menjadi hak Debitur. Di luar periode tersebut, biaya ini tidak dikenakan.
 
 Pasal 6. Batas pengaduan
 Pengaduan Debitur wajib disampaikan paling lambat 14 hari setelah kejadian yang diadukan. Jika pemberitahuan diberikan lebih dari 14 hari setelah kejadian, hak Debitur atas pengembalian dana untuk pengaduan itu ditolak.

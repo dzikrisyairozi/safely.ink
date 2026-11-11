@@ -39,7 +39,10 @@ const reader: ReaderOutput = {
   isPolicyOrContract: true,
   docType: 'loan',
   title: 'Loan',
-  parties: [],
+  parties: [
+    { name: 'PT Pemberi Pinjaman Contoh', role: 'lender' },
+    { name: 'Peminjam Contoh', role: 'borrower' },
+  ],
   jurisdiction: 'ID',
   language: 'id',
   unreadablePages: [],
@@ -55,7 +58,7 @@ function fake(overrides: Partial<Dependencies> = {}): Dependencies {
       return structuredClone(reader);
     },
     proposeFacts: async (_clauses, _pack, meta) => {
-      expect(meta.userRole).toBe('Debitur');
+      expect(meta.userRole).toBe('borrower');
       return [];
     },
     rulesFor: async (clauses, schema, meta) => {
@@ -261,4 +264,28 @@ test('every shipped variant survives PDF rendering and unpdf text verification',
     const pdf = await renderPdf(variant.text);
     expect(pdf.pageCount).toBeGreaterThan(0);
   }
+});
+
+test.each([
+  ['no borrower', [{ name: 'PT Contoh', role: 'lender' }], 0],
+  [
+    'two borrowers',
+    [
+      { name: 'A', role: 'borrower' },
+      { name: 'B', role: 'debitur' },
+    ],
+    2,
+  ],
+])('a reading with %s fails the attempt', async (_, parties, found) => {
+  const report = await runSmoke(
+    input,
+    fake({
+      readDocument: async () => ({ ...structuredClone(reader), parties }),
+    }),
+  );
+
+  expect(report.cases[0]!.attempts[0]!.failures).toEqual([
+    `Expected one borrower among the parties, found ${found}`,
+  ]);
+  expect(report.result).toBe('base_failed');
 });

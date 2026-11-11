@@ -15,7 +15,7 @@
       "baseFact": "userGaveNoticeDays"
     },
     {
-      "clause": "biaya pelunasan awal sebesar",
+      "clause": "biaya pemeliharaan sebesar",
       "kind": "charge",
       "effectType": "charge",
       "percent": 2,
@@ -140,6 +140,28 @@
         "result": "partly_bad",
         "loss": 500000
       }
+    },
+    {
+      "id": "charge-last-day",
+      "facts": {
+        "daysSinceStart": 30
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "partly_bad",
+        "loss": 20000
+      }
+    },
+    {
+      "id": "charge-ended",
+      "facts": {
+        "daysSinceStart": 31
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "fine",
+        "loss": 0
+      }
     }
   ],
   "cases": [
@@ -212,12 +234,34 @@
             "result": "bad",
             "loss": 1000000
           }
+        },
+        {
+          "id": "notice-day-10",
+          "facts": {
+            "userGaveNoticeDays": 10
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "fine",
+            "loss": 0
+          }
+        },
+        {
+          "id": "notice-day-11",
+          "facts": {
+            "userGaveNoticeDays": 11
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "bad",
+            "loss": 1000000
+          }
         }
       ]
     },
     {
       "id": "early-percent",
-      "note": "Raise the early repayment percentage",
+      "note": "Raise the maintenance charge percentage",
       "edits": [
         {
           "find": "2%",
@@ -225,12 +269,12 @@
         }
       ],
       "replaces": {
-        "assertions": ["biaya pelunasan awal sebesar"],
-        "probes": ["early", "waiting-ended"]
+        "assertions": ["biaya pemeliharaan sebesar"],
+        "probes": ["early", "waiting-ended", "charge-last-day"]
       },
       "assertions": [
         {
-          "clause": "biaya pelunasan awal sebesar",
+          "clause": "biaya pemeliharaan sebesar",
           "kind": "charge",
           "effectType": "charge",
           "percent": 4,
@@ -254,6 +298,17 @@
           "id": "waiting-ended",
           "facts": {
             "daysSinceStart": 7
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "partly_bad",
+            "loss": 40000
+          }
+        },
+        {
+          "id": "charge-last-day",
+          "facts": {
+            "daysSinceStart": 30
           },
           "stake": 1000000,
           "expect": {
