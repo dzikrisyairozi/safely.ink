@@ -243,6 +243,8 @@ gcloud tasks queues add-iam-policy-binding stages --location asia-southeast2 \
   --member serviceAccount:$RUNTIME --role roles/cloudtasks.enqueuer
 gcloud iam service-accounts add-iam-policy-binding $TASKS \
   --member serviceAccount:$RUNTIME --role roles/iam.serviceAccountUser
+# Google's HTTP target guide asks for this grant to the Cloud Tasks service agent.
+gcloud iam service-accounts add-iam-policy-binding $TASKS --member serviceAccount:service-$PROJECT_NUMBER@gcp-sa-cloudtasks.iam.gserviceaccount.com --role roles/iam.serviceAccountUser
 
 # The worker: the API image, closed to the public. A task may take 1800 s.
 gcloud run deploy worker --image $IMAGE --region asia-southeast2 \

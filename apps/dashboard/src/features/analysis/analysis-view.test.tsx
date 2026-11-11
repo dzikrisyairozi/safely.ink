@@ -41,6 +41,7 @@ const show = (
   shown: Analysis,
   onConfirm = vi.fn(async () => {}),
   onRetry = vi.fn(async () => {}),
+  onCancel = vi.fn(async () => {}),
 ) => {
   render(
     <AnalysisView
@@ -53,7 +54,7 @@ const show = (
       findings={[]}
       onConfirm={onConfirm}
       onRetry={onRetry}
-      onCancel={vi.fn(async () => {})}
+      onCancel={onCancel}
     />,
   );
   return onConfirm;
@@ -288,14 +289,67 @@ test('a run the user stopped says so and offers to continue', () => {
   expect(screen.getByRole('button', { name: 'Continue the run' })).toBeTruthy();
 });
 
-test('a run that stopped responding says so and offers to continue', () => {
+test('a run that stopped responding offers to continue or stop', async () => {
   const quiet = { seconds: Math.floor(Date.now() / 1000) - 901 };
-  show(analysis({ status: 'comparing', updatedAt: quiet }));
+  const onCancel = vi.fn(async () => {});
+  show(
+    analysis({ status: 'comparing', updatedAt: quiet }),
+    undefined,
+    undefined,
+    onCancel,
+  );
 
   expect(screen.getByRole('heading').textContent).toBe(
     'This run stopped responding',
   );
   expect(screen.getByRole('button', { name: 'Continue the run' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Stop this run' }));
+
+  await waitFor(() => expect(onCancel).toHaveBeenCalledOnce());
+});
+
+test('a stalled run waits for Stop and prevents another action while it is stopping', () => {
+  const quiet = { seconds: Math.floor(Date.now() / 1000) - 901 };
+  const onCancel = vi.fn(() => new Promise<void>(() => {}));
+  show(
+    analysis({ status: 'comparing', updatedAt: quiet }),
+    undefined,
+    undefined,
+    onCancel,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Stop this run' }));
+
+  expect(onCancel).toHaveBeenCalledOnce();
+  expect(
+    screen.getByRole('button', { name: 'Stopping after this stage…' }),
+  ).toHaveProperty('disabled', true);
+  expect(
+    screen.getByRole('button', { name: 'Continue the run' }),
+  ).toHaveProperty('disabled', true);
+});
+
+test('a stalled run whose Stop request fails shows the error and can be stopped again', async () => {
+  const quiet = { seconds: Math.floor(Date.now() / 1000) - 901 };
+  const onCancel = vi.fn(async () => {
+    throw new Error('offline');
+  });
+  show(
+    analysis({ status: 'comparing', updatedAt: quiet }),
+    undefined,
+    undefined,
+    onCancel,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Stop this run' }));
+
+  expect((await screen.findByRole('alert')).textContent).toBe(
+    'Could not stop the run. Check your connection and try again.',
+  );
+  expect(screen.getByRole('button', { name: 'Stop this run' })).toHaveProperty(
+    'disabled',
+    false,
+  );
 });
 
 test('one rule is not called "1 rules"', () => {

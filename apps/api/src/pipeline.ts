@@ -497,14 +497,13 @@ export const isStage = (status: unknown): status is AnalysisStatus =>
  * Deletes what a stage wrote in an attempt that failed, so that running it
  * again leaves nothing of that attempt behind.
  */
-export async function clearStage(
-  analysis: DocumentReference,
-  status: AnalysisStatus,
-) {
+async function clearStage(analysis: DocumentReference, status: AnalysisStatus) {
+  await fence(analysis);
   const stage = STAGES.find((candidate) => candidate.status === status);
   if (stage?.writes)
     await db.recursiveDelete(analysis.collection(stage.writes));
   if (stage?.results) {
+    await fence(analysis);
     await analysis.update(
       Object.fromEntries(
         stage.results.map((field) => [field, FieldValue.delete()]),
@@ -578,6 +577,7 @@ const failIn = (
     stage,
     ...(error && { error }),
     cancelRequested: FieldValue.delete(),
+    clearFirst: FieldValue.delete(),
     lease: FieldValue.delete(),
     updatedAt: updatedAt(),
   });
@@ -664,6 +664,8 @@ export async function runStage(
     await inStage(context, async () => {
       if (recovered) {
         log('WARNING', 'stage lease ran out, running the stage again');
+      }
+      if (recovered || data.clearFirst) {
         await clearStage(analysis, stage.status);
       }
       await stage.run(analysis, AnalysisMeta.parse(data.meta), deadline);
@@ -682,6 +684,7 @@ export async function runStage(
     tx.update(analysis, {
       status: stage.next,
       [`versions.${stage.status}`]: versions,
+      clearFirst: FieldValue.delete(),
       lease: FieldValue.delete(),
       updatedAt: updatedAt(),
     });

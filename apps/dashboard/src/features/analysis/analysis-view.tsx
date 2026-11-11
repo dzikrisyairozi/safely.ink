@@ -222,13 +222,28 @@ function RetryStage({
   stage,
   why,
   onRetry,
+  onCancel,
 }: {
   stage: RunningStatus; // where the run stopped
   why: 'failed' | 'cancelled' | 'stalled';
   onRetry: () => Promise<void>;
+  onCancel?: () => Promise<void>;
 }) {
   const { t } = useTranslation('dashboard');
   const { retry, isStarting, error } = useRetry(onRetry);
+  const [isAsking, setIsAsking] = useState(false);
+  const [cancelFailed, setCancelFailed] = useState(false);
+  const stop = async () => {
+    setCancelFailed(false);
+    setIsAsking(true);
+    try {
+      await onCancel?.();
+    } catch {
+      setCancelFailed(true);
+    } finally {
+      setIsAsking(false);
+    }
+  };
   const text =
     why === 'failed' ? `analysis.failed.${stage}` : `analysis.${why}`;
 
@@ -236,18 +251,34 @@ function RetryStage({
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-16">
       <h1 className="text-3xl tracking-tight">{t(`${text}.title`)}</h1>
       <p className="text-muted-foreground">{t(`${text}.description`)}</p>
-      {error && (
+      {(error || cancelFailed) && (
         <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {cancelFailed ? t('run.stop.failed') : error}
+          </AlertDescription>
         </Alert>
       )}
-      <Button className="self-start" disabled={isStarting} onClick={retry}>
+      <Button
+        className="self-start"
+        disabled={isStarting || isAsking}
+        onClick={retry}
+      >
         {isStarting
           ? t('analysis.retry.starting')
           : why === 'failed'
             ? t('analysis.retry.button')
             : t('analysis.cancelled.resume')}
       </Button>
+      {why === 'stalled' && onCancel && (
+        <Button
+          variant="outline"
+          className="self-start"
+          disabled={isStarting || isAsking}
+          onClick={stop}
+        >
+          {isAsking ? t('run.stop.stopping') : t('run.stop.button')}
+        </Button>
+      )}
     </div>
   );
 }
@@ -330,7 +361,12 @@ export function AnalysisView({
     case 'comparing':
       if (isStalled(analysis, now)) {
         return (
-          <RetryStage stage={analysis.status} why="stalled" onRetry={onRetry} />
+          <RetryStage
+            stage={analysis.status}
+            why="stalled"
+            onRetry={onRetry}
+            onCancel={onCancel}
+          />
         );
       }
       return (

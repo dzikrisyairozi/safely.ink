@@ -1,5 +1,9 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import {
+  DocumentReference,
+  FieldValue,
+  Timestamp,
+} from 'firebase-admin/firestore';
 import {
   FactSchema,
   Rule,
@@ -885,6 +889,101 @@ test('comparing again keeps the stored expectations and gives the lookup the sto
 const leaseFor = (attemptId: string, fromNow: number) => ({
   attemptId,
   until: Timestamp.fromMillis(Date.now() + fromNow),
+});
+
+test('a retried stage clears its old output and removes clearFirst when it moves on', async () => {
+  await analysis.update({ clearFirst: true });
+  await analysis.collection('rules').doc('stale').set({ id: 'stale' });
+
+  expect(await runStage('analysis-1')).toEqual({
+    status: 'fuzzing',
+    moved: true,
+  });
+
+  expect((await analysis.collection('rules').doc('stale').get()).exists).toBe(
+    false,
+  );
+  expect((await stored())!.clearFirst).toBeUndefined();
+});
+
+test('a retried stage removes clearFirst when it fails', async () => {
+  await analysis.update({ clearFirst: true });
+  facts.mockRejectedValueOnce(new Error('model unavailable'));
+
+  expect(await runStage('analysis-1')).toEqual({ status: 'failed' });
+
+  expect(await stored()).toMatchObject({
+    status: 'failed',
+    stage: 'extracting_rules',
+  });
+  expect((await stored())!.clearFirst).toBeUndefined();
+  expect(await startedOnCreationDay()).toBe(0);
+});
+
+test('a retried attempt that loses its lease before cleanup leaves the other attempt trap', async () => {
+  await readyToRun(waiting);
+  await runStage('analysis-1');
+  await analysis.update({ clearFirst: true });
+  const trap = analysis.collection('traps').doc('other-attempt');
+  const get = DocumentReference.prototype.get;
+  const read = vi
+    .spyOn(DocumentReference.prototype, 'get')
+    .mockImplementation(async function (this: DocumentReference) {
+      if (this.path === analysis.path) {
+        await analysis.update({ lease: leaseFor('other', 60_000) });
+        await trap.set({ id: 'other-attempt' });
+      }
+      return get.call(this);
+    });
+  try {
+    expect(await runStage('analysis-1')).toEqual({ busy: true });
+  } finally {
+    read.mockRestore();
+  }
+
+  expect((await trap.get()).exists).toBe(true);
+  expect(await stored()).toMatchObject({
+    status: 'comparing',
+    clearFirst: true,
+    lease: { attemptId: 'other' },
+  });
+  expect(judged).not.toHaveBeenCalled();
+  expect(await startedOnCreationDay()).toBe(1);
+});
+
+test('a retried attempt that loses its lease during cleanup leaves the other attempt results', async () => {
+  await readyToRun(waiting);
+  await runStage('analysis-1');
+  await analysis.update({ clearFirst: true });
+  const trap = analysis.collection('traps').doc('other-attempt');
+  const recursiveDelete = db.recursiveDelete.bind(db);
+  const cleared = vi
+    .spyOn(db, 'recursiveDelete')
+    .mockImplementationOnce(async (...args) => {
+      await recursiveDelete(...args);
+      await analysis.update({
+        lease: leaseFor('other', 60_000),
+        grade: 'A',
+        'counts.traps': 1,
+      });
+      await trap.set({ id: 'other-attempt' });
+    });
+  try {
+    expect(await runStage('analysis-1')).toEqual({ busy: true });
+  } finally {
+    cleared.mockRestore();
+  }
+
+  expect((await trap.get()).exists).toBe(true);
+  expect(await stored()).toMatchObject({
+    status: 'comparing',
+    clearFirst: true,
+    lease: { attemptId: 'other' },
+    grade: 'A',
+    counts: { traps: 1 },
+  });
+  expect(judged).not.toHaveBeenCalled();
+  expect(await startedOnCreationDay()).toBe(1);
 });
 
 test('a stage whose lease another attempt holds is busy and left alone', async () => {

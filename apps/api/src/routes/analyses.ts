@@ -14,13 +14,7 @@ import { config } from '../config';
 import { failure } from '../failure';
 import { bucket, db } from '../firebase';
 import { readDocument } from '../agents/reader';
-import {
-  addUsage,
-  clearStage,
-  isStage,
-  stalledRun,
-  saveAll,
-} from '../pipeline';
+import { addUsage, isStage, stalledRun, saveAll } from '../pipeline';
 import { checkReading } from '../pipeline/reader-check';
 import { loadUploads } from '../uploads';
 import {
@@ -292,6 +286,7 @@ analyses.post('/:id/retry', async (c) => {
     tx.update(analysis, {
       status: stage,
       runId,
+      clearFirst: true,
       stage: FieldValue.delete(),
       error: FieldValue.delete(),
       cancelRequested: FieldValue.delete(),
@@ -306,21 +301,6 @@ analyses.post('/:id/retry', async (c) => {
     return conflict();
   }
 
-  try {
-    await clearStage(analysis, stage);
-  } catch (err) {
-    console.error(err);
-    await analysis
-      .update({
-        status: 'failed',
-        stage,
-        updatedAt: FieldValue.serverTimestamp(),
-      })
-      .catch(console.error);
-    // Given back also when the status itself could not be stored.
-    await releaseDailySlot(uid, slotDay);
-    return c.json({ analysisId: id.data, status: 'failed' });
-  }
   return c.json({
     analysisId: id.data,
     status: await startRun(id.data, runId, stage),

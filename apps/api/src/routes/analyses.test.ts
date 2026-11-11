@@ -19,6 +19,7 @@ import { proposeFacts, proposeRules } from '../agents/rule-extractor';
 import { judge } from '../agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from '../agents/scenario-fuzzer';
 import { lookUpLaw } from '../legal/research';
+import { runStage } from '../pipeline';
 import { versions } from '../versions';
 
 // Run through `pnpm test`: Firestore and Storage are the emulators. Only the
@@ -530,26 +531,34 @@ test('a retry that fails again gives its slot back', async () => {
   expect(await startedToday('alice')).toBe(0);
 });
 
-test('a retry that cannot clear its stage still gives its slot back', async () => {
+test('a retry whose cleanup fails ends at that stage and gives its slot back once', async () => {
   const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
   await create('alice', 'analysis-1');
   ruleWriter.mockRejectedValueOnce(new Error('model unavailable'));
   await confirm('alice', 'analysis-1');
+  // Another run has a slot, so a second refund would be visible.
+  await db.doc(`users/alice/usage/${TODAY}`).update({ started: 1 });
   const cleared = vi
     .spyOn(db, 'recursiveDelete')
     .mockRejectedValueOnce(new Error('delete refused'));
-  const update = vi
-    .spyOn(DocumentReference.prototype, 'update')
-    .mockRejectedValueOnce(new Error('write refused'));
+  try {
+    const res = await retry('alice', 'analysis-1');
 
-  const res = await retry('alice', 'analysis-1');
-
-  expect(res.status).toBe(200);
-  expect(await res.json()).toMatchObject({ status: 'failed' });
-  expect(await startedToday('alice')).toBe(0);
-  cleared.mockRestore();
-  update.mockRestore();
-  logged.mockRestore();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ status: 'failed' });
+    const data = (await stored('analysis-1'))!;
+    expect(data).toMatchObject({ status: 'failed', stage: 'extracting_rules' });
+    expect(data.clearFirst).toBeUndefined();
+    expect(data.lease).toBeUndefined();
+    expect(await startedToday('alice')).toBe(1);
+    expect(await runStage('analysis-1', { runId: data.runId })).toEqual({
+      status: 'failed',
+    });
+    expect(await startedToday('alice')).toBe(1);
+  } finally {
+    cleared.mockRestore();
+    logged.mockRestore();
+  }
 });
 
 test('a retry at comparing starts without the grade of the failed attempt', async () => {
