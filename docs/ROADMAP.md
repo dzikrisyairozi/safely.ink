@@ -129,7 +129,7 @@ Add adapters for CUAD, ContractNLI, UNFAIR-ToS and CLAUSE so each layer can be t
 data. Report citations in three columns: the quote exists, the quote supports the claim, the provision
 applies.
 
-Perturbation tests start first, because their regression half needs no annotators. Take public Indonesian agreements, make a known edit, and state the expected relation: code checks amounts, extraction and engine outcomes, reviewed expectations cover legal status, and irrelevant edits and legally equivalent paraphrases must change nothing. Role-swapped pairs test the judge for a lean toward the drafter only where the swap keeps the law the same. Each case runs several times. A small smoke set from these gates every model change.
+Engine metamorphic properties and an extraction smoke gate start first, because they need no annotators. The extraction smoke gate uses a synthetic Indonesian loan agreement with known edits, clause and rule assertions, and fixed engine probes. Each case runs several times. It covers the Reader and fact and rule extraction and makes no claim about legal correctness. A model change also needs its own check for every other caller and backend. Reviewed expectations cover legal status. Role-swapped pairs test the judge for a lean toward the drafter only where the swap keeps the law the same.
 
 Add a rating on each report and each trap inside the app, which is the user satisfaction
 measure.
