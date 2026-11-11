@@ -78,8 +78,18 @@ export function runProbe(probe: Probe, extraction: Extraction): Outcome {
         `Probe ${probe.id} must override only typed base facts: ${key}`,
       );
   }
+  // A model-named amount in rupiah stands for the money at stake, so a rule
+  // that applies only above an amount sees the probe's stake. Every other
+  // fact keeps its neutral value.
   const facts = Object.fromEntries(
-    extraction.factSchema.map((fact) => [fact.key, fact.neutral]),
+    extraction.factSchema.map((fact) => [
+      fact.key,
+      probe.stake !== null &&
+      fact.type === 'number' &&
+      /^(idr|rp|rupiah)$/i.test(fact.unit ?? '')
+        ? probe.stake
+        : fact.neutral,
+    ]),
   );
   return evaluate(extraction.rules, extraction.factSchema, {
     id: probe.id,

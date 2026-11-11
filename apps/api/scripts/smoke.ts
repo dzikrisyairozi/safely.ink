@@ -146,7 +146,7 @@ async function attempt(
         // Production confirms one of the parties the Reader found, so the
         // borrower is picked from them, never named here.
         const borrowers = reading.meta.parties.filter((party) =>
-          /borrower|debitur|peminjam/i.test(party.role),
+          /borrower|debtor|debitur|debitor|peminjam/i.test(party.role),
         );
         if (borrowers.length !== 1) {
           result.failures.push(

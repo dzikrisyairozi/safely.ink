@@ -187,3 +187,56 @@ test('judgeRun collects all assertion, absent, and probe failures', () => {
   };
   expect(judgeRun(variant, broken)[0]).toContain('Scenario has no fact');
 });
+
+test('a cap that applies only above an amount sees the stake in a probe', () => {
+  const clause = {
+    id: 'c-10',
+    text: 'dibatasi paling banyak Rp500.000',
+    number: '10',
+    heading: null,
+    gloss: null,
+    page: 1,
+  };
+  const extraction = {
+    clauses: [clause],
+    factSchema: [
+      ...BASE_FACTS,
+      {
+        key: 'refundAmount',
+        type: 'number' as const,
+        values: null,
+        unit: 'IDR',
+        description: '',
+        neutral: 0,
+      },
+    ],
+    rules: [
+      {
+        id: 'r-cap',
+        kind: 'limit' as const,
+        summary: '',
+        clauseIds: ['c-10'],
+        touches: [],
+        when: {
+          all: [
+            { fact: 'paperworkComplete', op: 'eq' as const, value: false },
+            { fact: 'refundAmount', op: 'gt' as const, value: 500000 },
+          ],
+        },
+        effect: { type: 'cap' as const, amount: 500000, percent: null },
+      },
+    ],
+  };
+
+  const outcome = runProbe(
+    {
+      id: 'cap',
+      facts: { paperworkComplete: false },
+      stake: 1000000,
+      expect: { result: 'partly_bad', loss: 500000 },
+    },
+    extraction,
+  );
+
+  expect(outcome).toMatchObject({ result: 'partly_bad', loss: 500000 });
+});

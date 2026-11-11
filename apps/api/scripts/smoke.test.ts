@@ -289,3 +289,22 @@ test.each([
   ]);
   expect(report.result).toBe('base_failed');
 });
+
+test('a reader that names the borrower a debtor is accepted', async () => {
+  const parties = [
+    { name: 'PT Pemberi Pinjaman Contoh', role: 'creditor' },
+    { name: 'Peminjam Contoh', role: 'debtor' },
+  ];
+  const report = await runSmoke(
+    input,
+    fake({
+      readDocument: async () => ({ ...structuredClone(reader), parties }),
+      proposeFacts: async (_clauses, _pack, meta) => {
+        expect(meta.userRole).toBe('debtor');
+        return [];
+      },
+    }),
+  );
+
+  expect(report.result).toBe('passed');
+});

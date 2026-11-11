@@ -41,6 +41,10 @@
       "effectType": "cap",
       "amount": 500000,
       "baseFact": "paperworkComplete"
+    },
+    {
+      "clause": "berhak menerima pengembalian kelebihan",
+      "kind": "benefit"
     }
   ],
   "probes": [
@@ -379,6 +383,45 @@
         {
           "find": "Jika Debitur tidak membayar angsuran tepat waktu, Debitur wajib membayar biaya keterlambatan tetap sebesar Rp100.000. Jika Debitur membayar tepat waktu, biaya ini tidak dikenakan.",
           "replace": "Biaya yang dikenakan jika angsuran Debitur terlambat adalah biaya keterlambatan tetap sebesar Rp100.000. Pembayaran angsuran tepat waktu tidak dikenai biaya tersebut."
+        }
+      ]
+    },
+    {
+      "id": "no-waiting",
+      "note": "Remove the waiting period, so the charge's lower bound is tested on its own",
+      "edits": [
+        {
+          "find": "Debitur tidak berhak menerima pengembalian dana dalam 7 hari pertama setelah penandatanganan. Mulai hari ke-7, masa tunggu ini tidak menghalangi pengembalian dana.",
+          "replace": "Tidak ada masa tunggu untuk pengembalian dana."
+        }
+      ],
+      "replaces": {
+        "assertions": ["7 hari pertama"],
+        "probes": ["waiting"]
+      },
+      "absent": ["7 hari pertama"],
+      "probes": [
+        {
+          "id": "charge-not-yet",
+          "facts": {
+            "daysSinceStart": 6
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "fine",
+            "loss": 0
+          }
+        },
+        {
+          "id": "charge-first-day",
+          "facts": {
+            "daysSinceStart": 7
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "partly_bad",
+            "loss": 20000
+          }
         }
       ]
     }

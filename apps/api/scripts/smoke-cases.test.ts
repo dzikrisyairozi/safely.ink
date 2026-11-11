@@ -15,7 +15,7 @@ const shipped: unknown = JSON.parse(
 
 test('the shipped manifest parses, every find occurs once, and every edit applies', () => {
   const manifest = Manifest.parse(shipped);
-  expect(manifest.cases).toHaveLength(7);
+  expect(manifest.cases).toHaveLength(8);
   for (const c of manifest.cases) {
     for (const edit of c.edits) expect(base.split(edit.find)).toHaveLength(2);
     const variant = variants(base, manifest).find((v) => v.id === c.id)!;
