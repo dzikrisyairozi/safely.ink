@@ -714,8 +714,44 @@ OIDC tokens. CORS allows the dashboard origin only.
 | Component     | Upload validation, confirm step, run tracker, report rendering from fixture data                                                | Vitest + Testing Library                             | `apps/dashboard`                 |
 | Eval (manual) | Real public documents: one per pack, spread over ID / SG / AU. Human checks rule fidelity and trap validity against PRD metrics | `pnpm --filter api eval <file>` writes a JSON report | `apps/api/scripts/eval.ts`       |
 
-Live model calls are not part of `pnpm test`. The deterministic core carries the automated
-coverage. Model quality is judged by the eval script on real documents.
+Engine metamorphic properties run in `pnpm test` with `fast-check`. They test the
+relations between outcomes after changes to charges, caps, deductions, facts, rule
+order, and denial conditions. Score properties check that worse-than-expected
+outcomes cannot raise points and that an untraced rule limits the grade without
+changing points. These are regression tests of engine behavior. They make no claim
+about legal correctness.
+
+The extraction smoke gate runs separately with `GEMINI_API_KEY`:
+
+```bash
+pnpm --filter api smoke --runs 3
+pnpm --filter api smoke --baseline eval-out/smoke-reference.json --out eval-out
+pnpm --filter api smoke --case late-charge
+```
+
+The gate renders a synthetic Indonesian loan agreement and its edited variants to
+PDF, checks the PDF text with `unpdf`, and runs the Reader, fact extraction, and
+rule extraction. Assertions check cited clauses, amounts, percentages, condition
+numbers, and base facts. Fixed probes run the extracted rules through the engine.
+Unreadable pages, rejected or failed readings, model errors, and repair errors
+fail an attempt. The remaining attempts still run.
+
+A case passes when at least two thirds of its attempts pass. This is a provisional
+smoke rule. If the base fails, the result is `base_failed`, and every other case is
+still reported. A base or case failure gives exit status 1. JSON reports in
+`eval-out/smoke-<timestamp>.json` contain each attempt's Reader output, fact schema,
+rules, probe outcomes, failures, available token usage, and versions. They include
+SHA-256 hashes of `base.md`, `cases.json`, `smoke-check.ts`, and `extract.ts`.
+`--baseline` reports each case whose passing runs fell and refuses a comparison if
+any hash or `--runs` differs. `--case` includes the base and marks the report
+`partial`. A partial run cannot approve a model change or be used as a baseline.
+Paths passed to `--baseline` and `--out` are relative to the invoking directory.
+
+Live model calls are not part of `pnpm test`. The extraction smoke gate covers
+only the Reader and fact and rule extraction. It tests extraction regressions,
+not legal correctness. A model change also needs its own check for every other
+caller and backend. Human review of real-document eval reports checks model
+quality beyond this gate.
 
 Real documents used for evaluation are **not committed** (copyright, personal data). The
 eval script takes a local path.

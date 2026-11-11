@@ -1,0 +1,331 @@
+{
+  "assertions": [
+    {
+      "clause": "biaya keterlambatan tetap",
+      "kind": "charge",
+      "effectType": "charge",
+      "amount": 100000,
+      "baseFact": "userPaidOnTime"
+    },
+    {
+      "clause": "Pengaduan Debitur wajib",
+      "kind": "deadline",
+      "effectType": "deny",
+      "numberInCondition": 14,
+      "baseFact": "userGaveNoticeDays"
+    },
+    {
+      "clause": "biaya pelunasan awal sebesar",
+      "kind": "charge",
+      "effectType": "charge",
+      "percent": 2,
+      "numberInCondition": 30,
+      "baseFact": "daysSinceStart"
+    },
+    {
+      "clause": "7 hari pertama",
+      "effectType": "deny",
+      "numberInCondition": 7,
+      "baseFact": "daysSinceStart"
+    },
+    {
+      "clause": "dipotong sebesar Rp50.000",
+      "kind": "limit",
+      "effectType": "deduct",
+      "amount": 50000,
+      "baseFact": "userDisclosedEverything"
+    },
+    {
+      "clause": "dibatasi paling banyak Rp500.000",
+      "kind": "limit",
+      "effectType": "cap",
+      "amount": 500000,
+      "baseFact": "paperworkComplete"
+    }
+  ],
+  "probes": [
+    {
+      "id": "neutral",
+      "facts": {},
+      "stake": 1000000,
+      "expect": {
+        "result": "fine",
+        "loss": 0
+      }
+    },
+    {
+      "id": "late",
+      "facts": {
+        "userPaidOnTime": false
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "partly_bad",
+        "loss": 100000
+      }
+    },
+    {
+      "id": "notice-on-time",
+      "facts": {
+        "userGaveNoticeDays": 14
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "fine",
+        "loss": 0
+      }
+    },
+    {
+      "id": "notice-late",
+      "facts": {
+        "userGaveNoticeDays": 15
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "bad",
+        "loss": 1000000
+      }
+    },
+    {
+      "id": "early",
+      "facts": {
+        "daysSinceStart": 20
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "partly_bad",
+        "loss": 20000
+      }
+    },
+    {
+      "id": "waiting",
+      "facts": {
+        "daysSinceStart": 6
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "bad",
+        "loss": 1000000
+      }
+    },
+    {
+      "id": "waiting-ended",
+      "facts": {
+        "daysSinceStart": 7
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "partly_bad",
+        "loss": 20000
+      }
+    },
+    {
+      "id": "deduction",
+      "facts": {
+        "userDisclosedEverything": false
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "partly_bad",
+        "loss": 50000
+      }
+    },
+    {
+      "id": "cap",
+      "facts": {
+        "paperworkComplete": false
+      },
+      "stake": 1000000,
+      "expect": {
+        "result": "partly_bad",
+        "loss": 500000
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "late-charge",
+      "note": "Raise the fixed late charge",
+      "edits": [
+        {
+          "find": "Rp100.000",
+          "replace": "Rp200.000"
+        }
+      ],
+      "replaces": {
+        "assertions": ["biaya keterlambatan tetap"],
+        "probes": ["late"]
+      },
+      "assertions": [
+        {
+          "clause": "biaya keterlambatan tetap",
+          "kind": "charge",
+          "effectType": "charge",
+          "amount": 200000,
+          "baseFact": "userPaidOnTime"
+        }
+      ],
+      "probes": [
+        {
+          "id": "late",
+          "facts": {
+            "userPaidOnTime": false
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "partly_bad",
+            "loss": 200000
+          }
+        }
+      ]
+    },
+    {
+      "id": "short-notice",
+      "note": "Shorten the notice deadline",
+      "edits": [
+        {
+          "find": "Pasal 6. Batas pengaduan\nPengaduan Debitur wajib disampaikan paling lambat 14 hari setelah kejadian yang diadukan. Jika pemberitahuan diberikan lebih dari 14 hari setelah kejadian, hak Debitur atas pengembalian dana untuk pengaduan itu ditolak.",
+          "replace": "Pasal 6. Batas pengaduan\nPengaduan Debitur wajib disampaikan paling lambat 10 hari setelah kejadian yang diadukan. Jika pemberitahuan diberikan lebih dari 10 hari setelah kejadian, hak Debitur atas pengembalian dana untuk pengaduan itu ditolak."
+        }
+      ],
+      "replaces": {
+        "assertions": ["Pengaduan Debitur wajib"],
+        "probes": ["notice-on-time"]
+      },
+      "assertions": [
+        {
+          "clause": "Pengaduan Debitur wajib",
+          "kind": "deadline",
+          "effectType": "deny",
+          "numberInCondition": 10,
+          "baseFact": "userGaveNoticeDays"
+        }
+      ],
+      "probes": [
+        {
+          "id": "notice-on-time",
+          "facts": {
+            "userGaveNoticeDays": 14
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "bad",
+            "loss": 1000000
+          }
+        }
+      ]
+    },
+    {
+      "id": "early-percent",
+      "note": "Raise the early repayment percentage",
+      "edits": [
+        {
+          "find": "2%",
+          "replace": "4%"
+        }
+      ],
+      "replaces": {
+        "assertions": ["biaya pelunasan awal sebesar"],
+        "probes": ["early", "waiting-ended"]
+      },
+      "assertions": [
+        {
+          "clause": "biaya pelunasan awal sebesar",
+          "kind": "charge",
+          "effectType": "charge",
+          "percent": 4,
+          "numberInCondition": 30,
+          "baseFact": "daysSinceStart"
+        }
+      ],
+      "probes": [
+        {
+          "id": "early",
+          "facts": {
+            "daysSinceStart": 20
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "partly_bad",
+            "loss": 40000
+          }
+        },
+        {
+          "id": "waiting-ended",
+          "facts": {
+            "daysSinceStart": 7
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "partly_bad",
+            "loss": 40000
+          }
+        }
+      ]
+    },
+    {
+      "id": "delete-notice",
+      "note": "Remove the notice deadline",
+      "edits": [
+        {
+          "find": "Pasal 6. Batas pengaduan\nPengaduan Debitur wajib disampaikan paling lambat 14 hari setelah kejadian yang diadukan. Jika pemberitahuan diberikan lebih dari 14 hari setelah kejadian, hak Debitur atas pengembalian dana untuk pengaduan itu ditolak.",
+          "replace": ""
+        }
+      ],
+      "replaces": {
+        "assertions": ["Pengaduan Debitur wajib"],
+        "probes": ["notice-late"]
+      },
+      "absent": ["Pengaduan Debitur wajib"],
+      "probes": [
+        {
+          "id": "notice-late",
+          "facts": {
+            "userGaveNoticeDays": 15
+          },
+          "stake": 1000000,
+          "expect": {
+            "result": "fine",
+            "loss": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "discretion",
+      "note": "Add a fee at the sole discretion of the lender",
+      "edits": [
+        {
+          "find": "Pasal 12. Hukum\nPerjanjian ini tunduk pada hukum Republik Indonesia.\n",
+          "replace": "Pasal 12. Hukum\nPerjanjian ini tunduk pada hukum Republik Indonesia.\n\nPasal 13. Biaya diskresi\nKreditur dapat menetapkan biaya tambahan atas kebijaksanaan mutlak Kreditur sendiri tanpa batas nominal atau rumus.\n"
+        }
+      ],
+      "assertions": [
+        {
+          "clause": "kebijaksanaan mutlak Kreditur",
+          "kind": "unmodeled"
+        }
+      ]
+    },
+    {
+      "id": "address",
+      "note": "Change only the lender address",
+      "edits": [
+        {
+          "find": "Jalan Contoh Nomor 10",
+          "replace": "Jalan Contoh Nomor 20"
+        }
+      ]
+    },
+    {
+      "id": "paraphrase",
+      "note": "Paraphrase the fixed late charge without changing its terms",
+      "edits": [
+        {
+          "find": "Jika Debitur tidak membayar angsuran tepat waktu, Debitur wajib membayar biaya keterlambatan tetap sebesar Rp100.000. Jika Debitur membayar tepat waktu, biaya ini tidak dikenakan.",
+          "replace": "Biaya yang dikenakan jika angsuran Debitur terlambat adalah biaya keterlambatan tetap sebesar Rp100.000. Pembayaran angsuran tepat waktu tidak dikenai biaya tersebut."
+        }
+      ]
+    }
+  ]
+}
