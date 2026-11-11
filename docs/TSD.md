@@ -220,10 +220,12 @@ descending. That query needs the composite index in
 
 All routes under `/v1` require `Authorization: Bearer <Firebase ID token>`, verified with the
 Admin SDK. `POST /internal/stages` takes only the queue's OIDC token (section 5).
+`POST /internal/budget` takes only the budget push account's OIDC token (section 8).
 
 | Method   | Path                       | Body                                                     | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------- | -------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/health`                  | None                                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `POST`   | `/internal/budget`         | `{ message: { data: string, publishTime: string } }`     | Pub/Sub push only. Verifies a Google OIDC token for `BUDGET_PUSH_AUDIENCE` issued to `BUDGET_PUSH_SERVICE_ACCOUNT` with a verified email. Returns 404 for other callers or when these settings are unset. Requires `message.publishTime`, decodes base64 JSON, and validates `costAmount`, `budgetAmount`, and `costIntervalStart` with Zod. Updates `system/budget` in one transaction (section 8). Malformed messages are logged and answered 200 because a retry cannot fix them.                                                                                                                                                                                                                                  |
 | `POST`   | `/v1/analyses`             | `{ analysisId, files: string[], docType, jurisdiction }` | Type and country are what the user picked (400 without them). Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read** (which does not see the pick and puts its finding in `meta.detected`), sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                                                                                                                                                                                     |
 | `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }`                    | Owner only. Anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then starts the run (section 5). With a task queue it returns at once with `extracting_rules`. Without one the stages run in the request, and it returns the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error.                                                                                                                                                                                                                                                                                       |
 | `POST`   | `/v1/analyses/:id/retry`   | None                                                     | Owner only (else 404). From `failed` in a pipeline stage, from `done` when a finding has `error: 'lookup_unavailable'` (then the stage is `comparing`), or from a run that stopped responding (section 5), which keeps the slot it has. Else 409 (a failed reading is uploaded again). Reserves a daily slot again (429 `daily_limit`), sets the status to that stage and `clearFirst: true`, clears `error` and `cancelRequested`, and starts the run from there like confirm, with what earlier stages stored. The route deletes no stage output. The first attempt clears it under its lease (section 5). `comparing` keeps stored expectations and usable findings. A retry that fails again gives its slot back. |
@@ -234,7 +236,10 @@ Admin SDK. `POST /internal/stages` takes only the queue's OIDC token (section 5)
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
 
-Errors: `{ error: { code, message } }` with HTTP 400 / 401 / 403 / 404 / 409 / 429 / 500.
+Errors: `{ error: { code, message } }` with HTTP 400 / 401 / 403 / 404 / 409 / 429 / 500 / 503.
+Upload, confirm and retry check `system/budget` before doing work or reserving a slot.
+When `paused` is true, they return 503 `paused` with the message "New analyses are paused
+for now. Please try again later." Cancel, delete and `/internal/stages` continue.
 A 429 `daily_limit` also carries `resetAt`, the next UTC midnight. Upload refusals use the
 codes `file_missing`, `unsupported_type`, `mixed_input`, `too_large` and `too_many_pages`.
 Request bodies are validated with the shared Zod schemas.
@@ -659,22 +664,36 @@ firebase apphosting:backends:create   # once, points at apps/web
 ```
 
 `--allow-unauthenticated` is at the Cloud Run level only. The app enforces Firebase ID
-tokens on every route but `/health`. CORS allows the dashboard origin only.
+tokens on product routes. `/health` needs no token, and the internal routes check Google
+OIDC tokens. CORS allows the dashboard origin only.
 
 ### Environment
 
-| App       | Variable                                                           | Notes                      |
-| --------- | ------------------------------------------------------------------ | -------------------------- |
-| api       | `GEMINI_API_KEY`                                                   | Secret Manager             |
-| api       | `GOOGLE_CLOUD_PROJECT`, `STORAGE_BUCKET`, `ALLOWED_ORIGIN`, `PORT` |                            |
-| dashboard | `VITE_FIREBASE_*`, `VITE_API_URL`                                  | Public Firebase web config |
-| web       | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`                      |                            |
+| App       | Variable                                                           | Notes                                                   |
+| --------- | ------------------------------------------------------------------ | ------------------------------------------------------- |
+| api       | `GEMINI_API_KEY`                                                   | Secret Manager                                          |
+| api       | `BUDGET_PUSH_AUDIENCE`, `BUDGET_PUSH_SERVICE_ACCOUNT`              | Set both to accept billing pushes, or leave both unset. |
+| api       | `GOOGLE_CLOUD_PROJECT`, `STORAGE_BUCKET`, `ALLOWED_ORIGIN`, `PORT` |                                                         |
+| dashboard | `VITE_FIREBASE_*`, `VITE_API_URL`                                  | Public Firebase web config                              |
+| web       | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`                      |                                                         |
 
 ### Limits and cost guards
 
 - Upload at most 30 MB and 100 pages, at most 40 scenarios, 10 analyses per user per day (transaction on
   `users/{uid}/usage`).
-- Cloud Run `max-instances 5`. Budget alert on the project.
+- Cloud Run `max-instances 5`.
+- A Cloud Billing budget publishes to Pub/Sub, whose authenticated push subscription calls
+  `/internal/budget`. The server-only Firestore document `system/budget` stores
+  `{ paused, costAmount, budgetAmount, costIntervalStart, publishTime, updatedAt }`, with a
+  server timestamp for `updatedAt`. The transaction sets `paused` when
+  `costAmount >= budgetAmount`. It ignores older intervals and earlier publish times
+  within the same interval. Equal publish times apply. A later correction can lower the
+  cost or raise the budget and clear the pause.
+  A later interval resets the stored values and pause state. Clients cannot read or write
+  `system/*` under the existing Firestore rules. A missing document means work is not paused.
+  The pause stops upload, confirm and retry while running stages finish. Billing
+  notifications can be delayed, so this is not a hard spending cap. Setup is in the
+  runbook's "Budget pause" section.
 - Per-call model timeout (`limits.modelCallSeconds`). Past it the call is cancelled: ADK calls
   run through `runAsync` with an abort signal, which reaches the HTTP request to the model, and
   the URL context call passes its own. A stage fails when a call is cancelled.

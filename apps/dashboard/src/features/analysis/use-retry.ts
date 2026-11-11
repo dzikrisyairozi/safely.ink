@@ -20,7 +20,9 @@ export function useRetry(onRetry: () => Promise<void>) {
       await onRetry();
     } catch (err) {
       setIsStarting(false);
-      if (err instanceof ApiError && err.code === 'daily_limit') {
+      if (err instanceof ApiError && err.code === 'paused') {
+        setError(t('upload.errors.paused'));
+      } else if (err instanceof ApiError && err.code === 'daily_limit') {
         const resetAt = new Date(err.resetAt ?? '').toLocaleTimeString(
           undefined,
           { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' },

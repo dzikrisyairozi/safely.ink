@@ -122,7 +122,6 @@ export async function runAgent<
     instruction,
     outputSchema: schema,
     generateContentConfig: {
-      temperature: 0,
       maxOutputTokens: 65536,
       ...(thinkingLevel && { thinkingConfig: { thinkingLevel } }),
     },
@@ -175,7 +174,6 @@ export async function runSearch({
     // With more thinking a search took 37 to 115 s instead of 15 to 21 s
     // (spike of 2026-10-14).
     generateContentConfig: {
-      temperature: 0,
       thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
     },
   });

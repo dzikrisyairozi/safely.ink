@@ -10,7 +10,7 @@ Seven findings change what we build or the order we build it in. Where this note
 
 ## Sampling parameters are going away
 
-Google's [troubleshooting guide](https://aistudio.google.com/docs/troubleshooting) says Gemini 4 and Gemini 3.6+ models ignore custom `temperature`, `top_p` and `top_k`, return deprecation warning headers, and "will return `400` errors in a future release". Our agents set `temperature: 0` on every call, and `gemini-3.8-flash` is one of those models.
+Google's [troubleshooting guide](https://aistudio.google.com/docs/troubleshooting) says Gemini 4 and Gemini 3.6+ models ignore custom `temperature`, `top_p` and `top_k`, return deprecation warning headers, and "will return `400` errors in a future release". Our agents no longer set `temperature`, and `gemini-3.8-flash` is one of those models.
 
 Two things follow. The parameter comes out of the code now. And no document may say the model calls are deterministic, because they never were on these models. The repeatability claim in the PRD covers the engine: the same rules and scenarios give the same outcomes.
 

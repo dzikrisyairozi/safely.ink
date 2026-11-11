@@ -80,6 +80,7 @@ const startedToday = async (uid: string) =>
   (await db.doc(`users/${uid}/usage/${TODAY}`).get()).data()?.started ?? 0;
 
 beforeEach(async () => {
+  await db.doc('system/budget').delete();
   await db.recursiveDelete(db.collection('analyses'));
   await db.recursiveDelete(db.collection('users'));
   await bucket().deleteFiles({ prefix: 'uploads/' });
@@ -866,4 +867,79 @@ test('a deleted analysis cannot be confirmed or retried, and its slot stays used
   expect((await retry('alice', 'analysis-1')).status).toBe(404);
   // Otherwise deleting would reset the daily limit (F-UP-5).
   expect(await startedToday('alice')).toBe(1);
+});
+
+test('a paused upload takes no slot and does not read files or call a model', async () => {
+  await db.doc('system/budget').set({ paused: true });
+
+  // No such upload exists, so reading the files would return file_missing.
+  const res = await create('alice', 'analysis-2');
+
+  expect(res.status).toBe(503);
+  expect(await res.json()).toEqual({
+    error: {
+      code: 'paused',
+      message: 'New analyses are paused for now. Please try again later.',
+    },
+  });
+  expect(await stored('analysis-2')).toBeUndefined();
+  expect(await startedToday('alice')).toBe(0);
+  expect((await db.doc(`users/alice/usage/${TODAY}`).get()).exists).toBe(false);
+  expect(reader).not.toHaveBeenCalled();
+});
+
+test.each(['confirm', 'retry'])(
+  'a paused %s leaves the analysis and its slot unchanged',
+  async (action) => {
+    await create('alice', 'analysis-1');
+    if (action === 'retry') {
+      await db
+        .doc('analyses/analysis-1')
+        .update({ status: 'failed', stage: 'fuzzing' });
+      await db
+        .doc(`users/alice/usage/${TODAY}`)
+        .set({ started: 0, attempts: 1 });
+    }
+    const before = await stored('analysis-1');
+    const usage = (await db.doc(`users/alice/usage/${TODAY}`).get()).data();
+    const fuzzCalls = vi.mocked(proposeScenarios).mock.calls.length;
+    await db.doc('system/budget').set({ paused: true });
+
+    const res =
+      action === 'confirm'
+        ? await confirm('alice', 'analysis-1')
+        : await retry('alice', 'analysis-1');
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ error: { code: 'paused' } });
+    expect(await stored('analysis-1')).toEqual(before);
+    expect((await db.doc(`users/alice/usage/${TODAY}`).get()).data()).toEqual(
+      usage,
+    );
+    expect(ruleWriter).not.toHaveBeenCalled();
+    expect(proposeScenarios).toHaveBeenCalledTimes(fuzzCalls);
+  },
+);
+
+test.each([
+  '/v1/analyses',
+  '/v1/analyses/invalid!/confirm',
+  '/v1/analyses/invalid!/retry',
+])('a pause is checked before parsing a request to %s', async (path) => {
+  await db.doc('system/budget').set({ paused: true });
+  const res = await post(path, 'alice', null);
+  expect(res.status).toBe(503);
+  expect(await startedToday('alice')).toBe(0);
+});
+
+test('cancel and delete still work during a budget pause', async () => {
+  await create('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update({ status: 'fuzzing' });
+  await seed('analysis-2');
+  await db.doc('system/budget').set({ paused: true });
+
+  expect((await cancel('alice', 'analysis-1')).status).toBe(202);
+  expect(await stored('analysis-1')).toMatchObject({ cancelRequested: true });
+  expect((await remove('alice', 'analysis-2')).status).toBe(200);
+  expect(await stored('analysis-2')).toBeUndefined();
 });

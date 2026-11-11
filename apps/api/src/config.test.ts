@@ -136,3 +136,27 @@ test('a queue name that is not a full resource name is refused', () => {
     /TASKS_QUEUE/,
   );
 });
+
+const budgetPush = {
+  BUDGET_PUSH_AUDIENCE: 'https://api.example.com/internal/budget',
+  BUDGET_PUSH_SERVICE_ACCOUNT: 'budget-push@example.com',
+};
+
+test('the budget push settings load together or remain unset', () => {
+  expect(loadConfig(budgetPush)).toMatchObject(budgetPush);
+  expect(loadConfig({}).BUDGET_PUSH_AUDIENCE).toBeUndefined();
+  expect(loadConfig({}).BUDGET_PUSH_SERVICE_ACCOUNT).toBeUndefined();
+});
+
+test.each(Object.keys(budgetPush))('%s alone is refused', (key) => {
+  expect(() =>
+    loadConfig({ [key]: budgetPush[key as keyof typeof budgetPush] }),
+  ).toThrow(/together, or none of them/);
+});
+
+test.each([
+  ['BUDGET_PUSH_AUDIENCE', 'not a url'],
+  ['BUDGET_PUSH_SERVICE_ACCOUNT', 'not an email'],
+])('an invalid %s is refused', (key, value) => {
+  expect(() => loadConfig({ ...budgetPush, [key]: value })).toThrow(key);
+});

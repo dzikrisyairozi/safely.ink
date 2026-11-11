@@ -11,6 +11,7 @@ import {
   type UploadError,
 } from '@repo/api-types';
 import { config } from '../config';
+import { isPaused } from '../budget';
 import { failure } from '../failure';
 import { bucket, db } from '../firebase';
 import { readDocument } from '../agents/reader';
@@ -47,11 +48,16 @@ const dailyLimit = (now: Date) =>
   );
 
 const ALREADY_EXISTS = 6; // gRPC status of a create() on an existing document
+const paused = failure(
+  'paused',
+  'New analyses are paused for now. Please try again later.',
+);
 
 export const analyses = new Hono<{ Variables: { uid: string } }>();
 
 // Reads the uploaded document and stops at awaiting_confirmation or rejected.
 analyses.post('/', async (c) => {
+  if (await isPaused()) return c.json(paused, 503);
   const body = CreateAnalysisRequest.safeParse(
     await c.req.json().catch(() => null),
   );
@@ -149,6 +155,7 @@ analyses.post('/', async (c) => {
 // on the worker where a queue is set up, or in this request where none is.
 // The screen follows Firestore meanwhile.
 analyses.post('/:id/confirm', async (c) => {
+  if (await isPaused()) return c.json(paused, 503);
   const id = AnalysisId.safeParse(c.req.param('id'));
   if (!id.success)
     return c.json(failure('not_found', 'No such analysis.'), 404);
@@ -219,6 +226,7 @@ analyses.post('/:id/confirm', async (c) => {
 // stage starts without its old result; what earlier stages stored is used
 // as it is. It starts the run like confirm does.
 analyses.post('/:id/retry', async (c) => {
+  if (await isPaused()) return c.json(paused, 503);
   const id = AnalysisId.safeParse(c.req.param('id'));
   if (!id.success)
     return c.json(failure('not_found', 'No such analysis.'), 404);
