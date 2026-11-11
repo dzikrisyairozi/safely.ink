@@ -359,3 +359,77 @@ test('a probe whose target clause has no benefit rule fails', () => {
     }),
   ).toThrow(/no benefit rule cites its target clause/);
 });
+
+test('the search keeps base facts and the stake fixed', () => {
+  const waiting = {
+    ...refund('gt'),
+    when: { fact: 'daysSinceStart', op: 'lt' as const, value: 365 },
+  };
+  const neutralRefund = amountFacts.map((fact) =>
+    fact.key === 'refundAmount' ? { ...fact, neutral: 100000 } : fact,
+  );
+  const cap = {
+    id: 'r-cap',
+    kind: 'limit' as const,
+    summary: '',
+    clauseIds: ['c-8'],
+    touches: [],
+    when: {
+      all: [
+        { fact: 'paperworkComplete', op: 'eq' as const, value: false },
+        { fact: 'refundAmount', op: 'gt' as const, value: 500000 },
+      ],
+    },
+    effect: { type: 'cap' as const, amount: 500000, percent: null },
+  };
+
+  expect(
+    runProbe(neutralProbe, {
+      clauses: [refundClause],
+      factSchema: amountFacts,
+      rules: [waiting],
+    }).result,
+  ).toBe('bad');
+  expect(
+    runProbe(
+      { ...neutralProbe, facts: { paperworkComplete: false } },
+      {
+        clauses: [refundClause],
+        factSchema: neutralRefund,
+        rules: [refund('gt'), cap],
+      },
+    ),
+  ).toMatchObject({ result: 'partly_bad', loss: 500000 });
+});
+
+test('a benefit too tangled to satisfy fails the probe within a budget', () => {
+  const flags = Array.from({ length: 20 }, (_, n) => ({
+    key: `flag${n}`,
+    type: 'boolean' as const,
+    values: null,
+    unit: null,
+    description: '',
+    neutral: false,
+  }));
+  const impossible = {
+    ...refund('gt'),
+    when: {
+      all: [
+        ...flags.map((flag) => ({
+          fact: flag.key,
+          op: 'eq' as const,
+          value: true,
+        })),
+        { fact: 'flag0', op: 'eq' as const, value: false },
+      ],
+    },
+  };
+
+  expect(() =>
+    runProbe(neutralProbe, {
+      clauses: [refundClause],
+      factSchema: [...amountFacts, ...flags],
+      rules: [impossible],
+    }),
+  ).toThrow(/No assignment within 4096 tries/);
+});

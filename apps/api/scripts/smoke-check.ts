@@ -116,8 +116,17 @@ export function runProbe(probe: Probe, extraction: Extraction): Outcome {
       neutral[fact.key] = probe.stake;
   }
   const base = { ...neutral, ...probe.facts };
+  // Base facts and amounts given the stake are what the probe means, so the
+  // search may not change them.
+  const fixed = new Set([
+    ...BASE_FACTS.map((fact) => fact.key),
+    ...Object.keys(probe.facts),
+    ...[...amounts].filter((key) => neutral[key] === probe.stake),
+  ]);
   const facts =
-    targets.length > 0 ? satisfying(targets, extraction, base, probe) : base;
+    targets.length > 0
+      ? satisfying(targets, extraction, base, fixed, probe.stake)
+      : base;
   return evaluate(extraction.rules, extraction.factSchema, {
     id: probe.id,
     story: '',
@@ -182,13 +191,17 @@ function candidates(
   ];
 }
 
+// More assignments than this means the benefit's condition is too tangled
+// for a probe, and the probe fails rather than run on.
+const SEARCH_BUDGET = 4096;
+
 function satisfying(
   targets: Rule[],
   extraction: Extraction,
   base: Record<string, FactValue>,
-  probe: Probe,
+  fixed: Set<string>,
+  stake: number | null,
 ): Record<string, FactValue> {
-  const fixed = new Set(Object.keys(probe.facts));
   const free = [
     ...new Set(
       targets.flatMap((rule) => comparisons(rule.when).map((c) => c.fact)),
@@ -197,16 +210,21 @@ function satisfying(
     .filter((key) => !fixed.has(key))
     .map((key) => extraction.factSchema.find((fact) => fact.key === key))
     .filter((fact): fact is FactSchema[number] => fact !== undefined);
-  const options = free.map((fact) =>
-    candidates(fact, extraction.rules, probe.stake),
-  );
+  const options = free.map((fact) => candidates(fact, extraction.rules, stake));
+  let tried = 0;
   const holdsFor = (facts: Record<string, FactValue>) =>
     targets.some((rule) => rule.when !== null && holds(rule.when, facts));
   const search = (
     n: number,
     facts: Record<string, FactValue>,
   ): Record<string, FactValue> | null => {
-    if (n === free.length) return holdsFor(facts) ? facts : null;
+    if (n === free.length) {
+      if (++tried > SEARCH_BUDGET)
+        throw new Error(
+          `No assignment within ${SEARCH_BUDGET} tries satisfies the targeted benefit`,
+        );
+      return holdsFor(facts) ? facts : null;
+    }
     for (const value of options[n]!) {
       const found = search(n + 1, { ...facts, [free[n]!.key]: value });
       if (found) return found;
