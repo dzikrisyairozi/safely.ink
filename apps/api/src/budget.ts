@@ -15,6 +15,12 @@ const Notification = z.object({
   costIntervalStart: z.iso.datetime({ offset: true }),
 });
 
+function nanoseconds(timestamp: string) {
+  const fraction = timestamp.match(/\.(\d+)/)?.[1] ?? '';
+  const seconds = Date.parse(timestamp.replace(/\.\d+/, '')) / 1000;
+  return BigInt(seconds) * 1_000_000_000n + BigInt(fraction.padEnd(9, '0'));
+}
+
 export async function isPaused() {
   return (await db.doc('system/budget').get()).data()?.paused === true;
 }
@@ -50,7 +56,7 @@ export async function receiveBudget(body: unknown) {
       if (interval < previous) return;
       if (
         interval === previous &&
-        Date.parse(incoming.publishTime) < Date.parse(stored.publishTime)
+        nanoseconds(incoming.publishTime) < nanoseconds(stored.publishTime)
       )
         return;
     }

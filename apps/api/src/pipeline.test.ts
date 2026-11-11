@@ -888,6 +888,21 @@ const leaseFor = (attemptId: string, fromNow: number) => ({
   until: Timestamp.fromMillis(Date.now() + fromNow),
 });
 
+test('a running stage moves on while the budget is paused', async () => {
+  await readyToRun(waiting);
+  const budget = db.doc('system/budget');
+  await budget.set({ paused: true });
+  try {
+    expect(await runStage('analysis-1')).toEqual({
+      status: 'comparing',
+      moved: true,
+    });
+    expect(await stored()).toMatchObject({ status: 'comparing' });
+  } finally {
+    await budget.delete();
+  }
+});
+
 test('a retried stage clears its old output and removes clearFirst when it moves on', async () => {
   await analysis.update({ clearFirst: true });
   await analysis.collection('rules').doc('stale').set({ id: 'stale' });

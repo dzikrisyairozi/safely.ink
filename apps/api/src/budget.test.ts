@@ -84,6 +84,15 @@ test.each([50, 150])(
   },
 );
 
+test('an earlier publish time within the same millisecond cannot clear a pause', async () => {
+  await notify(100, interval, 100, '2026-11-02T00:00:00.123900Z');
+  const before = await stored();
+  await notify(80, interval, 100, '2026-11-02T00:00:00.123100Z');
+
+  expect(await stored()).toEqual(before);
+  expect(await isPaused()).toBe(true);
+});
+
 test('an older message with the same cost cannot clear a lower-budget pause', async () => {
   await notify(90);
   await notify(90, interval, 80, laterPublishTime);
