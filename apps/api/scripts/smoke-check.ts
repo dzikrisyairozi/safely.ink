@@ -2,10 +2,11 @@ import type {
   Clause,
   Condition,
   FactSchema,
+  FactValue,
   Outcome,
   Rule,
 } from '@repo/api-types';
-import { evaluate } from '../src/engine/evaluate';
+import { evaluate, holds } from '../src/engine/evaluate';
 import { BASE_FACTS } from '../src/pipeline/rule-check';
 import type { Assertion, Probe, Variant } from './smoke-cases';
 
@@ -91,26 +92,32 @@ export function runProbe(probe: Probe, extraction: Extraction): Outcome {
     throw new Error(
       `Probe ${probe.id}: no benefit rule cites its target clause`,
     );
-  // The amount claimed is the money at stake. So a rupiah fact in the
-  // condition of a targeted benefit, or of a cap or deduction, takes the
-  // probe's stake. Every other fact keeps its neutral value, so an unrelated
-  // amount, such as one a discretionary clause touches, stays quiet.
-  const amountKeys = new Set(
+  // A probe sets base facts only, because the model names every other fact.
+  // So, as the fuzzer does for a scenario about a benefit, the targeted
+  // benefit's own condition is satisfied by trying values for its other
+  // facts, and the amount claimed, wherever a cap or deduction asks, is the
+  // stake. A benefit whose condition is inverted on a model-named fact is
+  // therefore not caught by a probe.
+  const neutral = Object.fromEntries(
+    extraction.factSchema.map((fact) => [fact.key, fact.neutral]),
+  );
+  const amounts = new Set(
     extraction.rules
-      .filter((rule) => targets.includes(rule) || rule.kind === 'limit')
+      .filter((rule) => rule.kind === 'limit')
       .flatMap((rule) => comparisons(rule.when).map((c) => c.fact)),
   );
-  const facts = Object.fromEntries(
-    extraction.factSchema.map((fact) => [
-      fact.key,
+  for (const fact of extraction.factSchema) {
+    if (
       probe.stake !== null &&
-      amountKeys.has(fact.key) &&
+      amounts.has(fact.key) &&
       fact.type === 'number' &&
       /^(idr|rp|rupiah)$/i.test(fact.unit ?? '')
-        ? probe.stake
-        : fact.neutral,
-    ]),
-  );
+    )
+      neutral[fact.key] = probe.stake;
+  }
+  const base = { ...neutral, ...probe.facts };
+  const facts =
+    targets.length > 0 ? satisfying(targets, extraction, base, probe) : base;
   return evaluate(extraction.rules, extraction.factSchema, {
     id: probe.id,
     story: '',
@@ -118,7 +125,7 @@ export function runProbe(probe: Probe, extraction: Extraction): Outcome {
     frequency: 'common',
     targetRuleIds: targets.map((rule) => rule.id),
     stake: probe.stake,
-    facts: { ...facts, ...probe.facts },
+    facts,
   });
 }
 
@@ -146,4 +153,67 @@ export function judgeRun(variant: Variant, extraction: Extraction): string[] {
     }
   }
   return failures;
+}
+
+// Values worth trying for one fact: its neutral value, the stake for an
+// amount, both booleans, every enum value, and each number its rules compare
+// it with, one either side.
+function candidates(
+  fact: FactSchema[number],
+  rules: Rule[],
+  stake: number | null,
+) {
+  if (fact.type === 'boolean') return [true, false];
+  if (fact.type === 'enum') return fact.values ?? [];
+  const named = rules
+    .flatMap((rule) => comparisons(rule.when))
+    .filter((c) => c.fact === fact.key && typeof c.value === 'number')
+    .flatMap((c) => [
+      c.value as number,
+      (c.value as number) + 1,
+      (c.value as number) - 1,
+    ]);
+  return [
+    ...new Set([
+      fact.neutral as number,
+      ...(stake === null ? [] : [stake]),
+      ...named,
+    ]),
+  ];
+}
+
+function satisfying(
+  targets: Rule[],
+  extraction: Extraction,
+  base: Record<string, FactValue>,
+  probe: Probe,
+): Record<string, FactValue> {
+  const fixed = new Set(Object.keys(probe.facts));
+  const free = [
+    ...new Set(
+      targets.flatMap((rule) => comparisons(rule.when).map((c) => c.fact)),
+    ),
+  ]
+    .filter((key) => !fixed.has(key))
+    .map((key) => extraction.factSchema.find((fact) => fact.key === key))
+    .filter((fact): fact is FactSchema[number] => fact !== undefined);
+  const options = free.map((fact) =>
+    candidates(fact, extraction.rules, probe.stake),
+  );
+  const holdsFor = (facts: Record<string, FactValue>) =>
+    targets.some((rule) => rule.when !== null && holds(rule.when, facts));
+  const search = (
+    n: number,
+    facts: Record<string, FactValue>,
+  ): Record<string, FactValue> | null => {
+    if (n === free.length) return holdsFor(facts) ? facts : null;
+    for (const value of options[n]!) {
+      const found = search(n + 1, { ...facts, [free[n]!.key]: value });
+      if (found) return found;
+    }
+    return null;
+  };
+  // No assignment of the free facts makes the benefit apply, so the
+  // scenario keeps its facts and the engine reports what that means.
+  return search(0, base) ?? base;
 }

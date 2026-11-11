@@ -732,7 +732,11 @@ pnpm --filter api smoke --case late-charge
 The gate renders a synthetic Indonesian loan agreement and its edited variants to
 PDF, checks the PDF text with `unpdf`, and runs the Reader, fact extraction, and
 rule extraction. Assertions check cited clauses, amounts, percentages, condition
-numbers, and base facts. Fixed probes run the extracted rules through the engine.
+numbers, and base facts. Fixed probes run the extracted rules through the engine. A probe
+sets base facts only, because the model names every other fact. Every probe targets the
+refund benefit, whose own condition is satisfied by trying values for its other facts, as the
+fuzzer does, and a rupiah amount that a cap or deduction compares takes the stake. So a probe
+cannot catch a benefit whose condition is inverted on a fact the model named.
 Unreadable pages, rejected or failed readings, model errors, and repair errors
 fail an attempt. The remaining attempts still run.
 

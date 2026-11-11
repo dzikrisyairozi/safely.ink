@@ -312,12 +312,40 @@ test('an amount a discretionary clause touches stays neutral in a probe', () => 
   expect(outcome).toMatchObject({ result: 'fine', loss: 0 });
 });
 
-test('an inverted refund entitlement fails a targeted probe', () => {
+test('a refund that depends on a model-named boolean is satisfied by the probe', () => {
+  const overpaid = {
+    ...refund('gt'),
+    touches: ['hasOverpayment'],
+    when: { fact: 'hasOverpayment', op: 'eq' as const, value: true },
+  };
   const outcome = runProbe(neutralProbe, {
     clauses: [refundClause],
-    factSchema: amountFacts,
-    rules: [refund('lte')],
+    factSchema: [
+      ...amountFacts,
+      {
+        key: 'hasOverpayment',
+        type: 'boolean' as const,
+        values: null,
+        unit: null,
+        description: '',
+        neutral: false,
+      },
+    ],
+    rules: [overpaid],
   });
+
+  expect(outcome).toMatchObject({ result: 'fine', loss: 0 });
+});
+
+test('a refund that a base-fact override blocks is bad in a targeted probe', () => {
+  const onlyWhenPaid = {
+    ...refund('gt'),
+    when: { fact: 'userPaidOnTime', op: 'eq' as const, value: true },
+  };
+  const outcome = runProbe(
+    { ...neutralProbe, facts: { userPaidOnTime: false } },
+    { clauses: [refundClause], factSchema: amountFacts, rules: [onlyWhenPaid] },
+  );
 
   expect(outcome.result).toBe('bad');
 });
