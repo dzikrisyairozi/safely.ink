@@ -736,7 +736,10 @@ numbers, and base facts. Fixed probes run the extracted rules through the engine
 sets base facts only, because the model names every other fact. Every probe targets the
 refund benefit, whose own condition is satisfied by trying values for its other facts, as the
 fuzzer does, and a rupiah amount that a cap or deduction compares takes the stake. So a probe
-cannot catch a benefit whose condition is inverted on a fact the model named.
+cannot catch a benefit whose condition is inverted on a fact the model named. A probe can also
+fail a correct extraction that models the amount differently, for example as a negative
+balance. That is a false alarm, never a missed regression, and the saved attempt shows the
+rules to check by hand.
 Unreadable pages, rejected or failed readings, model errors, and repair errors
 fail an attempt. The remaining attempts still run.
 
