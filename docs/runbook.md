@@ -291,15 +291,14 @@ BUDGET_PUSH_SERVICE_ACCOUNT=budget-push@$PROJECT.iam.gserviceaccount.com
 gcloud services enable pubsub.googleapis.com billingbudgets.googleapis.com --project "$PROJECT"
 gcloud pubsub topics create budget --project "$PROJECT"
 gcloud pubsub topics add-iam-policy-binding budget --project "$PROJECT" \
-  --member serviceAccount:billing-budget-alerts@system.gserviceaccount.com \
+  --member serviceAccount:billing-budget-alert@system.gserviceaccount.com \
   --role roles/pubsub.publisher
 
 gcloud billing budgets create --billing-account "$BILLING_ACCOUNT" \
   --display-name "safely.ink monthly budget" --calendar-period month \
   --budget-amount "$MONTHLY_BUDGET" --filter-projects "projects/$PROJECT_NUMBER" \
   --threshold-rule percent=1.0 \
-  --notifications-rule-pubsub-topic "projects/$PROJECT/topics/budget" \
-  --notifications-rule-schema-version 1.0
+  --notifications-rule-pubsub-topic "projects/$PROJECT/topics/budget"
 
 gcloud iam service-accounts create budget-push --project "$PROJECT" \
   --display-name "Billing budget push caller"
@@ -319,14 +318,17 @@ gcloud pubsub subscriptions create budget-push --project "$PROJECT" --topic budg
 
 The API verifies the token audience and service account email with the same verifier as
 the worker route. Without both settings, the push route answers 404. A valid push carries
-base64 JSON in `message.data`. Malformed messages are logged and acknowledged with 200.
+base64 JSON in `message.data` and a timestamp in `message.publishTime`. Malformed messages
+are logged and acknowledged with 200.
 
 Check `system/budget` with an administrator account. It stores `paused`, `costAmount`,
-`budgetAmount`, `costIntervalStart` and a server timestamp in `updatedAt`. Clients cannot
-read or write it. At or above the budget, upload, confirm and retry return 503 `paused`
-before taking a daily slot. Cancel, delete and worker stages continue, so running stages
-finish. Older intervals and lower costs within an interval cannot undo the pause.
-A later interval resets the stored values and computes the pause again.
+`budgetAmount`, `costIntervalStart`, `publishTime`, and a server timestamp in `updatedAt`.
+Clients cannot read or write it. At or above the budget, upload, confirm and retry return
+503 `paused` before taking a daily slot. Cancel, delete and worker stages continue, so
+running stages finish. The transaction ignores older intervals and earlier publish times within the
+same interval. Equal publish times apply. A later correction can lower the cost or raise
+the budget and clear the pause. A later interval resets the stored values and computes
+the pause again.
 
 Billing notifications can be delayed. The pause is not a hard spending cap. To check
 the connection, publish a test notification to the dedicated topic and check the API log,

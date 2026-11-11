@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { db } from './firebase';
 import { log } from './telemetry';
 
-const Envelope = z.object({ message: z.object({ data: z.base64().min(1) }) });
+const Envelope = z.object({
+  message: z.object({
+    data: z.base64().min(1),
+    publishTime: z.iso.datetime({ offset: true }),
+  }),
+});
 const Notification = z.object({
   costAmount: z.number(),
   budgetAmount: z.number(),
@@ -28,11 +33,14 @@ export async function receiveBudget(body: unknown) {
     }
   }
   const notification = Notification.safeParse(decoded);
-  if (!notification.success) {
+  if (!envelope.success || !notification.success) {
     log('WARNING', 'malformed budget notification');
     return;
   }
-  const incoming = notification.data;
+  const incoming = {
+    ...notification.data,
+    publishTime: envelope.data.message.publishTime,
+  };
   const budget = db.doc('system/budget');
   await db.runTransaction(async (tx) => {
     const stored = (await tx.get(budget)).data();
@@ -40,7 +48,10 @@ export async function receiveBudget(body: unknown) {
       const interval = Date.parse(incoming.costIntervalStart);
       const previous = Date.parse(stored.costIntervalStart);
       if (interval < previous) return;
-      if (interval === previous && incoming.costAmount < stored.costAmount)
+      if (
+        interval === previous &&
+        Date.parse(incoming.publishTime) < Date.parse(stored.publishTime)
+      )
         return;
     }
     tx.set(budget, {

@@ -38,6 +38,7 @@ vi.mock('./firebase', () => ({
 }));
 
 const { app } = await import('./app');
+const publishTime = '2026-11-02T00:00:00Z';
 const signedBy = (email: string, verified: unknown = true) => ({
   getPayload: () => ({ email, email_verified: verified }),
 });
@@ -124,14 +125,17 @@ test.each([
   'not json',
   '{}',
   '{"message":{}}',
-  '{"message":{"data":123}}',
-  '{"message":{"data":"!not-base64!"}}',
+  JSON.stringify({ message: { data: 123, publishTime } }),
+  JSON.stringify({ message: { data: '!not-base64!', publishTime } }),
   JSON.stringify({
-    message: { data: Buffer.from('not json').toString('base64') },
+    message: { data: Buffer.from('not json').toString('base64'), publishTime },
   }),
-  JSON.stringify({ message: { data: Buffer.from('{}').toString('base64') } }),
+  JSON.stringify({
+    message: { data: Buffer.from('{}').toString('base64'), publishTime },
+  }),
   JSON.stringify({
     message: {
+      publishTime,
       data: Buffer.from(
         JSON.stringify({
           costAmount: '100',
@@ -143,6 +147,7 @@ test.each([
   }),
   JSON.stringify({
     message: {
+      publishTime,
       data: Buffer.from(
         JSON.stringify({
           costAmount: 100,
@@ -163,6 +168,33 @@ test.each([
   expect(firebase.runTransaction).not.toHaveBeenCalled();
 });
 
+test.each([undefined, 'not a date', '2026-11-02T00:00:00'])(
+  'a push with invalid publishTime (%s) is acknowledged without changing the budget',
+  async (published) => {
+    const res = await post(
+      JSON.stringify({
+        message: {
+          publishTime: published,
+          data: Buffer.from(
+            JSON.stringify({
+              costAmount: 100,
+              budgetAmount: 100,
+              costIntervalStart: '2026-11-01T00:00:00Z',
+            }),
+          ).toString('base64'),
+        },
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('malformed budget notification'),
+    );
+    expect(firebase.doc).not.toHaveBeenCalled();
+    expect(firebase.runTransaction).not.toHaveBeenCalled();
+  },
+);
+
 test('a valid push reaches the transaction and a database failure is retried', async () => {
   firebase.doc.mockReturnValue({ path: 'system/budget' });
   firebase.runTransaction.mockRejectedValue(new Error('Unavailable'));
@@ -170,6 +202,7 @@ test('a valid push reaches the transaction and a database failure is retried', a
   const res = await post(
     JSON.stringify({
       message: {
+        publishTime,
         data: Buffer.from(
           JSON.stringify({
             costAmount: 100,
