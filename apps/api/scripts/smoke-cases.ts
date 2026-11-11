@@ -29,6 +29,9 @@ export const Probe = z
     id: anchor,
     facts: z.record(z.string(), z.union([z.number(), z.boolean(), z.string()])),
     stake: z.number().nonnegative().nullable(),
+    // Anchor of the benefit clause the probe is about. Its benefit rules are
+    // the scenario's targets, so a benefit that does not apply is `bad`.
+    target: anchor.optional(),
     expect: z.strictObject({
       result: Outcome.shape.result,
       loss: z.number().optional(),

@@ -55,7 +55,8 @@
       "expect": {
         "result": "fine",
         "loss": 0
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "late",
@@ -66,7 +67,8 @@
       "expect": {
         "result": "partly_bad",
         "loss": 100000
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "notice-on-time",
@@ -77,7 +79,8 @@
       "expect": {
         "result": "fine",
         "loss": 0
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "notice-late",
@@ -88,7 +91,8 @@
       "expect": {
         "result": "bad",
         "loss": 1000000
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "early",
@@ -99,7 +103,8 @@
       "expect": {
         "result": "partly_bad",
         "loss": 20000
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "waiting",
@@ -110,7 +115,8 @@
       "expect": {
         "result": "bad",
         "loss": 1000000
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "waiting-ended",
@@ -121,7 +127,8 @@
       "expect": {
         "result": "partly_bad",
         "loss": 20000
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "deduction",
@@ -132,7 +139,8 @@
       "expect": {
         "result": "partly_bad",
         "loss": 50000
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "cap",
@@ -143,7 +151,8 @@
       "expect": {
         "result": "partly_bad",
         "loss": 500000
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "charge-last-day",
@@ -154,7 +163,8 @@
       "expect": {
         "result": "partly_bad",
         "loss": 20000
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     },
     {
       "id": "charge-ended",
@@ -165,7 +175,8 @@
       "expect": {
         "result": "fine",
         "loss": 0
-      }
+      },
+      "target": "berhak menerima pengembalian kelebihan"
     }
   ],
   "cases": [
@@ -201,7 +212,8 @@
           "expect": {
             "result": "partly_bad",
             "loss": 200000
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         }
       ]
     },
@@ -237,7 +249,8 @@
           "expect": {
             "result": "bad",
             "loss": 1000000
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         },
         {
           "id": "notice-day-10",
@@ -248,7 +261,8 @@
           "expect": {
             "result": "fine",
             "loss": 0
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         },
         {
           "id": "notice-day-11",
@@ -259,7 +273,8 @@
           "expect": {
             "result": "bad",
             "loss": 1000000
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         }
       ]
     },
@@ -296,7 +311,8 @@
           "expect": {
             "result": "partly_bad",
             "loss": 40000
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         },
         {
           "id": "waiting-ended",
@@ -307,7 +323,8 @@
           "expect": {
             "result": "partly_bad",
             "loss": 40000
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         },
         {
           "id": "charge-last-day",
@@ -318,7 +335,8 @@
           "expect": {
             "result": "partly_bad",
             "loss": 40000
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         }
       ]
     },
@@ -346,7 +364,8 @@
           "expect": {
             "result": "fine",
             "loss": 0
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         }
       ]
     },
@@ -410,7 +429,8 @@
           "expect": {
             "result": "fine",
             "loss": 0
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         },
         {
           "id": "charge-first-day",
@@ -421,7 +441,8 @@
           "expect": {
             "result": "partly_bad",
             "loss": 20000
-          }
+          },
+          "target": "berhak menerima pengembalian kelebihan"
         }
       ]
     }

@@ -78,13 +78,33 @@ export function runProbe(probe: Probe, extraction: Extraction): Outcome {
         `Probe ${probe.id} must override only typed base facts: ${key}`,
       );
   }
-  // A model-named amount in rupiah stands for the money at stake, so a rule
-  // that applies only above an amount sees the probe's stake. Every other
-  // fact keeps its neutral value.
+  const targets = probe.target
+    ? extraction.rules.filter(
+        (rule) =>
+          rule.kind === 'benefit' &&
+          rule.clauseIds.includes(
+            findClause(extraction.clauses, probe.target!).id,
+          ),
+      )
+    : [];
+  if (probe.target && targets.length === 0)
+    throw new Error(
+      `Probe ${probe.id}: no benefit rule cites its target clause`,
+    );
+  // The amount claimed is the money at stake. So a rupiah fact in the
+  // condition of a targeted benefit, or of a cap or deduction, takes the
+  // probe's stake. Every other fact keeps its neutral value, so an unrelated
+  // amount, such as one a discretionary clause touches, stays quiet.
+  const amountKeys = new Set(
+    extraction.rules
+      .filter((rule) => targets.includes(rule) || rule.kind === 'limit')
+      .flatMap((rule) => comparisons(rule.when).map((c) => c.fact)),
+  );
   const facts = Object.fromEntries(
     extraction.factSchema.map((fact) => [
       fact.key,
       probe.stake !== null &&
+      amountKeys.has(fact.key) &&
       fact.type === 'number' &&
       /^(idr|rp|rupiah)$/i.test(fact.unit ?? '')
         ? probe.stake
@@ -96,7 +116,7 @@ export function runProbe(probe: Probe, extraction: Extraction): Outcome {
     story: '',
     strategy: 'baseline',
     frequency: 'common',
-    targetRuleIds: [],
+    targetRuleIds: targets.map((rule) => rule.id),
     stake: probe.stake,
     facts: { ...facts, ...probe.facts },
   });

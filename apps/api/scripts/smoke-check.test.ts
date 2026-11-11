@@ -240,3 +240,94 @@ test('a cap that applies only above an amount sees the stake in a probe', () => 
 
   expect(outcome).toMatchObject({ result: 'partly_bad', loss: 500000 });
 });
+
+const refundClause = {
+  id: 'c-8',
+  text: 'berhak menerima pengembalian kelebihan',
+  number: '8',
+  heading: null,
+  gloss: null,
+  page: 1,
+};
+const feeClause = {
+  id: 'c-13',
+  text: 'biaya lain atas kebijakan Kreditur',
+  number: '13',
+  heading: null,
+  gloss: null,
+  page: 1,
+};
+const amountFacts = [
+  ...BASE_FACTS,
+  {
+    key: 'refundAmount',
+    type: 'number' as const,
+    values: null,
+    unit: 'IDR',
+    description: '',
+    neutral: 0,
+  },
+  {
+    key: 'discretionaryFee',
+    type: 'number' as const,
+    values: null,
+    unit: 'IDR',
+    description: '',
+    neutral: 0,
+  },
+];
+const refund = (op: 'gt' | 'lte') => ({
+  id: 'r-refund',
+  kind: 'benefit' as const,
+  summary: '',
+  clauseIds: ['c-8'],
+  touches: ['refundAmount'],
+  when: { fact: 'refundAmount', op, value: 0 },
+  effect: null,
+});
+const discretion = {
+  id: 'r-fee',
+  kind: 'unmodeled' as const,
+  summary: '',
+  clauseIds: ['c-13'],
+  touches: ['discretionaryFee'],
+  when: null,
+  effect: null,
+};
+const neutralProbe = {
+  id: 'neutral',
+  facts: {},
+  stake: 1000000,
+  target: 'berhak menerima pengembalian kelebihan',
+  expect: { result: 'fine' as const, loss: 0 },
+};
+
+test('an amount a discretionary clause touches stays neutral in a probe', () => {
+  const outcome = runProbe(neutralProbe, {
+    clauses: [refundClause, feeClause],
+    factSchema: amountFacts,
+    rules: [refund('gt'), discretion],
+  });
+
+  expect(outcome).toMatchObject({ result: 'fine', loss: 0 });
+});
+
+test('an inverted refund entitlement fails a targeted probe', () => {
+  const outcome = runProbe(neutralProbe, {
+    clauses: [refundClause],
+    factSchema: amountFacts,
+    rules: [refund('lte')],
+  });
+
+  expect(outcome.result).toBe('bad');
+});
+
+test('a probe whose target clause has no benefit rule fails', () => {
+  expect(() =>
+    runProbe(neutralProbe, {
+      clauses: [refundClause],
+      factSchema: amountFacts,
+      rules: [],
+    }),
+  ).toThrow(/no benefit rule cites its target clause/);
+});
