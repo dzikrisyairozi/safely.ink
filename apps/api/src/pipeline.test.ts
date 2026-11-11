@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import { Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Query, Timestamp } from 'firebase-admin/firestore';
 import {
   FactSchema,
   Rule,
@@ -21,7 +21,14 @@ import { config } from './config';
 import { evaluate } from './engine/evaluate';
 import { db } from './firebase';
 import { lookUpLaw } from './legal/research';
-import { addUsage, runPipeline } from './pipeline';
+import {
+  abandonRun,
+  addUsage,
+  LeaseLost,
+  stalledRun,
+  runPipeline,
+  runStage,
+} from './pipeline';
 import { writeTraps } from './agents/trap-writer';
 import { BASE_FACTS } from './pipeline/rule-check';
 import { versions } from './versions';
@@ -874,4 +881,280 @@ test('comparing again keeps the stored expectations and gives the lookup the sto
   expect(judged).not.toHaveBeenCalled();
   expect(law.mock.calls[0]![0].stored).toEqual({ 'r-002': unavailable });
   expect(await stored()).toMatchObject({ counts: { judged: 3, traps: 1 } });
+});
+
+const leaseFor = (attemptId: string, fromNow: number) => ({
+  attemptId,
+  until: Timestamp.fromMillis(Date.now() + fromNow),
+});
+
+test('a retried stage clears its old output and removes clearFirst when it moves on', async () => {
+  await analysis.update({ clearFirst: true });
+  await analysis.collection('rules').doc('stale').set({ id: 'stale' });
+
+  expect(await runStage('analysis-1')).toEqual({
+    status: 'fuzzing',
+    moved: true,
+  });
+
+  expect((await analysis.collection('rules').doc('stale').get()).exists).toBe(
+    false,
+  );
+  expect((await stored())!.clearFirst).toBeUndefined();
+});
+
+test('a retried stage removes clearFirst when it fails', async () => {
+  await analysis.update({ clearFirst: true });
+  facts.mockRejectedValueOnce(new Error('model unavailable'));
+
+  expect(await runStage('analysis-1')).toEqual({ status: 'failed' });
+
+  expect(await stored()).toMatchObject({
+    status: 'failed',
+    stage: 'extracting_rules',
+  });
+  expect((await stored())!.clearFirst).toBeUndefined();
+  expect(await startedOnCreationDay()).toBe(0);
+});
+
+test('a retried stage clears more than 400 documents', async () => {
+  await analysis.update({ clearFirst: true });
+  const batch = db.batch();
+  for (let n = 0; n < 401; n++) {
+    const id = `stale-${n}`;
+    batch.set(analysis.collection('rules').doc(id), { id });
+  }
+  await batch.commit();
+
+  expect(await runStage('analysis-1')).toEqual({
+    status: 'fuzzing',
+    moved: true,
+  });
+
+  expect((await storedRules()).map(({ id }) => id)).toEqual([
+    'r-001',
+    'r-002',
+    'r-003',
+  ]);
+});
+
+test('a retried attempt that loses its lease before cleanup leaves the other attempt trap', async () => {
+  await readyToRun(waiting);
+  await runStage('analysis-1');
+  await analysis.update({ clearFirst: true });
+  const trap = analysis.collection('traps').doc('other-attempt');
+  const get = Query.prototype.get;
+  const read = vi
+    .spyOn(Query.prototype, 'get')
+    .mockImplementationOnce(async function (this: Query) {
+      await analysis.update({ lease: leaseFor('other', 60_000) });
+      await trap.set({ id: 'other-attempt' });
+      return get.call(this);
+    });
+  try {
+    expect(await runStage('analysis-1')).toEqual({ busy: true });
+  } finally {
+    read.mockRestore();
+  }
+
+  expect((await trap.get()).exists).toBe(true);
+  expect(await stored()).toMatchObject({
+    status: 'comparing',
+    clearFirst: true,
+    lease: { attemptId: 'other' },
+  });
+  expect(judged).not.toHaveBeenCalled();
+  expect(await startedOnCreationDay()).toBe(1);
+});
+
+test('a retried attempt that loses its lease during cleanup leaves the other attempt results', async () => {
+  await readyToRun(waiting);
+  await runStage('analysis-1');
+  await analysis.update({ clearFirst: true });
+  const ids = ['trap-001', 'trap-002'];
+  for (const id of ids) {
+    await analysis.collection('traps').doc(id).set({ id, attempt: 'old' });
+  }
+  const get = Query.prototype.get;
+  const read = vi
+    .spyOn(Query.prototype, 'get')
+    .mockImplementationOnce(async function (this: Query) {
+      const round = await get.call(this);
+      expect(round.docs.map((doc) => doc.id)).toEqual(ids);
+      const takeover = db.batch();
+      takeover.update(analysis, {
+        lease: leaseFor('other', 60_000),
+        grade: 'A',
+        'counts.traps': ids.length,
+      });
+      for (const id of ids) {
+        takeover.set(analysis.collection('traps').doc(id), {
+          id,
+          attempt: 'other',
+        });
+      }
+      await takeover.commit();
+      return round;
+    });
+  const transaction = vi.spyOn(db, 'runTransaction');
+  try {
+    expect(await runStage('analysis-1')).toEqual({ busy: true });
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(transaction).toHaveBeenCalledTimes(2);
+    await expect(transaction.mock.results[1]!.value).rejects.toBeInstanceOf(
+      LeaseLost,
+    );
+  } finally {
+    read.mockRestore();
+    transaction.mockRestore();
+  }
+
+  expect(await traps()).toEqual(ids.map((id) => ({ id, attempt: 'other' })));
+  expect(await stored()).toMatchObject({
+    status: 'comparing',
+    clearFirst: true,
+    lease: { attemptId: 'other' },
+    grade: 'A',
+    counts: { traps: ids.length },
+  });
+  expect(judged).not.toHaveBeenCalled();
+  expect(await startedOnCreationDay()).toBe(1);
+});
+
+test('a stage whose lease another attempt holds is busy and left alone', async () => {
+  await readyToRun(waiting);
+  await analysis.update({ lease: leaseFor('other', 60_000) });
+
+  expect(await runStage('analysis-1')).toEqual({ busy: true });
+
+  expect(await stored()).toMatchObject({
+    status: 'running',
+    lease: { attemptId: 'other' },
+  });
+  expect(judged).not.toHaveBeenCalled();
+});
+
+test('a lease that ran out is taken over, without the output of the attempt that died', async () => {
+  await readyToRun(waiting);
+  await runStage('analysis-1'); // running, now comparing
+  // An attempt at comparing wrote a trap, then its worker died.
+  await analysis
+    .collection('traps')
+    .doc('trap-from-the-dead')
+    .set({ id: 'trap-from-the-dead' });
+  await analysis.update({ lease: leaseFor('dead', -1) });
+
+  expect(await runStage('analysis-1')).toEqual({
+    status: 'done',
+    moved: true,
+  });
+
+  expect((await traps()).map((trap) => trap.id)).not.toContain(
+    'trap-from-the-dead',
+  );
+  expect((await stored())!.lease).toBeUndefined();
+});
+
+test('a task for a stage that is over does nothing', async () => {
+  await readyToRun(waiting);
+
+  expect(await runStage('analysis-1', { expected: 'fuzzing' })).toEqual({
+    status: 'running',
+  });
+
+  expect(await storedScenarios()).toSatisfy((scenarios: StoredScenario[]) =>
+    scenarios.every(({ outcome }) => outcome === undefined),
+  );
+});
+
+test('a run asked to stop ends at the next stage as cancelled, and gives the slot back', async () => {
+  await readyToRun(waiting);
+  await analysis.update({ cancelRequested: true });
+
+  expect(await runPipeline('analysis-1')).toBe('failed');
+
+  const data = (await stored())!;
+  expect(data).toMatchObject({
+    status: 'failed',
+    stage: 'running',
+    error: 'cancelled',
+  });
+  expect(data.cancelRequested).toBeUndefined();
+  expect(await startedOnCreationDay()).toBe(0);
+});
+
+test('an attempt that lost its lease does not move the analysis on', async () => {
+  await readyToRun(waiting);
+  await runStage('analysis-1'); // running
+  judged.mockImplementation(async (input) => {
+    await analysis.update({ 'lease.attemptId': 'someone-else' });
+    return expectsFine(input);
+  });
+
+  expect(await runStage('analysis-1')).toEqual({ busy: true });
+
+  expect(await stored()).toMatchObject({
+    status: 'comparing',
+    lease: { attemptId: 'someone-else' },
+  });
+  // Its writes after the takeover were refused.
+  expect(await traps()).toEqual([]);
+  expect((await stored())!.grade).toBeUndefined();
+});
+
+test('a stop waits while another attempt holds the lease', async () => {
+  await readyToRun(waiting);
+  await analysis.update({
+    cancelRequested: true,
+    lease: leaseFor('other', 60_000),
+  });
+
+  expect(await runStage('analysis-1')).toEqual({ busy: true });
+
+  expect(await stored()).toMatchObject({
+    status: 'running',
+    cancelRequested: true,
+    lease: { attemptId: 'other' },
+  });
+});
+
+test('a task of another run of the analysis does nothing', async () => {
+  await readyToRun(waiting);
+  await analysis.update({ runId: 'run-2' });
+
+  expect(await runStage('analysis-1', { runId: 'run-1' })).toEqual({
+    stale: true,
+  });
+
+  expect((await stored())!.status).toBe('running');
+});
+
+test('a run whose first stage was not queued is abandoned only if it never started', async () => {
+  await readyToRun(waiting);
+  await analysis.update({ runId: 'run-1' });
+
+  expect(await abandonRun('analysis-1', 'run-2', 'running')).toBe(false);
+  expect(await abandonRun('analysis-1', 'run-1', 'fuzzing')).toBe(false);
+  await analysis.update({ lease: leaseFor('other', 60_000) });
+  expect(await abandonRun('analysis-1', 'run-1', 'running')).toBe(false);
+  await analysis.update({ lease: FieldValue.delete() });
+
+  expect(await abandonRun('analysis-1', 'run-1', 'running')).toBe(true);
+  expect(await stored()).toMatchObject({ status: 'failed', stage: 'running' });
+  expect(await startedOnCreationDay()).toBe(0);
+});
+
+test.each([
+  ['a stage not heard from for 901 s', 'running', -901, null, true],
+  ['a stage heard from 60 s ago', 'running', -60, null, false],
+  ['a stage with a live lease', 'running', -901, 60_000, false],
+  ['a finished analysis', 'done', -901, null, false],
+] as const)('%s has stalled: %s', (_, status, seconds, leaseLeft, stalled) => {
+  const data = {
+    status,
+    updatedAt: Timestamp.fromMillis(Date.now() + seconds * 1000),
+    ...(leaseLeft && { lease: leaseFor('a', leaseLeft) }),
+  };
+
+  expect(stalledRun(data)).toBe(stalled);
 });

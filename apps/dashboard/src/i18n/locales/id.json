@@ -189,6 +189,15 @@
       "button": "Coba tahap ini lagi",
       "starting": "Memulai lagi…",
       "failed": "Tidak dapat memulai lagi. Periksa koneksi Anda dan coba lagi."
+    },
+    "cancelled": {
+      "title": "Anda menghentikan analisis ini",
+      "description": "Tahap yang sudah selesai tetap tersimpan. Anda bisa melanjutkan dari titik analisis berhenti.",
+      "resume": "Lanjutkan analisis"
+    },
+    "stalled": {
+      "title": "Analisis ini berhenti merespons",
+      "description": "Tidak ada tahap yang melapor selama 15 menit. Tahap yang sudah selesai tetap tersimpan, dan Anda bisa melanjutkan dari tahap terakhir."
     }
   },
   "rules": {
@@ -268,7 +277,12 @@
       "scenarios": "Situasi",
       "traps": "Jebakan"
     },
-    "traps": "Jebakan yang ditemukan sejauh ini"
+    "traps": "Jebakan yang ditemukan sejauh ini",
+    "stop": {
+      "button": "Hentikan analisis ini",
+      "stopping": "Berhenti setelah tahap ini…",
+      "failed": "Analisis tidak dapat dihentikan. Periksa koneksi Anda dan coba lagi."
+    }
   },
   "severity": {
     "critical": "Kritis",

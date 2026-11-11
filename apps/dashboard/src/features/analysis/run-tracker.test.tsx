@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { expect, test, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { Analysis, Rule, Trap } from '@repo/api-types';
 import { RunTracker, type RunningStatus } from './run-tracker';
 
@@ -35,14 +35,20 @@ const trap = (changes: Partial<Trap>): Trap => ({
   ...changes,
 });
 
-const show = (traps: Trap[], status: RunningStatus = 'comparing') =>
+const show = (
+  traps: Trap[],
+  status: RunningStatus = 'comparing',
+  onCancel = vi.fn(async () => {}),
+  changes: Partial<Analysis> = {},
+) =>
   render(
     <RunTracker
       id="analysis-1"
-      analysis={{ ...analysis, status }}
+      analysis={{ ...analysis, ...changes, status }}
       status={status}
       traps={traps}
       rules={[rule('r-001', 'No claims in the first 30 days.')]}
+      onCancel={onCancel}
     />,
   );
 
@@ -98,4 +104,46 @@ test('while the rules are worked out there is nothing to link to yet', () => {
   show([], 'extracting_rules');
 
   expect(screen.queryByRole('link')).toBeNull();
+});
+
+test('the run can be stopped, and says it stops after this stage', async () => {
+  const onCancel = vi.fn(async () => {});
+  show([], 'fuzzing', onCancel);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Stop this run' }));
+
+  expect(onCancel).toHaveBeenCalledTimes(1);
+  expect(
+    await screen.findByRole('button', { name: 'Stop this run' }),
+  ).toBeTruthy();
+});
+
+test('a run asked to stop says so and cannot be asked again', () => {
+  show(
+    [],
+    'fuzzing',
+    vi.fn(async () => {}),
+    { cancelRequested: true },
+  );
+
+  const button = screen.getByRole('button', {
+    name: 'Stopping after this stage…',
+  });
+  expect((button as HTMLButtonElement).disabled).toBe(true);
+});
+
+test('a stop that did not go through says so', async () => {
+  show(
+    [],
+    'fuzzing',
+    vi.fn(async () => {
+      throw new Error('offline');
+    }),
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Stop this run' }));
+
+  expect((await screen.findByRole('alert')).textContent).toBe(
+    'Could not stop the run. Check your connection and try again.',
+  );
 });

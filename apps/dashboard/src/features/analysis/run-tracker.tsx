@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Check, Circle, LoaderCircle } from 'lucide-react';
 import { useTranslation } from '@repo/i18n';
@@ -42,14 +43,31 @@ export function RunTracker({
   status,
   traps,
   rules,
+  onCancel,
 }: {
   id: string;
   analysis: Analysis;
   status: RunningStatus;
   traps: Trap[];
   rules: Rule[];
+  // Asks the run to stop after the stage that is running (F-LIVE-5).
+  onCancel: () => Promise<void>;
 }) {
   const { t, i18n } = useTranslation('dashboard');
+  const [isAsking, setIsAsking] = useState(false);
+  const [cancelFailed, setCancelFailed] = useState(false);
+  const stopping = isAsking || analysis.cancelRequested === true;
+  const stop = async () => {
+    setCancelFailed(false);
+    setIsAsking(true);
+    try {
+      await onCancel();
+    } catch {
+      setCancelFailed(true);
+    } finally {
+      setIsAsking(false);
+    }
+  };
   const current = STAGES.findIndex(([, running]) => running === status);
   const message = MESSAGE[status];
   const summaries = new Map(rules.map((rule) => [rule.id, rule.summary]));
@@ -68,6 +86,19 @@ export function RunTracker({
             count: message.count ? (analysis.counts?.[message.count] ?? 0) : 0,
           })}
         </p>
+        <Button
+          variant="outline"
+          className="self-start"
+          disabled={stopping}
+          onClick={stop}
+        >
+          {stopping ? t('run.stop.stopping') : t('run.stop.button')}
+        </Button>
+        {cancelFailed && (
+          <p role="alert" className="text-sm text-destructive">
+            {t('run.stop.failed')}
+          </p>
+        )}
       </header>
 
       <ol

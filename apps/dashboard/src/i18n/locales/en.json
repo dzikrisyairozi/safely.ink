@@ -189,6 +189,15 @@
       "button": "Try this stage again",
       "starting": "Starting again…",
       "failed": "Could not start again. Check your connection and try again."
+    },
+    "cancelled": {
+      "title": "You stopped this run",
+      "description": "The stages that finished are kept. You can continue from where the run stopped.",
+      "resume": "Continue the run"
+    },
+    "stalled": {
+      "title": "This run stopped responding",
+      "description": "No stage has reported for 15 minutes. The stages that finished are kept, and you can continue from the stage it was in."
     }
   },
   "rules": {
@@ -268,7 +277,12 @@
       "scenarios": "Situations",
       "traps": "Traps"
     },
-    "traps": "Traps found so far"
+    "traps": "Traps found so far",
+    "stop": {
+      "button": "Stop this run",
+      "stopping": "Stopping after this stage…",
+      "failed": "Could not stop the run. Check your connection and try again."
+    }
   },
   "severity": {
     "critical": "Critical",

@@ -114,3 +114,25 @@ test('the grade is computed with the formula the report shows', () => {
   expect(config.scoring.gradeBands).toBe(GRADE_FORMULA.gradeBands);
   expect(config.scoring.untestedBest).toBe(GRADE_FORMULA.untestedBest);
 });
+
+const queue = {
+  TASKS_QUEUE: 'projects/safely-ink/locations/asia-southeast2/queues/stages',
+  WORKER_URL: 'https://worker.example.com',
+  TASKS_SERVICE_ACCOUNT: 'tasks@safely-ink.iam.gserviceaccount.com',
+};
+
+test('the task queue settings load together', () => {
+  expect(loadConfig(queue)).toMatchObject(queue);
+});
+
+test.each(Object.keys(queue))('%s alone is refused', (key) => {
+  expect(() => loadConfig({ [key]: queue[key as keyof typeof queue] })).toThrow(
+    /together, or none of them/,
+  );
+});
+
+test('a queue name that is not a full resource name is refused', () => {
+  expect(() => loadConfig({ ...queue, TASKS_QUEUE: 'stages' })).toThrow(
+    /TASKS_QUEUE/,
+  );
+});

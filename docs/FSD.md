@@ -159,12 +159,14 @@ Each requirement has an ID used by the TSD and by tests.
 
 ### 4.10 Live progress
 
-| ID       | Requirement                                                                                                                                                           |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F-LIVE-1 | During a run the user sees the five stages (Read, Rules, Fuzz, Run, Compare) with the current one marked, and counts as they grow (clauses, rules, scenarios, traps). |
-| F-LIVE-2 | Traps appear on screen as they are confirmed, before the run ends.                                                                                                    |
-| F-LIVE-3 | The user may close the tab. The run continues, and the analysis shows in history with its current status.                                                             |
-| F-LIVE-4 | If a stage fails, the user sees which stage and may retry. A failed analysis does not count against the daily limit.                                                  |
+| ID       | Requirement                                                                                                                                                                                                |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-LIVE-1 | During a run the user sees the five stages (Read, Rules, Fuzz, Run, Compare) with the current one marked, and counts as they grow (clauses, rules, scenarios, traps).                                      |
+| F-LIVE-2 | Traps appear on screen as they are confirmed, before the run ends.                                                                                                                                         |
+| F-LIVE-3 | The user may close the tab. The run continues, and the analysis shows in history with its current status.                                                                                                  |
+| F-LIVE-4 | If a stage fails, the user sees which stage and may retry. A failed analysis does not count against the daily limit.                                                                                       |
+| F-LIVE-5 | During a run the user may stop it. The stage that is running finishes, the run stops before the next one, and the analysis says the user stopped it. The user may continue it later from where it stopped. |
+| F-LIVE-6 | A run that no stage has reported on for 15 minutes is shown as stopped responding. The user may continue it from the stage it was in, without using another of the day's analyses, or stop it.             |
 
 ### 4.11 History
 

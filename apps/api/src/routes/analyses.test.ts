@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import { DocumentReference, Timestamp } from 'firebase-admin/firestore';
+import { DocumentReference, Query, Timestamp } from 'firebase-admin/firestore';
 import {
   ErrorEnvelope,
   ReaderOutput,
@@ -19,6 +19,7 @@ import { proposeFacts, proposeRules } from '../agents/rule-extractor';
 import { judge } from '../agents/expectation-judge';
 import { proposeScenarios, tellBoundaries } from '../agents/scenario-fuzzer';
 import { lookUpLaw } from '../legal/research';
+import { runStage } from '../pipeline';
 import { versions } from '../versions';
 
 // Run through `pnpm test`: Firestore and Storage are the emulators. Only the
@@ -530,26 +531,34 @@ test('a retry that fails again gives its slot back', async () => {
   expect(await startedToday('alice')).toBe(0);
 });
 
-test('a retry that cannot clear its stage still gives its slot back', async () => {
+test('a retry whose cleanup fails ends at that stage and gives its slot back once', async () => {
   const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
   await create('alice', 'analysis-1');
   ruleWriter.mockRejectedValueOnce(new Error('model unavailable'));
   await confirm('alice', 'analysis-1');
+  // Another run has a slot, so a second refund would be visible.
+  await db.doc(`users/alice/usage/${TODAY}`).update({ started: 1 });
   const cleared = vi
-    .spyOn(db, 'recursiveDelete')
+    .spyOn(Query.prototype, 'get')
     .mockRejectedValueOnce(new Error('delete refused'));
-  const update = vi
-    .spyOn(DocumentReference.prototype, 'update')
-    .mockRejectedValueOnce(new Error('write refused'));
+  try {
+    const res = await retry('alice', 'analysis-1');
 
-  const res = await retry('alice', 'analysis-1');
-
-  expect(res.status).toBe(200);
-  expect(await res.json()).toMatchObject({ status: 'failed' });
-  expect(await startedToday('alice')).toBe(0);
-  cleared.mockRestore();
-  update.mockRestore();
-  logged.mockRestore();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ status: 'failed' });
+    const data = (await stored('analysis-1'))!;
+    expect(data).toMatchObject({ status: 'failed', stage: 'extracting_rules' });
+    expect(data.clearFirst).toBeUndefined();
+    expect(data.lease).toBeUndefined();
+    expect(await startedToday('alice')).toBe(1);
+    expect(await runStage('analysis-1', { runId: data.runId })).toEqual({
+      status: 'failed',
+    });
+    expect(await startedToday('alice')).toBe(1);
+  } finally {
+    cleared.mockRestore();
+    logged.mockRestore();
+  }
 });
 
 test('a retry at comparing starts without the grade of the failed attempt', async () => {
@@ -577,6 +586,110 @@ test('a retry at comparing starts without the grade of the failed attempt', asyn
   expect(analysis.counts.judged).toBeUndefined();
   expect(analysis.counts.traps).toBeUndefined();
   logged.mockRestore();
+});
+
+const cancel = (uid: string, analysisId: string) =>
+  post(`/v1/analyses/${analysisId}/cancel`, uid, {});
+
+test('a run that is going on can be asked to stop, without putting off a delete', async () => {
+  await create('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update({ status: 'fuzzing' });
+  const before = (await stored('analysis-1'))!.updatedAt;
+
+  const res = await cancel('alice', 'analysis-1');
+
+  expect(res.status).toBe(202);
+  expect(await res.json()).toEqual({
+    analysisId: 'analysis-1',
+    status: 'fuzzing',
+  });
+  expect(await stored('analysis-1')).toMatchObject({
+    status: 'fuzzing',
+    cancelRequested: true,
+    updatedAt: before,
+  });
+});
+
+test.each([
+  ['awaiting confirmation', { status: 'awaiting_confirmation' }],
+  ['failed', { status: 'failed', stage: 'fuzzing' }],
+  ['done', { status: 'done' }],
+])('a run that is %s cannot be asked to stop', async (_, state) => {
+  await create('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update(state);
+
+  expect((await cancel('alice', 'analysis-1')).status).toBe(409);
+  expect((await stored('analysis-1'))!.cancelRequested).toBeUndefined();
+});
+
+test("another user's run cannot be stopped", async () => {
+  await create('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update({ status: 'fuzzing' });
+
+  expect((await cancel('bob', 'analysis-1')).status).toBe(404);
+  expect((await stored('analysis-1'))!.cancelRequested).toBeUndefined();
+});
+
+test('a retry of a stopped run clears the stop and carries on', async () => {
+  await create('alice', 'analysis-1');
+  await confirm('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update({
+    status: 'failed',
+    stage: 'comparing',
+    error: 'cancelled',
+  });
+
+  await retry('alice', 'analysis-1');
+
+  const data = (await stored('analysis-1'))!;
+  expect(data.status).toBe('done');
+  expect(data.error).toBeUndefined();
+});
+
+const stalledFor = (seconds: number) => ({
+  status: 'comparing',
+  runId: 'run-that-died',
+  updatedAt: Timestamp.fromMillis(Date.now() - seconds * 1000),
+});
+
+test('a run that stopped responding can be retried, on the slot it already has', async () => {
+  await create('alice', 'analysis-1');
+  await confirm('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update(stalledFor(901));
+  const before = await startedToday('alice');
+
+  const res = await retry('alice', 'analysis-1');
+
+  expect(res.status).toBe(200);
+  const data = (await stored('analysis-1'))!;
+  expect(data.status).toBe('done');
+  expect(data.runId).not.toBe('run-that-died');
+  expect(await startedToday('alice')).toBe(before);
+});
+
+test('a run that is still being heard from cannot be retried', async () => {
+  await create('alice', 'analysis-1');
+  await confirm('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update(stalledFor(60));
+
+  expect((await retry('alice', 'analysis-1')).status).toBe(409);
+});
+
+test('a run that stopped responding stops at once when asked, and gives its slot back', async () => {
+  await create('alice', 'analysis-1');
+  await confirm('alice', 'analysis-1');
+  await db.doc('analyses/analysis-1').update(stalledFor(901));
+  const before = await startedToday('alice');
+
+  const res = await cancel('alice', 'analysis-1');
+
+  expect(res.status).toBe(202);
+  expect(await stored('analysis-1')).toMatchObject({
+    status: 'failed',
+    stage: 'comparing',
+    error: 'cancelled',
+  });
+  expect(await startedToday('alice')).toBe(before - 1);
 });
 
 const unavailable: LegalFinding = {

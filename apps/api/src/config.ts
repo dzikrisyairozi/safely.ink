@@ -7,15 +7,38 @@ import {
 import type { ScoreWeights } from './engine/score';
 import type { PriceList } from './telemetry';
 
-const Env = z.object({
-  PORT: z.coerce.number().int().positive().default(3001),
-  // The dashboard URL; the only origin CORS allows.
-  ALLOWED_ORIGIN: z.url().default('http://localhost:5174'),
-  GOOGLE_CLOUD_PROJECT: z.string().optional(),
-  STORAGE_BUCKET: z.string().optional(),
-  // Optional until the first stage that calls a model.
-  GEMINI_API_KEY: z.string().optional(),
-});
+const Env = z
+  .object({
+    PORT: z.coerce.number().int().positive().default(3001),
+    // The dashboard URL; the only origin CORS allows.
+    ALLOWED_ORIGIN: z.url().default('http://localhost:5174'),
+    GOOGLE_CLOUD_PROJECT: z.string().optional(),
+    STORAGE_BUCKET: z.string().optional(),
+    // Optional until the first stage that calls a model.
+    GEMINI_API_KEY: z.string().optional(),
+    // The three together run each stage as a Cloud Task on the worker; without
+    // them the stages run in the request that started them.
+    // "projects/{project}/locations/{region}/queues/{queue}"
+    TASKS_QUEUE: z
+      .string()
+      .regex(/^projects\/[^/]+\/locations\/[^/]+\/queues\/[^/]+$/)
+      .optional(),
+    WORKER_URL: z.url().optional(), // the worker service, also the token audience
+    TASKS_SERVICE_ACCOUNT: z.email().optional(), // the account tasks sign as
+  })
+  .refine(
+    (env) =>
+      [env.TASKS_QUEUE, env.WORKER_URL, env.TASKS_SERVICE_ACCOUNT].every(
+        (value) => value === undefined,
+      ) ||
+      [env.TASKS_QUEUE, env.WORKER_URL, env.TASKS_SERVICE_ACCOUNT].every(
+        (value) => value !== undefined,
+      ),
+    {
+      message:
+        'Set TASKS_QUEUE, WORKER_URL and TASKS_SERVICE_ACCOUNT together, or none of them.',
+    },
+  );
 
 export function loadConfig(env: NodeJS.ProcessEnv) {
   const parsed = Env.safeParse(env);

@@ -1,7 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import {
   FieldPath,
   FieldValue,
+  Timestamp,
+  type DocumentData,
   type DocumentReference,
+  type Transaction,
 } from 'firebase-admin/firestore';
 import {
   AnalysisMeta,
@@ -11,6 +15,8 @@ import {
   Scenario,
   StoredFinding,
   StoredScenario,
+  isStalled,
+  RUN_STALE_SECONDS,
   WrittenStrategy,
   type AnalysisStatus,
   type Expectation,
@@ -44,8 +50,8 @@ import {
   numbered,
 } from './pipeline/rule-check';
 import { checkScenarios } from './pipeline/scenario-check';
-import { releaseDailySlot } from './usage';
-import { inStage, type Usage } from './telemetry';
+import { slotIn } from './usage';
+import { currentAttempt, inStage, log, type Usage } from './telemetry';
 import { versions } from './versions';
 
 const BATCH = 500; // Firestore's limit of writes in one batch
@@ -61,6 +67,7 @@ export async function saveAll(
   merge = false,
 ) {
   for (let from = 0; from < items.length; from += BATCH) {
+    await fence(analysis);
     const batch = db.batch();
     for (const item of items.slice(from, from + BATCH)) {
       batch.set(analysis.collection(name).doc(item.id), item, { merge });
@@ -71,6 +78,34 @@ export async function saveAll(
 
 const updatedAt = () => FieldValue.serverTimestamp();
 
+/** Thrown into a stage whose attempt no longer holds the lease. */
+export class LeaseLost extends Error {
+  constructor() {
+    super('Another attempt holds the lease of this stage.');
+  }
+}
+
+/**
+ * Throws LeaseLost when the attempt running this stage no longer holds its
+ * lease, so an attempt that stalled past its lease cannot write over the one
+ * that took over. A write that starts in the moment between the check and
+ * the takeover still lands. Outside a leased stage it does nothing.
+ */
+export async function fence(analysis: DocumentReference) {
+  const attemptId = currentAttempt();
+  if (!attemptId) return;
+  const lease = (await analysis.get()).data()?.lease;
+  if (lease?.attemptId !== attemptId) throw new LeaseLost();
+}
+
+const stageUpdate = async (
+  analysis: DocumentReference,
+  fields: Record<string, unknown>,
+) => {
+  await fence(analysis);
+  await analysis.update(fields);
+};
+
 // The model proposes facts and rules; rule-check.ts decides what is stored.
 async function extractRules(analysis: DocumentReference, meta: AnalysisMeta) {
   const clauses = (await analysis.collection('clauses').get()).docs.map((doc) =>
@@ -80,7 +115,7 @@ async function extractRules(analysis: DocumentReference, meta: AnalysisMeta) {
   const factSchema = checkFacts(
     await proposeFacts(clauses, packFor(meta.docType), meta),
   );
-  await analysis.update({ factSchema, updatedAt: updatedAt() });
+  await stageUpdate(analysis, { factSchema, updatedAt: updatedAt() });
 
   const drafts = numbered(await proposeRules(clauses, factSchema, meta));
   const first = checkRules(drafts, clauses, factSchema);
@@ -119,7 +154,7 @@ async function extractRules(analysis: DocumentReference, meta: AnalysisMeta) {
   if (rules.length === 0) throw new Error('The clauses gave no rule.');
 
   await saveAll(analysis, 'rules', rules);
-  await analysis.update({
+  await stageUpdate(analysis, {
     'counts.rules': rules.length,
     updatedAt: updatedAt(),
   });
@@ -215,7 +250,7 @@ async function fuzz(
   }
 
   await saveAll(analysis, 'scenarios', scenarios);
-  await analysis.update({
+  await stageUpdate(analysis, {
     'counts.scenarios': scenarios.length,
     updatedAt: updatedAt(),
   });
@@ -245,7 +280,7 @@ async function runScenarios(analysis: DocumentReference) {
 
   const count = (result: Outcome['result']) =>
     ran.filter(({ outcome }) => outcome.result === result).length;
-  await analysis.update({
+  await stageUpdate(analysis, {
     'counts.fine': count('fine'),
     'counts.partlyBad': count('partly_bad'),
     'counts.bad': count('bad'),
@@ -346,6 +381,7 @@ async function compare(
     meta,
     deadline: wordingAt,
     save: async (ruleId, finding) => {
+      await fence(analysis);
       await analysis
         .collection('findings')
         .doc(ruleId)
@@ -377,7 +413,7 @@ async function compare(
     config.scoring,
   );
   await saveAll(analysis, 'traps', traps);
-  await analysis.update({
+  await stageUpdate(analysis, {
     grade,
     points,
     // A scenario that was not judged cannot be a trap, so the grade may be
@@ -461,26 +497,40 @@ export const isStage = (status: unknown): status is AnalysisStatus =>
  * Deletes what a stage wrote in an attempt that failed, so that running it
  * again leaves nothing of that attempt behind.
  */
-export async function clearStage(
-  analysis: DocumentReference,
-  status: AnalysisStatus,
-) {
+async function clearStage(analysis: DocumentReference, status: AnalysisStatus) {
+  const attemptId = currentAttempt();
+  if (attemptId === undefined) {
+    throw new Error('Stage cleanup requires a leased attempt.');
+  }
   const stage = STAGES.find((candidate) => candidate.status === status);
-  if (stage?.writes)
-    await db.recursiveDelete(analysis.collection(stage.writes));
+  if (stage?.writes) {
+    // The rules, scenarios, and traps sub-collections have no nested sub-collections.
+    for (;;) {
+      const round = await analysis
+        .collection(stage.writes)
+        .select()
+        .limit(400)
+        .get();
+      if (round.empty) break;
+      await db.runTransaction(async (tx) => {
+        const data = (await tx.get(analysis)).data();
+        if (data?.lease?.attemptId !== attemptId) throw new LeaseLost();
+        for (const doc of round.docs) tx.delete(doc.ref);
+      });
+    }
+  }
   if (stage?.results) {
-    await analysis.update(
-      Object.fromEntries(
-        stage.results.map((field) => [field, FieldValue.delete()]),
-      ),
+    const fields = Object.fromEntries(
+      stage.results.map((field) => [field, FieldValue.delete()]),
     );
+    await db.runTransaction(async (tx) => {
+      const data = (await tx.get(analysis)).data();
+      if (data?.lease?.attemptId !== attemptId) throw new LeaseLost();
+      tx.update(analysis, fields);
+    });
   }
 }
 
-/**
- * Runs the stages from the current status of the analysis on, and writes
- * the status after each. Returns where the analysis ended.
- */
 const increment = (n: number) => FieldValue.increment(n);
 
 /**
@@ -506,45 +556,203 @@ export async function addUsage(
   );
 }
 
-export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
-  const analysis = db.doc(`analyses/${analysisId}`);
-  const data = (await analysis.get()).data()!;
-  let status: AnalysisStatus = data.status;
-  const deadline = Date.now() + config.limits.confirmSeconds * 1000;
+// What happened to a request to run the next stage.
+export type StageResult =
+  // The status the analysis is in now, and whether this call moved it there
+  // by finishing a stage.
+  | { status: AnalysisStatus; moved?: true }
+  // Another attempt holds a lease that has not run out.
+  | { busy: true }
+  // The request is for another run of the analysis, or the analysis is gone.
+  | { stale: true };
 
-  for (const stage of STAGES) {
-    if (stage.status !== status) continue;
-    try {
-      await inStage(
-        {
-          analysisId,
-          stage: stage.status,
-          save: (model, used) => addUsage(analysis, model, used),
-        },
-        () => stage.run(analysis, AnalysisMeta.parse(data.meta), deadline),
-      );
-      status = stage.next;
-      await analysis.update({
-        status,
-        [`versions.${stage.status}`]: versions,
-        updatedAt: updatedAt(),
-      });
-    } catch (err) {
-      console.error(err);
-      await analysis
-        .update({
-          status: 'failed',
-          stage: stage.status,
-          updatedAt: updatedAt(),
-        })
-        .catch(console.error);
-      // A failed run does not count against the day its slot was taken on
-      // (F-LIVE-4), also when the status itself could not be stored. An
-      // analysis from before reservedAt existed has only createdAt.
-      const reserved = data.reservedAt ?? data.createdAt;
-      await releaseDailySlot(data.ownerUid, reserved.toDate());
-      return 'failed';
+const lease = (attemptId: string) => ({
+  attemptId,
+  until: Timestamp.fromMillis(Date.now() + RUN_STALE_SECONDS * 1000),
+});
+
+const leaseHeld = (data: DocumentData) =>
+  Boolean(data.lease) && data.lease.until.toMillis() > Date.now();
+
+// The day the run's slot counts against. An analysis from before reservedAt
+// existed has only createdAt.
+const slotDay = (data: DocumentData): Date =>
+  (data.reservedAt ?? data.createdAt).toDate();
+
+/**
+ * Ends the run as failed at `stage` in `tx`, and gives the day's slot back in
+ * the same transaction (F-LIVE-4), so the two never come apart. Every read
+ * of the transaction must be done before this is called.
+ */
+const failIn = (
+  tx: Transaction,
+  analysis: DocumentReference,
+  slot: { release: () => void },
+  stage: AnalysisStatus,
+  error?: string,
+) => {
+  tx.update(analysis, {
+    status: 'failed',
+    stage,
+    ...(error && { error }),
+    cancelRequested: FieldValue.delete(),
+    clearFirst: FieldValue.delete(),
+    lease: FieldValue.delete(),
+    updatedAt: updatedAt(),
+  });
+  slot.release();
+};
+
+/**
+ * Runs the stage the analysis is in, once, under a lease (TSD 5). The lease
+ * is claimed in a transaction and lasts RUN_STALE_SECONDS, longer than any
+ * stage. A lease that ran out belongs to an attempt that died, so the stage
+ * starts again without that attempt's output, and the stage's writes check
+ * the lease (`fence`). The status moves on only while this attempt still
+ * holds the lease, so a stage that finished never runs again. With `runId`,
+ * a request for another run is stale, and with `expected`, a request for a
+ * stage the run is past does nothing. A cancel the user asked for takes
+ * effect here, between stages, once no attempt holds the lease. A failure to
+ * store the outcome throws, so a queued task is tried again.
+ */
+export async function runStage(
+  analysisId: string,
+  {
+    runId,
+    expected,
+    deadline = Date.now() + config.limits.confirmSeconds * 1000,
+  }: {
+    runId?: string;
+    // The stage a task was made for. When the run is past it, nothing runs.
+    expected?: AnalysisStatus;
+    // When the request must be done, in ms since the epoch. A task has a
+    // request of its own; the stages run here one after another share one.
+    deadline?: number;
+  } = {},
+): Promise<StageResult> {
+  const analysis = db.doc(`analyses/${analysisId}`);
+  const attemptId = randomUUID();
+
+  const claim = await db.runTransaction(async (tx) => {
+    const data = (await tx.get(analysis)).data();
+    if (!data || (runId && data.runId !== runId)) {
+      return { kind: 'stale' as const };
     }
+    const stage = STAGES.find(({ status }) => status === data.status);
+    if (!stage || (expected && expected !== stage.status)) {
+      return { kind: 'settled' as const, status: data.status };
+    }
+    if (leaseHeld(data)) return { kind: 'busy' as const };
+    if (data.cancelRequested) {
+      const slot = await slotIn(tx, data.ownerUid, slotDay(data));
+      failIn(tx, analysis, slot, stage.status, 'cancelled');
+      return { kind: 'settled' as const, status: 'failed' as const };
+    }
+    tx.update(analysis, { lease: lease(attemptId), updatedAt: updatedAt() });
+    return {
+      kind: 'claimed' as const,
+      data,
+      stage,
+      recovered: Boolean(data.lease),
+    };
+  });
+  if (claim.kind === 'stale') return { stale: true };
+  if (claim.kind === 'busy') return { busy: true };
+  if (claim.kind === 'settled') return { status: claim.status };
+
+  const { data, stage, recovered } = claim;
+  // Runs `write` only while this attempt still holds the lease; false once
+  // it lost it.
+  const finish = (
+    write: (tx: Transaction, current: DocumentData) => Promise<void>,
+  ) =>
+    db.runTransaction(async (tx) => {
+      const current = (await tx.get(analysis)).data();
+      if (current?.lease?.attemptId !== attemptId) return false;
+      await write(tx, current);
+      return true;
+    });
+
+  const context = {
+    analysisId,
+    stage: stage.status,
+    attemptId,
+    save: (model: string, used: Usage) => addUsage(analysis, model, used),
+  };
+  try {
+    await inStage(context, async () => {
+      if (recovered) {
+        log('WARNING', 'stage lease ran out, running the stage again');
+      }
+      if (recovered || data.clearFirst) {
+        await clearStage(analysis, stage.status);
+      }
+      await stage.run(analysis, AnalysisMeta.parse(data.meta), deadline);
+    });
+  } catch (err) {
+    if (err instanceof LeaseLost) return { busy: true };
+    console.error(err);
+    const failed = await finish(async (tx, current) => {
+      const slot = await slotIn(tx, current.ownerUid, slotDay(current));
+      failIn(tx, analysis, slot, stage.status);
+    });
+    return failed ? { status: 'failed' } : { busy: true };
   }
-  return status;
+
+  const moved = await finish(async (tx) => {
+    tx.update(analysis, {
+      status: stage.next,
+      [`versions.${stage.status}`]: versions,
+      clearFirst: FieldValue.delete(),
+      lease: FieldValue.delete(),
+      updatedAt: updatedAt(),
+    });
+  });
+  return moved ? { status: stage.next, moved: true } : { busy: true };
 }
+
+/**
+ * Runs the stages from the current status of the analysis on, one after
+ * another in this process. Where no task queue is set up (local and tests),
+ * this is the run. Returns where the analysis ended.
+ */
+export async function runPipeline(analysisId: string): Promise<AnalysisStatus> {
+  const deadline = Date.now() + config.limits.confirmSeconds * 1000;
+  for (;;) {
+    const result = await runStage(analysisId, { deadline });
+    if ('status' in result && isStage(result.status)) continue;
+    if ('status' in result) return result.status;
+    const data = (await db.doc(`analyses/${analysisId}`).get()).data();
+    return data?.status ?? 'failed';
+  }
+}
+
+/**
+ * Ends a run as failed at `stage`, with its slot given back, when its first
+ * stage could not be queued: only while that run is still at that stage and
+ * no attempt holds a lease, so a run that did start is left alone. True when
+ * it ended the run.
+ */
+export function abandonRun(
+  analysisId: string,
+  runId: string,
+  stage: AnalysisStatus,
+) {
+  const analysis = db.doc(`analyses/${analysisId}`);
+  return db.runTransaction(async (tx) => {
+    const data = (await tx.get(analysis)).data();
+    if (!data || data.runId !== runId || data.status !== stage) return false;
+    if (leaseHeld(data)) return false;
+    const slot = await slotIn(tx, data.ownerUid, slotDay(data));
+    failIn(tx, analysis, slot, stage);
+    return true;
+  });
+}
+
+/**
+ * True for a run that stopped responding (`isStalled`) and that no attempt
+ * holds a lease on. Its task may be gone for good (the queue gave up, or the
+ * first one was never queued), so the user may retry it or stop it.
+ */
+export const stalledRun = (data: DocumentData) =>
+  isStalled(data, Date.now()) && !leaseHeld(data);

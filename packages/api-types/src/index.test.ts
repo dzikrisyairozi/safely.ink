@@ -3,6 +3,7 @@ import {
   Analysis,
   AnalysisMeta,
   COUNTRIES,
+  isStalled,
   ConfirmAnalysisRequest,
   GLOBAL,
   isDeletable,
@@ -508,4 +509,17 @@ test('an analysis keeps the second it was created, from either SDK', () => {
     Analysis.parse({ ...fresh, createdAt: new Timestamp(1_760_400_000, 5) })
       .createdAt,
   ).toEqual({ seconds: 1_760_400_000 });
+});
+
+test.each([
+  ['a stage not heard from for 901 s', 'fuzzing', 901, true],
+  ['a stage heard from 899 s ago', 'fuzzing', 899, false],
+  ['a stage with no updatedAt', 'running', null, true],
+  ['the reading', 'reading', 901, false],
+  ['a finished analysis', 'done', 901, false],
+] as const)('%s has stalled: %s', (_, status, ago, stalled) => {
+  const now = 1_800_000_000_000;
+  const updatedAt = ago === null ? undefined : { seconds: now / 1000 - ago };
+
+  expect(isStalled({ status, updatedAt }, now)).toBe(stalled);
 });

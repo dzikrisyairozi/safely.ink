@@ -218,15 +218,18 @@ descending. That query needs the composite index in
 
 ## 4. API
 
-All routes require `Authorization: Bearer <Firebase ID token>`, verified with the Admin SDK.
+All routes under `/v1` require `Authorization: Bearer <Firebase ID token>`, verified with the
+Admin SDK. `POST /internal/stages` takes only the queue's OIDC token (section 5).
 
-| Method   | Path                       | Body                                                     | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------- | -------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/health`                  | None                                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[], docType, jurisdiction }` | Type and country are what the user picked (400 without them). Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read** (which does not see the pick and puts its finding in `meta.detected`), sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                                                                  |
-| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }`                    | Owner only. Anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then runs the remaining stages and holds the request open for them. Returns `{ analysisId, status }` with the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error.                                                                                                                                                                                                                   |
-| `POST`   | `/v1/analyses/:id/retry`   | None                                                     | Owner only (else 404). From `failed` in a pipeline stage, or from `done` when a finding has `error: 'lookup_unavailable'` (then the stage is `comparing`). Else 409 (a failed reading is uploaded again). Reserves a daily slot again (429 `daily_limit`), deletes the sub-collection the stage writes (`rules`, `scenarios` or `traps`) and its result fields, sets the status to that stage and runs from there with what earlier stages stored, holding the request open like confirm. `comparing` keeps stored expectations and usable findings. A retry that fails again gives its slot back. |
-| `DELETE` | `/v1/analyses/:id`         | None                                                     | Owner only (else 404). 409 while the analysis is in a running stage whose `updatedAt` is newer than `RUN_STALE_SECONDS` (900 s, above every stage limit). An older one is a run that died and may go. The analysis document is deleted in the transaction that checks this, so a racing confirm or retry gets 404. Then every sub-collection and `uploads/{uid}/{id}/` are deleted. Returns `{ analysisId }`. The daily slot stays used.                                                                                                                                                           |
+| Method   | Path                       | Body                                                     | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------- | -------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/health`                  | None                                                     | Liveness, unauthenticated.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `POST`   | `/v1/analyses`             | `{ analysisId, files: string[], docType, jurisdiction }` | Type and country are what the user picked (400 without them). Checks that the files exist under the caller's upload path and are one PDF or 1 to 30 images within the limits (real type from the first bytes), then reserves a daily slot. Creates the analysis as `reading`, runs **Read** (which does not see the pick and puts its finding in `meta.detected`), sets `awaiting_confirmation`, `rejected` or `failed` (slot given back for both), returns `{ analysisId, status }`. 409 if the analysis exists.                                                                                                                                                                                                     |
+| `POST`   | `/v1/analyses/:id/confirm` | `{ docType, jurisdiction, userRole }`                    | Owner only. Anyone else gets 404. Only from `awaiting_confirmation` (else 409). Stores the confirmed type, jurisdiction and role, sets `extracting_rules`, then starts the run (section 5). With a task queue it returns at once with `extracting_rules`. Without one the stages run in the request, and it returns the status the run ended in: `done` or `failed`. A failed stage is that status with 200, not an HTTP error.                                                                                                                                                                                                                                                                                       |
+| `POST`   | `/v1/analyses/:id/retry`   | None                                                     | Owner only (else 404). From `failed` in a pipeline stage, from `done` when a finding has `error: 'lookup_unavailable'` (then the stage is `comparing`), or from a run that stopped responding (section 5), which keeps the slot it has. Else 409 (a failed reading is uploaded again). Reserves a daily slot again (429 `daily_limit`), sets the status to that stage and `clearFirst: true`, clears `error` and `cancelRequested`, and starts the run from there like confirm, with what earlier stages stored. The route deletes no stage output. The first attempt clears it under its lease (section 5). `comparing` keeps stored expectations and usable findings. A retry that fails again gives its slot back. |
+| `POST`   | `/v1/analyses/:id/cancel`  | None                                                     | Owner only (else 404). Only while the status is a pipeline stage (else 409). Sets `cancelRequested` and returns 202 with `{ analysisId, status }`. The stage that is running finishes, and the next claim ends the run as `failed` with `error: 'cancelled'`, giving the slot back (F-LIVE-5). `updatedAt` is left alone, so asking does not put off a delete. A run that stopped responding (section 5) ends at once.                                                                                                                                                                                                                                                                                                |
+| `POST`   | `/internal/stages`         | `{ analysisId, stage }`                                  | Cloud Tasks only: a Google OIDC token for `WORKER_URL`, issued to `TASKS_SERVICE_ACCOUNT` (else 404). Runs that one stage and queues the next (section 5). 503 while another attempt holds the lease, so Cloud Tasks tries again. A malformed task gets 200 and is not retried.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `DELETE` | `/v1/analyses/:id`         | None                                                     | Owner only (else 404). 409 while the analysis is in a running stage whose `updatedAt` is newer than `RUN_STALE_SECONDS` (900 s, above every stage limit). An older one is a run that died and may go. The analysis document is deleted in the transaction that checks this, so a racing confirm or retry gets 404. Then every sub-collection and `uploads/{uid}/{id}/` are deleted. Returns `{ analysisId }`. The daily slot stays used.                                                                                                                                                                                                                                                                              |
 
 Everything the UI displays is read directly from Firestore. There are no `GET` endpoints
 for analyses.
@@ -238,10 +241,59 @@ Request bodies are validated with the shared Zod schemas.
 
 ## 5. Pipeline
 
-`pipeline.ts` runs the stages in order, writes `status`, `stage` and `counts` to the
-analysis document after each step, and writes sub-collection documents as soon as they
-exist (so the UI updates live). A stage that throws sets `failed` with the stage name and
-gives back the daily slot of the day it was taken on (`reservedAt`).
+`runStage()` in `pipeline.ts` runs the stage the analysis is in, once, writes `status`,
+`stage` and `counts` to the analysis document, and writes sub-collection documents as soon
+as they exist (so the UI updates live). A stage that throws sets `failed` with the stage
+name and gives back the daily slot of the day it was taken on (`reservedAt`).
+
+Each stage runs under a lease: `lease: { attemptId, until }` on the analysis, claimed in a
+transaction and lasting `RUN_STALE_SECONDS` (900 s), longer than a stage's `confirmSeconds`.
+A lease that has not run out makes the call busy. A lease that ran out belongs to an attempt
+that died, so the new attempt clears that stage's output (`clearStage()`) and runs it again.
+The first attempt of a retried stage also clears its output under its lease when
+`clearFirst` is set. Cleanup deletes the sub-collection the stage writes (`rules`,
+`scenarios` or `traps`) and its result fields. Each batch of deletes runs in a transaction
+that checks the lease. Result fields are cleared in a transaction with the same lease
+check. The flag stays until the stage moves on or fails, so recovery clears the stage again.
+Every write of a stage first checks
+that its attempt still holds the lease (`fence()`), so an attempt that stalled past its
+lease and wakes up stops with `LeaseLost` instead of writing over the attempt that took over. A write that starts in the
+moment between the check and the takeover still lands. The status moves on only in a
+transaction that finds this attempt still holding the lease, so a stage that finished never
+runs again. A failure that cannot be stored throws, so a queued task is tried again.
+
+A stop the user asked for (`cancelRequested`) takes effect at the next claim, once no
+attempt holds the lease. A run that ends as `failed`, by a fault or by a stop, gives its
+daily slot back in the same transaction that writes the status (`slotIn()`), so the two
+never come apart.
+
+Confirm and retry give the analysis a new `runId`. Where to run the stages depends on the
+environment (`apps/api/src/tasks.ts`):
+
+- With `TASKS_QUEUE`, `WORKER_URL` and `TASKS_SERVICE_ACCOUNT` set, the first stage goes on
+  a Cloud Tasks queue in asia-southeast2 as an HTTP task to the worker, a Cloud Run service
+  from the same image. The task body names the analysis, the run and the stage, and carries
+  an OIDC token of the tasks service account for the worker's URL. The call goes through the
+  Cloud Tasks REST API with `google-auth-library`. Each task is named
+  `{analysisId}-{runId}-{stage}`, so the queue holds one task per stage of a run, and
+  queuing it again is answered `ALREADY_EXISTS`, which counts as queued.
+- The worker checks the token, runs the stage with a deadline of its own, and queues the
+  next stage. A task of an earlier run does nothing. A task for a stage its run is past
+  queues the run's current stage, so a worker that died between finishing a stage and
+  queuing the next leaves no run without a task. A busy stage answers 503, and the queue's
+  retries reach it again after its lease runs out, which is how a run survives a worker
+  that died. A next stage that cannot be queued answers 500, and the retry of that task
+  queues it.
+- A first stage that cannot be queued ends the run as `failed` (`abandonRun()`), unless
+  the run started after all.
+- Without the settings (local development and tests) `runPipeline()` runs the stages one
+  after another in the request, sharing one deadline.
+
+A run whose task is gone for good, because the queue gave up or the first task was never
+queued, sits in its stage. Once no stage has reported on it for `RUN_STALE_SECONDS` and no
+lease is live (`isStalled()` in `@repo/api-types`, `stalledRun()` in the API), the dashboard
+says the run stopped responding. Retry then starts a new run at that stage on the slot the
+run already has, and a stop ends it at once.
 
 Built so far: `extracting_rules`, `fuzzing`, `running`, `comparing`. Each stage names the
 status that follows it, and the run starts at the stage that matches the status of the
@@ -735,6 +787,8 @@ previews that can change under one name, and the analysis `updatedAt` dates them
    page, and its text never verifies a quote.
 3. Resolved: the landing page builds and deploys on Firebase App Hosting from release tags
    (`.github/workflows/release.yml`).
-4. Whether Cloud Tasks and Cloud SQL run in asia-southeast2, checked at the start of R2 and R5.
+4. Resolved for Cloud Tasks: the
+   [locations list](https://docs.cloud.google.com/tasks/docs/locations) has asia-southeast2
+   (Jakarta), read on 2026-10-18. Cloud SQL is checked at the start of R5.
 5. Whether the `pg_textsearch` BM25 preview is available on Cloud SQL in asia-southeast2 (R5).
 6. Which Gemini model IDs Vertex AI serves in asia-southeast1 for the Pro and Flash roles (R3).

@@ -1,3 +1,4 @@
+import type { Transaction } from 'firebase-admin/firestore';
 import { config } from './config';
 import { db } from './firebase';
 
@@ -29,11 +30,25 @@ export function reserveDailySlot(uid: string, now: Date) {
   });
 }
 
+/**
+ * Reads the day's count in `tx`. The `release` it returns gives a slot back in
+ * the same transaction, after every read, so the slot comes back exactly when
+ * what the transaction writes with it does. Pass the `now` it was reserved
+ * with.
+ */
+export async function slotIn(tx: Transaction, uid: string, now: Date) {
+  const ref = today(uid, now);
+  const started: number = (await tx.get(ref)).data()?.started ?? 0;
+  return {
+    release: () => {
+      if (started > 0) tx.update(ref, { started: started - 1 });
+    },
+  };
+}
+
 /** Gives a slot back. Pass the `now` it was reserved with. */
 export function releaseDailySlot(uid: string, now: Date) {
-  const ref = today(uid, now);
-  return db.runTransaction(async (tx) => {
-    const started: number = (await tx.get(ref)).data()?.started ?? 0;
-    if (started > 0) tx.update(ref, { started: started - 1 });
-  });
+  return db.runTransaction(async (tx) =>
+    (await slotIn(tx, uid, now)).release(),
+  );
 }

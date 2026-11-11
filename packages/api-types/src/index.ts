@@ -388,7 +388,10 @@ export const Analysis = z.object({
   status: AnalysisStatus,
   // Where a failed run stopped: the reading, or a stage it can resume from.
   stage: RunningStatus.optional(),
+  // 'cancelled' when the user stopped the run.
   error: z.string().optional(),
+  // Set by a request to stop; the run stops at the next stage.
+  cancelRequested: z.boolean().optional(),
   meta: AnalysisMeta.nullable(), // null until the document is read
   factSchema: FactSchema.optional(), // from the rules stage on
   counts: z
@@ -453,6 +456,19 @@ export const isDeletable = (
   !RunningStatus.safeParse(analysis.status).success ||
   !analysis.updatedAt ||
   now / 1000 - analysis.updatedAt.seconds > RUN_STALE_SECONDS;
+
+// A run in a pipeline stage that no stage has reported on for longer than
+// RUN_STALE_SECONDS has stopped responding: its task may be gone, and the
+// user may continue it (TSD 5).
+export const isStalled = (
+  analysis: Partial<Pick<Analysis, 'status' | 'updatedAt'>>,
+  now: number,
+) =>
+  (['extracting_rules', 'fuzzing', 'running', 'comparing'] as const).some(
+    (stage) => stage === analysis.status,
+  ) &&
+  (!analysis.updatedAt ||
+    now / 1000 - analysis.updatedAt.seconds > RUN_STALE_SECONDS);
 
 // Both end up in a Storage path, so neither may carry a separator.
 export const AnalysisId = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/);
