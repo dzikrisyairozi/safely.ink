@@ -127,6 +127,24 @@ describe('firestore: analyses', () => {
 });
 
 describe('firestore: server-only collections', () => {
+  test.each(['alice', null])(
+    'system documents deny reads and writes for %s',
+    async (uid) => {
+      const db = (
+        uid ? env.authenticatedContext(uid) : anonymous()
+      ).firestore();
+      await env.withSecurityRulesDisabled(async (admin) => {
+        await setDoc(doc(admin.firestore(), 'system/budget'), { paused: true });
+      });
+
+      await assertFails(getDoc(doc(db, 'system/budget')));
+      await assertFails(getDocs(collection(db, 'system')));
+      await assertFails(setDoc(doc(db, 'system/other'), { paused: false }));
+      await assertFails(updateDoc(doc(db, 'system/budget'), { paused: false }));
+      await assertFails(deleteDoc(doc(db, 'system/budget')));
+    },
+  );
+
   test('lawPages and users are closed to clients', async () => {
     const db = alice().firestore();
     const usage = doc(db, 'users/alice/usage/2026-10-13');

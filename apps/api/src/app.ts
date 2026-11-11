@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { receiveBudget } from './budget';
 import { config } from './config';
 import { failure } from './failure';
 import { auth } from './firebase';
+import { fromServiceAccount } from './oidc';
 import { analyses } from './routes/analyses';
 import { fromTaskQueue, StageTask, WORKER_PATH, work } from './tasks';
 
@@ -35,6 +37,24 @@ app.post(WORKER_PATH, async (c) => {
   const status = await work(task.data);
   return c.json({ status }, status);
 });
+
+app.post('/internal/budget', async (c) => {
+  if (
+    !(await fromServiceAccount(
+      c.req.header('Authorization'),
+      config.BUDGET_PUSH_AUDIENCE,
+      config.BUDGET_PUSH_SERVICE_ACCOUNT,
+    ))
+  ) {
+    return c.json(failure('not_found', 'No such route.'), 404);
+  }
+  await receiveBudget(await c.req.json().catch(() => null));
+  return c.json({ status: 'ok' });
+});
+
+app.all('/internal/budget', (c) =>
+  c.json(failure('not_found', 'No such route.'), 404),
+);
 
 // Everything registered below this line needs a signed-in caller.
 app.use(async (c, next) => {

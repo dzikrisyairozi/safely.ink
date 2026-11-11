@@ -24,6 +24,7 @@ import { Input } from '@repo/ui/components/ui/input';
 import { DocumentFields } from '../../components/document-fields';
 import { useNow } from '../../hooks/use-now';
 import { useCountryName } from '../../lib/country-name';
+import { ApiError } from '../../lib/api';
 import { ReportView } from '../report/report-view';
 import { RunTracker, type RunningStatus } from './run-tracker';
 import { useRetry } from './use-retry';
@@ -62,7 +63,7 @@ function ConfirmDetails({
   const [jurisdiction, setJurisdiction] = useState(meta.jurisdiction);
   const [userRole, setUserRole] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const countryName = useCountryName();
 
   // What the Reader found, as a choice on this screen: a country outside the
@@ -76,12 +77,18 @@ function ConfirmDetails({
     detectedCountry !== null && detectedCountry !== jurisdiction;
 
   const submit = async () => {
-    setFailed(false);
+    setError(null);
     setIsSaving(true);
     try {
       await onConfirm({ docType, jurisdiction, userRole });
-    } catch {
-      setFailed(true);
+    } catch (err) {
+      setError(
+        t(
+          err instanceof ApiError && err.code === 'paused'
+            ? 'upload.errors.paused'
+            : 'analysis.confirm.failed',
+        ),
+      );
       setIsSaving(false);
     }
   };
@@ -201,9 +208,9 @@ function ConfirmDetails({
         </label>
       )}
 
-      {failed && (
+      {error && (
         <Alert variant="destructive">
-          <AlertDescription>{t('analysis.confirm.failed')}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

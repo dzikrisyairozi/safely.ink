@@ -78,6 +78,7 @@ Each requirement has an ID used by the TSD and by tests.
 | F-UP-4 | The upload screen shows the "not legal advice" notice and the data notice (private, source file deleted after 7 days) before the user starts.                                                                                                                                                                                             |
 | F-UP-5 | A user may start at most 10 analyses per day. The 11th shows when the limit resets.                                                                                                                                                                                                                                                       |
 | F-UP-6 | Before uploading, the user picks the document type and the country it is from: one of the JAPAC countries (Australia, China, Hong Kong, India, Indonesia, Japan, Malaysia, New Zealand, Philippines, Singapore, South Korea, Taiwan, Thailand, Vietnam) or Global, for a document no single country governs. Nothing starts without both. |
+| F-UP-7 | When the billing budget pauses new work, upload, confirm and retry show "New analyses are paused for now. Please try again later." In Indonesian, they show "Analisis baru dihentikan sementara. Silakan coba lagi nanti." No daily slot is taken. Running stages finish, and cancel and delete remain available.                         |
 
 ### 4.3 Read and confirm
 

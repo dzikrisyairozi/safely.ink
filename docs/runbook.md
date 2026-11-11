@@ -211,7 +211,8 @@ gcloud run deploy api --image $IMAGE --region asia-southeast2 \
 ```
 
 `--allow-unauthenticated` opens the service at the Cloud Run level only. The app itself
-rejects every request without a valid Firebase ID token, except `GET /health`.
+requires a valid Firebase ID token on product routes. `GET /health` needs no token,
+and the internal routes check Google OIDC tokens.
 
 The first deploy prints the service URL. Put it in
 `apps/dashboard/.env.production.local` as `VITE_API_URL`, then rebuild and redeploy the
@@ -271,6 +272,65 @@ of 900 s runs out, and the log says `stage lease ran out, running the stage agai
 
 The release workflow deploys only `api`. Once the worker exists, add a `gcloud run deploy
 worker` step with the same image to `.github/workflows/release.yml`.
+
+### Budget pause **(not yet run)**
+
+These steps connect one monthly project budget to `POST /internal/budget`. The owner
+sets `MONTHLY_BUDGET` to an amount including the billing account's currency code and `BILLING_ACCOUNT`
+to the billing account ID. Use a dedicated topic for this budget because the app stores
+one budget state. Run these commands as an operator who can manage billing budgets,
+Pub/Sub and IAM, deploy the API, and act as the push service account.
+
+```bash
+PROJECT=safely-ink
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT" --format 'value(projectNumber)')
+API_URL=$(gcloud run services describe api --project "$PROJECT" --region asia-southeast2 --format 'value(status.url)')
+BUDGET_PUSH_AUDIENCE=$API_URL/internal/budget
+BUDGET_PUSH_SERVICE_ACCOUNT=budget-push@$PROJECT.iam.gserviceaccount.com
+
+gcloud services enable pubsub.googleapis.com billingbudgets.googleapis.com --project "$PROJECT"
+gcloud pubsub topics create budget --project "$PROJECT"
+gcloud pubsub topics add-iam-policy-binding budget --project "$PROJECT" \
+  --member serviceAccount:billing-budget-alerts@system.gserviceaccount.com \
+  --role roles/pubsub.publisher
+
+gcloud billing budgets create --billing-account "$BILLING_ACCOUNT" \
+  --display-name "safely.ink monthly budget" --calendar-period month \
+  --budget-amount "$MONTHLY_BUDGET" --filter-projects "projects/$PROJECT_NUMBER" \
+  --threshold-rule percent=1.0 \
+  --notifications-rule-pubsub-topic "projects/$PROJECT/topics/budget" \
+  --notifications-rule-schema-version 1.0
+
+gcloud iam service-accounts create budget-push --project "$PROJECT" \
+  --display-name "Billing budget push caller"
+gcloud beta services identity create --service pubsub.googleapis.com --project "$PROJECT"
+gcloud iam service-accounts add-iam-policy-binding "$BUDGET_PUSH_SERVICE_ACCOUNT" \
+  --project "$PROJECT" \
+  --member "serviceAccount:service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com" \
+  --role roles/iam.serviceAccountTokenCreator
+
+gcloud run services update api --project "$PROJECT" --region asia-southeast2 \
+  --update-env-vars "BUDGET_PUSH_AUDIENCE=$BUDGET_PUSH_AUDIENCE,BUDGET_PUSH_SERVICE_ACCOUNT=$BUDGET_PUSH_SERVICE_ACCOUNT"
+gcloud pubsub subscriptions create budget-push --project "$PROJECT" --topic budget \
+  --push-endpoint "$BUDGET_PUSH_AUDIENCE" \
+  --push-auth-service-account "$BUDGET_PUSH_SERVICE_ACCOUNT" \
+  --push-auth-token-audience "$BUDGET_PUSH_AUDIENCE"
+```
+
+The API verifies the token audience and service account email with the same verifier as
+the worker route. Without both settings, the push route answers 404. A valid push carries
+base64 JSON in `message.data`. Malformed messages are logged and acknowledged with 200.
+
+Check `system/budget` with an administrator account. It stores `paused`, `costAmount`,
+`budgetAmount`, `costIntervalStart` and a server timestamp in `updatedAt`. Clients cannot
+read or write it. At or above the budget, upload, confirm and retry return 503 `paused`
+before taking a daily slot. Cancel, delete and worker stages continue, so running stages
+finish. Older intervals and lower costs within an interval cannot undo the pause.
+A later interval resets the stored values and computes the pause again.
+
+Billing notifications can be delayed. The pause is not a hard spending cap. To check
+the connection, publish a test notification to the dedicated topic and check the API log,
+the document and the dashboard message. Restore the budget state after the check.
 
 ### Releases
 

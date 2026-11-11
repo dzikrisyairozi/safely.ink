@@ -115,6 +115,20 @@ test('the daily limit message says when it resets', async () => {
   expect(startButton()).toHaveProperty('disabled', false);
 });
 
+test('a budget pause shows the translated message and lets the user try later', async () => {
+  start.mockRejectedValue(new ApiError(503, 'paused', 'server message'));
+  render(<UploadForm onRead={() => {}} />);
+  pick(photo('one.jpg'));
+  say();
+
+  fireEvent.click(startButton());
+
+  expect((await screen.findByRole('alert')).textContent).toBe(
+    'New analyses are paused for now. Please try again later.',
+  );
+  expect(startButton()).toHaveProperty('disabled', false);
+});
+
 test('a document with too many pages is explained with the limit', async () => {
   start.mockRejectedValue(new ApiError(400, 'too_many_pages', 'too many'));
   render(<UploadForm onRead={() => {}} />);

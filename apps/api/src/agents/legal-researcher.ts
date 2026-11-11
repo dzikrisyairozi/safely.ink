@@ -137,7 +137,6 @@ export async function readLawPage(url: string): Promise<string | null> {
       config: {
         systemInstruction: PAGE_INSTRUCTION,
         tools: [{ urlContext: {} }],
-        temperature: 0,
         thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         abortSignal: signal,
       },

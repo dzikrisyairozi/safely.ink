@@ -101,6 +101,7 @@
       "too_many_pages": "The document has more than 100 pages. Upload the main document only.",
       "file_missing": "One of the files did not upload. Please try again.",
       "daily_limit": "You can check 10 documents a day. The limit resets at {{resetAt}}.",
+      "paused": "New analyses are paused for now. Please try again later.",
       "failed": "The upload did not go through. Check your connection and try again."
     }
   },

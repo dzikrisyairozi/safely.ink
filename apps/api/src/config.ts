@@ -25,6 +25,8 @@ const Env = z
       .optional(),
     WORKER_URL: z.url().optional(), // the worker service, also the token audience
     TASKS_SERVICE_ACCOUNT: z.email().optional(), // the account tasks sign as
+    BUDGET_PUSH_AUDIENCE: z.url().optional(),
+    BUDGET_PUSH_SERVICE_ACCOUNT: z.email().optional(),
   })
   .refine(
     (env) =>
@@ -37,6 +39,15 @@ const Env = z
     {
       message:
         'Set TASKS_QUEUE, WORKER_URL and TASKS_SERVICE_ACCOUNT together, or none of them.',
+    },
+  )
+  .refine(
+    (env) =>
+      (env.BUDGET_PUSH_AUDIENCE === undefined) ===
+      (env.BUDGET_PUSH_SERVICE_ACCOUNT === undefined),
+    {
+      message:
+        'Set BUDGET_PUSH_AUDIENCE and BUDGET_PUSH_SERVICE_ACCOUNT together, or none of them.',
     },
   );
 

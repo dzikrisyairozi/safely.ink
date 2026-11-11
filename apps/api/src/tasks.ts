@@ -1,7 +1,8 @@
-import { GoogleAuth, OAuth2Client } from 'google-auth-library';
+import { GoogleAuth } from 'google-auth-library';
 import { z } from 'zod';
 import { AnalysisId, AnalysisStatus } from '@repo/api-types';
 import { config } from './config';
+import { fromServiceAccount } from './oidc';
 import { abandonRun, isStage, runPipeline, runStage } from './pipeline';
 import { log } from './telemetry';
 
@@ -100,8 +101,6 @@ export async function startRun(
   }
 }
 
-const verifier = new OAuth2Client();
-
 /**
  * True when the bearer token is a Google-signed OIDC token for the worker,
  * issued to the tasks service account. Cloud Run IAM also checks the token
@@ -110,18 +109,7 @@ const verifier = new OAuth2Client();
  */
 export async function fromTaskQueue(header: string | undefined) {
   const setup = queued();
-  const token = header?.match(/^Bearer (.+)$/)?.[1];
-  if (!setup || !token) return false;
-  try {
-    const ticket = await verifier.verifyIdToken({
-      idToken: token,
-      audience: setup.worker,
-    });
-    const payload = ticket.getPayload();
-    return payload?.email === setup.account && payload.email_verified === true;
-  } catch {
-    return false;
-  }
+  return fromServiceAccount(header, setup?.worker, setup?.account);
 }
 
 /**

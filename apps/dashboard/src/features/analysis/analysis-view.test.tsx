@@ -443,6 +443,38 @@ test('a retry over the daily limit says when it resets', async () => {
   expect(retryButton()).toHaveProperty('disabled', false);
 });
 
+test('a paused confirmation shows the translated message', async () => {
+  show(
+    analysis(),
+    vi.fn(async () => {
+      throw new ApiError(503, 'paused', 'server message');
+    }),
+  );
+  fireEvent.click(screen.getByLabelText(/Budi Santoso/));
+  fireEvent.click(confirmButton());
+
+  expect((await screen.findByRole('alert')).textContent).toBe(
+    'New analyses are paused for now. Please try again later.',
+  );
+  expect(confirmButton()).toHaveProperty('disabled', false);
+});
+
+test('a paused retry shows the translated message through useRetry', async () => {
+  show(
+    analysis({ status: 'failed', stage: 'comparing' }),
+    undefined,
+    vi.fn(async () => {
+      throw new ApiError(503, 'paused', 'server message');
+    }),
+  );
+  fireEvent.click(retryButton());
+
+  expect((await screen.findByRole('alert')).textContent).toBe(
+    'New analyses are paused for now. Please try again later.',
+  );
+  expect(retryButton()).toHaveProperty('disabled', false);
+});
+
 test('a retry that does not go through can be tried again', async () => {
   show(
     analysis({ status: 'failed', stage: 'running' }),

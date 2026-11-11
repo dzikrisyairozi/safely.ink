@@ -101,6 +101,7 @@
       "too_many_pages": "Dokumen ini lebih dari 100 halaman. Unggah dokumen utamanya saja.",
       "file_missing": "Salah satu berkas gagal diunggah. Silakan coba lagi.",
       "daily_limit": "Anda dapat memeriksa 10 dokumen per hari. Batas ini diatur ulang pada {{resetAt}}.",
+      "paused": "Analisis baru dihentikan sementara. Silakan coba lagi nanti.",
       "failed": "Unggahan tidak berhasil. Periksa koneksi Anda lalu coba lagi."
     }
   },

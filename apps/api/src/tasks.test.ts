@@ -43,6 +43,9 @@ vi.mock('./pipeline', async (original) => ({
   abandonRun: vi.fn(async () => true),
 }));
 
+vi.mock('./budget', () => ({ isPaused: vi.fn(async () => true) }));
+
+const { isPaused } = await import('./budget');
 const { abandonRun, runPipeline, runStage } = await import('./pipeline');
 const { enqueue, fromTaskQueue, startRun, work } = await import('./tasks');
 const { app } = await import('./app');
@@ -239,4 +242,15 @@ test('a malformed task is answered 200, so it is not tried again', async () => {
 
   expect(res.status).toBe(200);
   expect(runStage).not.toHaveBeenCalled();
+});
+
+test('a budget pause does not block a worker stage or its next task', async () => {
+  vi.mocked(runStage).mockResolvedValue({ status: 'fuzzing', moved: true });
+
+  const res = await post(task('extracting_rules'), 't');
+
+  expect(res.status).toBe(200);
+  expect(runStage).toHaveBeenCalledOnce();
+  expect(bodyOf(0)).toEqual(task('fuzzing'));
+  expect(isPaused).not.toHaveBeenCalled();
 });
