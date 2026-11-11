@@ -6,6 +6,8 @@
 | Date    | 2026-10-18                                                                                                                                                  |
 | Related | [Roadmap](../ROADMAP.md) · [End-to-end flow](../FLOW.md) · [Setup](../SETUP.md) · [Literature review](./2026-10-18-literature-review.md) · [TSD](../TSD.md) |
 
+The [plan refresh of 2026-11-11](./2026-11-11-plan-refresh.md) updates this note where they differ.
+
 This note picks the technology and the working practice for each roadmap milestone. The
 vendor pages cited here were read on 2026-10-18. Two claims were also tried on this machine:
 the Indonesian text search configuration and a reciprocal rank fusion query, both on the

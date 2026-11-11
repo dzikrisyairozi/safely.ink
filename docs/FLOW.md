@@ -3,7 +3,7 @@
 |         |                                                                                                                                                 |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Status  | Living document                                                                                                                                 |
-| Date    | 2026-10-18                                                                                                                                      |
+| Date    | 2026-11-11                                                                                                                                      |
 | Related | [Roadmap](./ROADMAP.md) · [Technical stack](./research/2026-10-18-technical-stack.md) · [Setup](./SETUP.md) · [FSD](./FSD.md) · [TSD](./TSD.md) |
 
 This is the whole path of the finished product: what a user does, what the system does at each
@@ -75,10 +75,10 @@ differ in the scenarios that run and in what the report offers as a next step.
    ▼
  Cloud Tasks queue ──OIDC──► Worker (Cloud Run, same image)
                                │  one stage per task, under a lease
-                               ├─► Vertex AI Gemini, asia-southeast1 (R3)
+                               ├─► Vertex AI Gemini, asia-southeast1 (R3m)
                                ├─► Law corpus, Cloud SQL asia-southeast2 (R5)
                                ├─► Search grounding, only for gaps in the corpus
-                               ├─► Jev, logged only (R13)
+                               ├─► Jev, annotations only, once gated (R13)
                                └─► Firestore: stage output, status, counts
 ```
 
@@ -96,6 +96,7 @@ and keeps what an earlier attempt finished, so the move to tasks changes only wh
 | Contradictions | Rules                                      | Fact sets where rules clash or a deadline cannot be met | `z3-solver`, code                 | R12        |
 | Judge          | Scenarios without the rules                | What a reasonable person expects                        | Gemini Flash, blinded             | v1.0.1     |
 | Law            | Risk-bearing rules                         | Status with quotes found in the source text             | Corpus search, Gemini, code check | v1.0.1, R5 |
+| Verify         | Citations that exist                       | Annotations on fidelity and applicability, caution only | Jev, once gated                   | R13        |
 | Score          | Outcomes, expectations, findings, coverage | Grade, confidence, ranked findings                      | `score()`, code only              | v1.0.1, R0 |
 | Write          | Findings                                   | Plain-language titles and next steps                    | Gemini Flash, filtered by code    | v1.0.1     |
 
@@ -105,18 +106,18 @@ new analyses pause and running ones finish (R2).
 
 ## Where the data goes
 
-| Data                          | Stored in                           | Leaves Indonesia                                                   | Kept for                                                   |
-| ----------------------------- | ----------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------- |
-| The uploaded file             | Cloud Storage, asia-southeast2 (R3) | Sent whole to Gemini in Singapore when the Reader reads it         | Seven days                                                 |
-| Clause text, rules, report    | Firestore, asia-southeast2          | Sent to Gemini in Singapore for each model call                    | The retention period (R3)                                  |
-| Rule summaries for law search | Firestore, with the rules           | Sent to Google Search grounding, which keeps them up to three days | The retention period (R3) here, up to three days at Google |
-| Text sent to Jev              | Not stored by us                    | Yes, masked first (R3, R13)                                        | The processor's terms                                      |
-| Ratings, consent records      | Firestore, asia-southeast2          | No                                                                 | The retention period (R3)                                  |
-| Logs                          | Cloud Logging                       | No document text is logged                                         | The log bucket retention                                   |
-| Law corpus                    | Cloud SQL, asia-southeast2          | No. It holds public statute text                                   | Versioned, kept                                            |
+| Data                          | Stored in                           | Leaves Indonesia                                                                                                  | Kept for                                                     |
+| ----------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| The uploaded file             | Cloud Storage, asia-southeast2 (R3) | Sent whole to Gemini in Singapore when the Reader reads it                                                        | Seven days                                                   |
+| Clause text, rules, report    | Firestore, asia-southeast2          | Sent to Gemini in Singapore for each model call                                                                   | The retention period (R3)                                    |
+| Rule summaries for law search | Firestore, with the rules           | Sent to Google Search grounding, which keeps them up to three days                                                | The retention period (R3) here, up to three days at Google   |
+| Text sent to Jev              | Offline results, outside the app    | Public or consented evaluation text at first. Contract-derived text only after masking and agreed terms (R3, R13) | The processor's terms, zero retention needed for clause text |
+| Ratings, consent records      | Firestore, asia-southeast2          | No                                                                                                                | The retention period (R3)                                    |
+| Logs                          | Cloud Logging                       | No document text is logged                                                                                        | The log bucket retention                                     |
+| Law corpus                    | Cloud SQL, asia-southeast2          | No. It holds public statute text                                                                                  | Versioned, kept                                              |
 
 Every row that leaves Indonesia is a transfer under UU PDP and PP 33/2026, and counsel reviews it
-before launch (R3, R14). The reasons are in the technical stack note.
+before launch (R3, R3m, R14). The reasons are in the technical stack note.
 
 ## How a change reaches users
 
@@ -124,7 +125,7 @@ before launch (R3, R14). The reasons are in the technical stack note.
    `pnpm type-check`, `pnpm lint` and `pnpm test`, and Codex reviews the diff.
 2. A pull request goes into `staging`. Merging it deploys to the `safely-ink-staging` project
    (R4), seeded with test documents only.
-3. The change is checked on staging: a full run on the eval set's smoke documents, and the
+3. The change is checked on staging: a full run on the smoke set of perturbed agreements, and the
    numbers in `docs/eval.md` must not drop (R1).
 4. A release pull request goes from `staging` into `main`, where CI runs the full gate.
 5. A `vX.Y.Z` tag on `main` deploys the API, the dashboard with its rules, and the landing page to
