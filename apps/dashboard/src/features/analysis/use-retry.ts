@@ -15,8 +15,8 @@ export function useRetry(onRetry: () => Promise<void>) {
     setError(null);
     setIsStarting(true);
     try {
-      // The request stays open for the whole run. Once it has started, the
-      // status changes and the screen that asked is gone.
+      // Once the run has started the status changes and the screen that
+      // asked is gone. Where stages run in the request, it stays open.
       await onRetry();
     } catch (err) {
       setIsStarting(false);

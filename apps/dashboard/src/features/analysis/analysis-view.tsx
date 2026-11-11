@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from '@repo/i18n';
 import {
   GLOBAL,
+  isStalled,
   Jurisdiction,
   type Analysis,
   type AnalysisMeta,
@@ -21,6 +22,7 @@ import {
 import { Button } from '@repo/ui/components/ui/button';
 import { Input } from '@repo/ui/components/ui/input';
 import { DocumentFields } from '../../components/document-fields';
+import { useNow } from '../../hooks/use-now';
 import { useCountryName } from '../../lib/country-name';
 import { ReportView } from '../report/report-view';
 import { RunTracker, type RunningStatus } from './run-tracker';
@@ -218,29 +220,33 @@ function ConfirmDetails({
 
 function RetryStage({
   stage,
+  why,
   onRetry,
 }: {
-  stage: RunningStatus; // where the failed run stopped
+  stage: RunningStatus; // where the run stopped
+  why: 'failed' | 'cancelled' | 'stalled';
   onRetry: () => Promise<void>;
 }) {
   const { t } = useTranslation('dashboard');
   const { retry, isStarting, error } = useRetry(onRetry);
+  const text =
+    why === 'failed' ? `analysis.failed.${stage}` : `analysis.${why}`;
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-16">
-      <h1 className="text-3xl tracking-tight">
-        {t(`analysis.failed.${stage}.title`)}
-      </h1>
-      <p className="text-muted-foreground">
-        {t(`analysis.failed.${stage}.description`)}
-      </p>
+      <h1 className="text-3xl tracking-tight">{t(`${text}.title`)}</h1>
+      <p className="text-muted-foreground">{t(`${text}.description`)}</p>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       <Button className="self-start" disabled={isStarting} onClick={retry}>
-        {isStarting ? t('analysis.retry.starting') : t('analysis.retry.button')}
+        {isStarting
+          ? t('analysis.retry.starting')
+          : why === 'failed'
+            ? t('analysis.retry.button')
+            : t('analysis.cancelled.resume')}
       </Button>
     </div>
   );
@@ -257,6 +263,7 @@ export function AnalysisView({
   findings,
   onConfirm,
   onRetry,
+  onCancel,
 }: {
   id: string;
   analysis: Analysis;
@@ -267,10 +274,12 @@ export function AnalysisView({
   clauses: Clause[] | undefined;
   findings: StoredFinding[] | undefined;
   onConfirm: (details: ConfirmAnalysisRequest) => Promise<void>;
-  // Resolves when the run it starts has ended; the screen follows the status.
+  // Resolves once the run has started; the screen follows the status.
   onRetry: () => Promise<void>;
+  onCancel: () => Promise<void>;
 }): JSX.Element | null {
   const { t } = useTranslation('dashboard');
+  const now = useNow(60_000);
 
   if (analysis.status === 'awaiting_confirmation' && analysis.meta) {
     return <ConfirmDetails meta={analysis.meta} onConfirm={onConfirm} />;
@@ -307,12 +316,23 @@ export function AnalysisView({
           </Message>
         );
       }
-      return <RetryStage stage={stage} onRetry={onRetry} />;
+      return (
+        <RetryStage
+          stage={stage}
+          why={analysis.error === 'cancelled' ? 'cancelled' : 'failed'}
+          onRetry={onRetry}
+        />
+      );
     }
     case 'extracting_rules':
     case 'fuzzing':
     case 'running':
     case 'comparing':
+      if (isStalled(analysis, now)) {
+        return (
+          <RetryStage stage={analysis.status} why="stalled" onRetry={onRetry} />
+        );
+      }
       return (
         <RunTracker
           id={id}
@@ -320,6 +340,7 @@ export function AnalysisView({
           status={analysis.status}
           traps={traps ?? []}
           rules={rules ?? []}
+          onCancel={onCancel}
         />
       );
     case 'done':

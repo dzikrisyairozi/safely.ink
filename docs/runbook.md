@@ -217,6 +217,59 @@ The first deploy prints the service URL. Put it in
 `apps/dashboard/.env.production.local` as `VITE_API_URL`, then rebuild and redeploy the
 dashboard.
 
+### Task queue and worker **(not yet run)**
+
+Without the three `TASKS_*` settings the API runs the stages in the confirm request, as it
+always has. These steps move each stage to a Cloud Task on a worker service (TSD 5). Cloud
+Tasks is offered in asia-southeast2. `PROJECT_NUMBER` is the number in the service URL
+above, and the API's runtime account is the default compute account unless the service was
+given another one.
+
+```bash
+PROJECT_NUMBER=774697783852
+RUNTIME=$PROJECT_NUMBER-compute@developer.gserviceaccount.com
+TASKS=tasks@safely-ink.iam.gserviceaccount.com
+
+gcloud services enable cloudtasks.googleapis.com
+# A worker that died leaves a lease of 900 s. The retries must outlast it.
+gcloud tasks queues create stages --location asia-southeast2 \
+  --max-attempts 30 --min-backoff 60s --max-backoff 600s --max-retry-duration 3h \
+  --max-concurrent-dispatches 10
+
+# The account the tasks sign their OIDC token as.
+gcloud iam service-accounts create tasks --display-name "Cloud Tasks caller"
+# The API and the worker put tasks on the queue, signed as that account.
+gcloud tasks queues add-iam-policy-binding stages --location asia-southeast2 \
+  --member serviceAccount:$RUNTIME --role roles/cloudtasks.enqueuer
+gcloud iam service-accounts add-iam-policy-binding $TASKS \
+  --member serviceAccount:$RUNTIME --role roles/iam.serviceAccountUser
+
+# The worker: the API image, closed to the public. A task may take 1800 s.
+gcloud run deploy worker --image $IMAGE --region asia-southeast2 \
+  --timeout 1800 --memory 1Gi --concurrency 1 --min-instances 0 --max-instances 5 \
+  --no-allow-unauthenticated \
+  --set-env-vars GOOGLE_CLOUD_PROJECT=safely-ink,STORAGE_BUCKET=safely-ink.firebasestorage.app,ALLOWED_ORIGIN=https://safely-ink.web.app \
+  --set-secrets GEMINI_API_KEY=gemini-api-key:latest
+WORKER_URL=$(gcloud run services describe worker --region asia-southeast2 --format 'value(status.url)')
+gcloud run services add-iam-policy-binding worker --region asia-southeast2 \
+  --member serviceAccount:$TASKS --role roles/run.invoker
+
+# Both services get the three settings. The worker queues the next stage itself.
+for SERVICE in api worker; do
+  gcloud run services update $SERVICE --region asia-southeast2 \
+    --update-env-vars TASKS_QUEUE=projects/safely-ink/locations/asia-southeast2/queues/stages,WORKER_URL=$WORKER_URL,TASKS_SERVICE_ACCOUNT=$TASKS
+done
+```
+
+To check it, confirm an analysis and watch the queue
+(`gcloud tasks list --queue stages --location asia-southeast2`) and the worker's log, which
+has one `model call answered` line per model call. To check recovery, stop the worker's
+revision while a stage runs: the task is tried again, the stage runs again after its lease
+of 900 s runs out, and the log says `stage lease ran out, running the stage again`.
+
+The release workflow deploys only `api`. Once the worker exists, add a `gcloud run deploy
+worker` step with the same image to `.github/workflows/release.yml`.
+
 ### Releases
 
 After the release PR is merged, tag `main` and push the tag:

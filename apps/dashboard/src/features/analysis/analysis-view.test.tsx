@@ -33,6 +33,8 @@ const analysis = (changes: Partial<Analysis> = {}): Analysis => ({
   ownerUid: 'alice',
   status: 'awaiting_confirmation',
   meta,
+  // Heard from a moment ago, so a running analysis has not stalled.
+  updatedAt: { seconds: Math.floor(Date.now() / 1000) },
   ...changes,
 });
 const show = (
@@ -51,6 +53,7 @@ const show = (
       findings={[]}
       onConfirm={onConfirm}
       onRetry={onRetry}
+      onCancel={vi.fn(async () => {})}
     />,
   );
   return onConfirm;
@@ -251,7 +254,10 @@ test('after confirmation the form is gone and the rules are being worked out', (
   show(analysis({ status: 'extracting_rules' }));
 
   expect(screen.getByRole('heading').textContent).toBe('Working out the rules');
-  expect(screen.queryByRole('button')).toBeNull();
+  // The confirm form is gone; the one button left stops the run.
+  expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
+    'Stop this run',
+  ]);
   expect(screen.queryByRole('link')).toBeNull();
 });
 
@@ -273,6 +279,23 @@ test('a failed rules stage names the stage', () => {
     'The rules could not be worked out',
   );
   expect(retryButton()).toBeTruthy();
+});
+
+test('a run the user stopped says so and offers to continue', () => {
+  show(analysis({ status: 'failed', stage: 'fuzzing', error: 'cancelled' }));
+
+  expect(screen.getByRole('heading').textContent).toBe('You stopped this run');
+  expect(screen.getByRole('button', { name: 'Continue the run' })).toBeTruthy();
+});
+
+test('a run that stopped responding says so and offers to continue', () => {
+  const quiet = { seconds: Math.floor(Date.now() / 1000) - 901 };
+  show(analysis({ status: 'comparing', updatedAt: quiet }));
+
+  expect(screen.getByRole('heading').textContent).toBe(
+    'This run stopped responding',
+  );
+  expect(screen.getByRole('button', { name: 'Continue the run' })).toBeTruthy();
 });
 
 test('one rule is not called "1 rules"', () => {
@@ -398,6 +421,7 @@ test('a finished report waits for its traps instead of saying there are none', (
       clauses={[]}
       findings={[]}
       onConfirm={vi.fn(async () => {})}
+      onCancel={vi.fn(async () => {})}
       onRetry={vi.fn(async () => {})}
     />
   );

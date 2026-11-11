@@ -64,6 +64,9 @@ function AnalysisPage() {
             onRetry={async () => {
               await api(`/v1/analyses/${id}/retry`, { method: 'POST' });
             }}
+            onCancel={async () => {
+              await api(`/v1/analyses/${id}/cancel`, { method: 'POST' });
+            }}
           />
         )}
       </Main>

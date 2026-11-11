@@ -28,6 +28,9 @@ const context = new AsyncLocalStorage<
   Context & { saving: Set<Promise<void>> }
 >();
 
+/** The attempt that holds the lease of the running stage, if any. */
+export const currentAttempt = () => context.getStore()?.attemptId;
+
 /**
  * Runs `work` with every call and log line in it tied to this stage, then
  * waits for the usage saves begun in it, so none is left pending when the

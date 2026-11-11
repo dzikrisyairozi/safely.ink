@@ -4,6 +4,7 @@ import { config } from './config';
 import { failure } from './failure';
 import { auth } from './firebase';
 import { analyses } from './routes/analyses';
+import { fromTaskQueue, StageTask, WORKER_PATH, work } from './tasks';
 
 const unauthenticated = failure(
   'unauthenticated',
@@ -20,6 +21,20 @@ app.use(
 );
 
 app.get('/health', (c) => c.json({ status: 'ok' }));
+
+// Cloud Tasks calls this on the worker with one stage of one analysis. It
+// answers 404 where no queue is set up, and to any caller but the queue.
+app.post(WORKER_PATH, async (c) => {
+  if (!(await fromTaskQueue(c.req.header('Authorization')))) {
+    return c.json(failure('not_found', 'No such route.'), 404);
+  }
+  const task = StageTask.safeParse(await c.req.json().catch(() => null));
+  // A malformed task is never right on a retry, so it is not retried.
+  if (!task.success)
+    return c.json(failure('invalid_request', 'Bad task.'), 200);
+  const status = await work(task.data);
+  return c.json({ status }, status);
+});
 
 // Everything registered below this line needs a signed-in caller.
 app.use(async (c, next) => {

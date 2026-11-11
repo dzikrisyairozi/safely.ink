@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { FieldValue } from 'firebase-admin/firestore';
 import {
@@ -17,12 +18,18 @@ import {
   addUsage,
   clearStage,
   isStage,
-  runPipeline,
+  stalledRun,
   saveAll,
 } from '../pipeline';
 import { checkReading } from '../pipeline/reader-check';
 import { loadUploads } from '../uploads';
-import { nextReset, releaseDailySlot, reserveDailySlot } from '../usage';
+import {
+  nextReset,
+  releaseDailySlot,
+  reserveDailySlot,
+  slotIn,
+} from '../usage';
+import { startRun } from '../tasks';
 import { inStage } from '../telemetry';
 import { versions } from '../versions';
 
@@ -144,8 +151,9 @@ analyses.post('/', async (c) => {
   return c.json({ analysisId, status }, 201);
 });
 
-// Stores what the user confirmed, then runs the remaining stages. The
-// request stays open for the run; the screen follows Firestore meanwhile.
+// Stores what the user confirmed, then starts the remaining stages: as tasks
+// on the worker where a queue is set up, or in this request where none is.
+// The screen follows Firestore meanwhile.
 analyses.post('/:id/confirm', async (c) => {
   const id = AnalysisId.safeParse(c.req.param('id'));
   if (!id.success)
@@ -165,6 +173,7 @@ analyses.post('/:id/confirm', async (c) => {
   const uid = c.get('uid');
   const { docType, jurisdiction, userRole } = body.data;
 
+  const runId = randomUUID();
   const outcome = await db.runTransaction(async (tx) => {
     const analysis = db.doc(`analyses/${id.data}`);
     const data = (await tx.get(analysis)).data();
@@ -179,6 +188,7 @@ analyses.post('/:id/confirm', async (c) => {
 
     tx.update(analysis, {
       status: 'extracting_rules',
+      runId,
       'meta.docType': docType,
       'meta.jurisdiction': jurisdiction,
       'meta.lawChecked': isLawChecked(jurisdiction),
@@ -205,7 +215,7 @@ analyses.post('/:id/confirm', async (c) => {
       // A stage that fails is a status of the analysis, not an HTTP error.
       return c.json({
         analysisId: id.data,
-        status: await runPipeline(id.data),
+        status: await startRun(id.data, runId, 'extracting_rules'),
       });
   }
 });
@@ -213,7 +223,7 @@ analyses.post('/:id/confirm', async (c) => {
 // Resumes a failed run from the stage it stopped in (F-LIVE-4, FSD 6), or
 // checks the law again for a finished one whose lookup was unavailable. The
 // stage starts without its old result; what earlier stages stored is used
-// as it is. Like confirm, the request stays open for the run.
+// as it is. It starts the run like confirm does.
 analyses.post('/:id/retry', async (c) => {
   const id = AnalysisId.safeParse(c.req.param('id'));
   if (!id.success)
@@ -244,34 +254,55 @@ analyses.post('/:id/retry', async (c) => {
         .get()
     ).empty;
   // A failed reading has nothing stored to resume from; it is uploaded again.
+  // A run that stopped responding resumes at the stage it is in.
   const from = data.status;
-  const stage =
-    from === 'done' && (await lawMissing()) ? 'comparing' : data.stage;
-  if ((from !== 'failed' && from !== 'done') || !isStage(stage)) {
+  const stalled = stalledRun(data);
+  const stage = stalled
+    ? from
+    : from === 'done' && (await lawMissing())
+      ? 'comparing'
+      : data.stage;
+  if ((!stalled && from !== 'failed' && from !== 'done') || !isStage(stage)) {
     return conflict();
   }
 
-  // The failure gave its slot back, so the run takes one again.
+  // A failure gave its slot back, so the run takes one again. A run that
+  // stopped responding never gave its slot back and keeps it.
   const now = new Date();
-  if (!(await reserveDailySlot(uid, now))) {
+  const slotDay: Date = stalled
+    ? (data.reservedAt ?? data.createdAt).toDate()
+    : now;
+  if (!stalled && !(await reserveDailySlot(uid, now))) {
     return c.json(dailyLimit(now), 429);
   }
 
-  // Of two retries at once, only one picks the analysis up.
+  // Of two retries at once, only one picks the analysis up. The new run ID
+  // makes every task of an earlier run of this analysis do nothing.
+  const runId = randomUUID();
   const picked = await db.runTransaction(async (tx) => {
     const current = (await tx.get(analysis)).data();
     if (!current || current.status !== from) return false;
-    if (from === 'failed' && current.stage !== stage) return false;
+    if (
+      stalled
+        ? !stalledRun(current)
+        : from === 'failed' && current.stage !== stage
+    ) {
+      return false;
+    }
     tx.update(analysis, {
       status: stage,
+      runId,
       stage: FieldValue.delete(),
-      reservedAt: now,
+      error: FieldValue.delete(),
+      cancelRequested: FieldValue.delete(),
+      lease: FieldValue.delete(),
+      reservedAt: slotDay,
       updatedAt: FieldValue.serverTimestamp(),
     });
     return true;
   });
   if (!picked) {
-    await releaseDailySlot(uid, now);
+    if (!stalled) await releaseDailySlot(uid, now);
     return conflict();
   }
 
@@ -287,10 +318,62 @@ analyses.post('/:id/retry', async (c) => {
       })
       .catch(console.error);
     // Given back also when the status itself could not be stored.
-    await releaseDailySlot(uid, now);
+    await releaseDailySlot(uid, slotDay);
     return c.json({ analysisId: id.data, status: 'failed' });
   }
-  return c.json({ analysisId: id.data, status: await runPipeline(id.data) });
+  return c.json({
+    analysisId: id.data,
+    status: await startRun(id.data, runId, stage),
+  });
+});
+
+// Asks a running analysis to stop (F-LIVE-5). The stage that is running
+// finishes, and the run ends as failed with error 'cancelled' at the next
+// one, which the user can retry like any failed stage. `updatedAt` is left
+// alone, so asking does not put off when the analysis may be deleted. A run
+// that stopped responding ends at once.
+analyses.post('/:id/cancel', async (c) => {
+  const id = AnalysisId.safeParse(c.req.param('id'));
+  if (!id.success)
+    return c.json(failure('not_found', 'No such analysis.'), 404);
+  const uid = c.get('uid');
+  const analysis = db.doc(`analyses/${id.data}`);
+
+  const outcome = await db.runTransaction(async (tx) => {
+    const data = (await tx.get(analysis)).data();
+    // Someone else's analysis looks the same as one that does not exist.
+    if (data?.ownerUid !== uid) return { kind: 'not_found' as const };
+    if (!isStage(data.status)) return { kind: 'conflict' as const };
+    // A run that stopped responding has no task left to see the request,
+    // so it ends here.
+    if (stalledRun(data)) {
+      const slot = await slotIn(
+        tx,
+        uid,
+        (data.reservedAt ?? data.createdAt).toDate(),
+      );
+      tx.update(analysis, {
+        status: 'failed',
+        stage: data.status,
+        error: 'cancelled',
+        lease: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      slot.release();
+      return { kind: 'requested' as const, status: 'failed' as const };
+    }
+    tx.update(analysis, { cancelRequested: true });
+    return { kind: 'requested' as const, status: data.status };
+  });
+
+  switch (outcome.kind) {
+    case 'not_found':
+      return c.json(failure('not_found', 'No such analysis.'), 404);
+    case 'conflict':
+      return c.json(failure('conflict', 'This analysis is not running.'), 409);
+    case 'requested':
+      return c.json({ analysisId: id.data, status: outcome.status }, 202);
+  }
 });
 
 // Deletes the analysis, everything under it and its uploaded files
