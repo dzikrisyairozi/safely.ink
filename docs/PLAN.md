@@ -14,11 +14,11 @@ A milestone moves through five states. Merged code is the first of them.
 
 1. Built. The code is merged into `staging` after `pnpm type-check`, `pnpm lint` and `pnpm test` pass and Codex has reviewed the diff.
 2. Set up. The cloud resources and settings the code reads exist, created from the runbook.
-3. Checked on staging. The extraction smoke gate passes on the `safely-ink-staging` project, and the numbers in `docs/eval.md` have not dropped.
+3. Checked on staging. The extraction smoke gate passes on the `safely-ink-staging` project. After stage 5 publishes `docs/eval.md`, its numbers must not drop either.
 4. Released. A release pull request from `staging` is merged into `main`, and a version tag on `main` deploys the API, the dashboard with its rules, and the landing page.
 5. Checked in production. The checks in runbook section 4 pass, and one full analysis finishes.
 
-The staging project does not exist until stage 2. Before then, state 3 is a run on the development machine with the Firebase emulators and a live Gemini key.
+The staging project does not exist until stage 2. Before then, state 3 is a run on the development machine. The local API and dashboard use the project named in their `.env` files, which today is production, so that run uses a test account and test documents, and the tester deletes the analyses afterward.
 
 Each step names who can do it:
 
@@ -75,10 +75,11 @@ Milestones: R0 (#40), the code of R2 (#42), and the open items of #16 that still
 1. Owner: put a Gemini key in `apps/api/.env` on the development machine.
 2. Code: run `pnpm --filter api smoke` and keep the saved run as the baseline for later model changes.
 3. Code: walk FSD section 8, criteria 1 to 12, on a local build of `staging`, and fix what fails.
-4. Code: open the release pull request from `staging` into `main`. CI runs the full gate.
-5. Code: tag `main`. The release workflow deploys the API, the dashboard with its rules, and the landing page (runbook "Releases").
-6. Code: run the checks in runbook section 4, then one full analysis on an Indonesian document. Confirm that the analysis records its versions and its token cost.
-7. If a check fails, roll back with runbook section 5.
+4. Code: add the landing page to runbook section 5, which covers the API, the dashboard and the rules only, and try that rollback once.
+5. Code: open the release pull request from `staging` into `main`. CI runs the full gate.
+6. Code: tag `main`. The release workflow deploys the API, the dashboard with its rules, and the landing page (runbook "Releases").
+7. Code: run the checks in runbook section 4, then one full analysis on an Indonesian document. Confirm that the analysis records its versions and its token cost.
+8. If a check fails, roll back with runbook section 5.
 
 ### Stage 2: staging, then durable runs turned on
 
@@ -87,18 +88,20 @@ Milestones: R4 (#44), then the setup half of R2 (#42).
 1. Owner: decide between Cloud KMS keys, field-level encryption, or both. Firestore takes a customer-managed key only when the database is created, so this decision comes before the project.
 2. Owner: set the monthly ceiling for cloud and model spend.
 3. Cloud: create `safely-ink-staging` with Firebase Auth (Google), Firestore and Storage in asia-southeast2.
-4. Cloud: create the Workload Identity provider and the deploy service account in staging.
-5. Code: add a deploy workflow for pushes to `staging`, with a GitHub `staging` environment. Run `actionlint` on it.
-6. Cloud: turn on branch protection for `staging` and `main`.
-7. Code: seed staging with test documents only, and run the smoke gate after each staging deploy.
-8. Cloud: create the queue, the worker and its service account in staging (runbook "Task queue and worker").
-9. Code: on staging, run an analysis through the queue, stop one, let one stall and recover it, and retry a failed stage.
-10. Cloud: create the budget, its Pub/Sub topic and the push subscription in staging (runbook "Budget pause").
-11. Code: publish a test budget message on staging. Upload, confirm and retry answer 503 `paused`, and a running stage finishes. Clear it and confirm that new analyses start.
-12. Code: close the two open tasks in #42, the listener warning at the reading stage and the prompt order.
-13. Cloud: repeat steps 8 and 10 in production.
-14. Code: release B, then repeat steps 9 and 11 in production with a test document.
-15. Code: write the resources of both projects as Terraform, with state in a bucket for each project.
+4. Cloud: create what the API needs before its first deploy: the image registry, the Gemini secret and its access grant, the API settings, and the App Hosting backend (runbook sections 1 and 3).
+5. Cloud: create the Workload Identity provider and the deploy service account in staging.
+6. Code: add a deploy workflow for pushes to `staging`, with a GitHub `staging` environment. Run `actionlint` on it.
+7. Cloud: turn on branch protection for `staging` and `main`.
+8. Code: seed staging with test documents only, and run the smoke gate after each staging deploy.
+9. Cloud: create the queue, the worker and its service account in staging (runbook "Task queue and worker").
+10. Code: add the worker to the staging and release workflows, and to the rollback in runbook section 5, so the worker never runs a later image than the API.
+11. Code: on staging, run an analysis through the queue, stop one, let one stall and recover it, and retry a failed stage.
+12. Cloud: create the budget, its Pub/Sub topic and the push subscription in staging (runbook "Budget pause").
+13. Code: publish a test budget message on staging. Upload, confirm and retry answer 503 `paused`, and a running stage finishes. Clear it and confirm that new analyses start.
+14. Code: close the two open tasks in #42, the listener warning at the reading stage and the prompt order.
+15. Cloud: repeat steps 9 and 12 in production.
+16. Code: release B, then repeat steps 11 and 13 in production with a test document.
+17. Code: write the resources of both projects as Terraform, with state in a bucket for each project.
 
 ### Stage 3: the Singapore model move
 
@@ -122,14 +125,15 @@ Milestone: R3 (#43).
 3. People: counsel reads the transfers in FLOW "Where the data goes", and the choice between Search grounding and Web Grounding for Enterprise.
 4. Cloud: create the upload bucket in asia-southeast2 with the 7-day lifecycle rule, and add it to Firebase.
 5. Code: point the API and the dashboard at the new bucket.
-6. Code: add `expireAt` to the analysis and each subcollection document. Cloud: add a TTL policy for each collection group, and set log retention.
-7. Code: record consent for each purpose with a timestamp and the policy version.
-8. Code: fill the `[TBD]` fields on the privacy page.
-9. Cloud: restrict the Firebase browser key by HTTP referrer.
-10. People: write the data protection impact assessment against UU PDP and PP 33/2026, with counsel.
-11. Code: check on staging that an expired analysis is gone, then release D.
-12. Cloud: expire or move the US-EAST1 objects, as decided in step 1.
-13. Cloud and Code, only if stage 2 chose a customer-managed key: production needs a new named Firestore database with the key, an export and import, and the API, the dashboard and `firebase.json` pointed at it ([setup](./SETUP.md), "Google Cloud: per milestone"). Rehearse the move on staging first, and pause new analyses during it.
+6. Code: add `expireAt` to the analysis, each subcollection document and the usage counters under `users/{uid}/usage`, and backfill the records that exist. Cloud: add a TTL policy for each collection group, and set log retention.
+7. Code, only if stage 2 chose field-level encryption: encrypt clause text in the API before it is written, and confirm on staging that Firestore holds no readable clause text.
+8. Code: record consent for each purpose with a timestamp and the policy version.
+9. Code: fill the `[TBD]` fields on the privacy page.
+10. Cloud: restrict the Firebase browser key by HTTP referrer.
+11. People: write the data protection impact assessment against UU PDP and PP 33/2026, with counsel.
+12. Code: check on staging that an expired analysis is gone, then release D.
+13. Cloud: expire or move the US-EAST1 objects, as decided in step 1.
+14. Cloud and Code, only if stage 2 chose a customer-managed key: production needs a new named Firestore database with the key, an export and import, and the API, the dashboard and `firebase.json` pointed at it ([setup](./SETUP.md), "Google Cloud: per milestone"). Rehearse the move on staging first. A pause stops new analyses only, and running stages keep writing. So pause, wait until no analysis is running, take the API and the worker out of service, and only then export.
 
 ### Stage 5: evaluation
 
@@ -187,29 +191,32 @@ One decision is open: whether the launch waits for stage 6. The dependency table
 2. People: counsel answers the five questions in the roadmap, and reviews the disclaimer, the privacy page and the terms.
 3. Owner: register as a PSE with Komdigi under the named operator.
 4. Owner and Cloud: point `safely.ink` and `app.safely.ink` at the product (runbook "Custom domains").
-5. Cloud: turn on App Check with reCAPTCHA Enterprise after its trial on staging, and Cloud Armor rate limiting in front of the API.
-6. Code: add an error tracker that strips request bodies and document text, and a status page.
-7. Code: walk FSD section 8 on staging, and run a fresh-user pass in Indonesian and in English on a phone.
-8. Code: rehearse the rollback in runbook section 5 on staging.
-9. Cloud: delete the old `policy-police-96af6` project after the key check in #16.
-10. Code: the release, then the production checks, including a test budget message.
-11. Owner: the announcement.
+5. Code: the dashboard requests App Check tokens and the API verifies them. Deploy both to staging with enforcement off.
+6. Cloud: enforce App Check on staging for Firestore, Storage and the API, then in production, and turn on Cloud Armor rate limiting in front of the API.
+7. Code: add an error tracker that strips request bodies and document text, and a status page.
+8. Code: walk FSD section 8 on staging, and run a fresh-user pass in Indonesian and in English on a phone.
+9. Code: rehearse the rollback in runbook section 5 on staging.
+10. Cloud: delete the old `policy-police-96af6` project after the key check in #16.
+11. Code: the release, then the production checks, including a test budget message.
+12. Owner: the announcement.
 
 ### Stage 8: after launch
 
 These milestones have no order between them beyond their dependencies. Each one moves through the same five states.
 
-| Milestone                                    | Issue | Needs first             | Who sets the pace                   |
-| -------------------------------------------- | ----- | ----------------------- | ----------------------------------- |
-| R9 Referral with an evidence packet          | #60   | R6                      | Code, and a partner directory       |
-| R10 Document comparison                      | #61   | R7                      | Code                                |
-| R11 After-the-fact mode and complaint drafts | #62   | R5, R6                  | Code, and counsel for each template |
-| R12 Two-party and defect analysis            | #63   | R1, R5                  | Code                                |
-| R13 live phases                              | #55   | R1 gate, R2, R3, R5, R6 | The error bound in ADR 5            |
-| R15 B2B design partner                       |       | R12                     | One paid partner                    |
-| R16 Lawyer-reviewed rewording library        |       | R12                     | Lawyers                             |
-| R17 Published Indonesian benchmark           |       | R1, R14                 | Counsel, for publication            |
-| R18 Thailand and Vietnam                     |       | R17                     | Local counsel                       |
+| Milestone                                    | Issue | Needs first                    | Who sets the pace                   |
+| -------------------------------------------- | ----- | ------------------------------ | ----------------------------------- |
+| R9 Referral with an evidence packet          | #60   | R6                             | Code, and a partner directory       |
+| R10 Document comparison                      | #61   | R7                             | Code                                |
+| R11 After-the-fact mode and complaint drafts | #62   | R5, R6                         | Code, and counsel for each template |
+| R12 Two-party and defect analysis            | #63   | R1, R5                         | Code                                |
+| R13 live phases                              | #55   | A separate gate for each phase | The error bound in ADR 5            |
+| R15 B2B design partner                       |       | R12                            | One paid partner                    |
+| R16 Lawyer-reviewed rewording library        |       | R12                            | Lawyers                             |
+| R17 Published Indonesian benchmark           |       | R1, R14                        | Counsel, for publication            |
+| R18 Thailand and Vietnam                     |       | R17                            | Local counsel                       |
+
+The gates for the R13 phases are in [ADR 5](./adr/0005-jev-verification-cascade.md). J1 needs the calibration gate, R2, R3, R5 and R6. J2 needs R5, and goes live only with a design that keeps the baseline passages. J3 and J5 need masking, a signed processing agreement and zero data retention. J4 needs R12.
 
 R15 to R18 get an issue when the milestone before them is released.
 
