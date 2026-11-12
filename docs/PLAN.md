@@ -126,14 +126,14 @@ Milestone: R3 (#43).
 4. Cloud: create the upload bucket in asia-southeast2 with the 7-day lifecycle rule, and add it to Firebase.
 5. Code: point the API and the dashboard at the new bucket.
 6. Code: add `expireAt` to the analysis, each subcollection document and the usage counters under `users/{uid}/usage`, and backfill the records that exist. Cloud: add a TTL policy for each collection group, and set log retention.
-7. Code, only if stage 2 chose field-level encryption: encrypt clause text in the API before it is written, and confirm on staging that Firestore holds no readable clause text.
+7. Code, only if stage 2 chose field-level encryption: encrypt clause text in the API before it is written, decrypt it where the pipeline reads clauses, and serve clause text to the dashboard through the API, because the dashboard reads clauses from Firestore today. Confirm on staging that Firestore holds no readable clause text and that a full analysis still shows its clauses.
 8. Code: record consent for each purpose with a timestamp and the policy version.
 9. Code: fill the `[TBD]` fields on the privacy page.
 10. Cloud: restrict the Firebase browser key by HTTP referrer.
 11. People: write the data protection impact assessment against UU PDP and PP 33/2026, with counsel.
 12. Code: check on staging that an expired analysis is gone, then release D.
 13. Cloud: expire or move the US-EAST1 objects, as decided in step 1.
-14. Cloud and Code, only if stage 2 chose a customer-managed key: production needs a new named Firestore database with the key, an export and import, and the API, the dashboard and `firebase.json` pointed at it ([setup](./SETUP.md), "Google Cloud: per milestone"). Rehearse the move on staging first. A pause stops new analyses only, and running stages keep writing. So pause, wait until no analysis is running, take the API and the worker out of service, and only then export.
+14. Cloud and Code, only if stage 2 chose a customer-managed key: production needs a new named Firestore database with the key, an export and import, and the API, the dashboard and `firebase.json` pointed at it ([setup](./SETUP.md), "Google Cloud: per milestone"). Rehearse the move on staging first. A pause stops new analyses only, and running stages keep writing. So pause, wait until no analysis is running, take the API and the worker out of service, and only then export. TTL policies belong to one database, so repeat step 6's policies on the new database and repeat the check in step 12 there.
 
 ### Stage 5: evaluation
 
@@ -192,13 +192,14 @@ One decision is open: whether the launch waits for stage 6. The dependency table
 3. Owner: register as a PSE with Komdigi under the named operator.
 4. Owner and Cloud: point `safely.ink` and `app.safely.ink` at the product (runbook "Custom domains").
 5. Code: the dashboard requests App Check tokens and the API verifies them. Deploy both to staging with enforcement off.
-6. Cloud: enforce App Check on staging for Firestore, Storage and the API, then in production, and turn on Cloud Armor rate limiting in front of the API.
+6. Cloud: enforce App Check on staging for Firestore, Storage and the API, and turn on Cloud Armor rate limiting in front of the API on staging.
 7. Code: add an error tracker that strips request bodies and document text, and a status page.
 8. Code: walk FSD section 8 on staging, and run a fresh-user pass in Indonesian and in English on a phone.
 9. Code: rehearse the rollback in runbook section 5 on staging.
 10. Cloud: delete the old `policy-police-96af6` project after the key check in #16.
 11. Code: the release, then the production checks, including a test budget message.
-12. Owner: the announcement.
+12. Cloud: after the App Check metrics in production show that requests from the released dashboard carry valid tokens, enforce App Check there, and turn on Cloud Armor. A dashboard released without token support cannot read Firestore or upload once enforcement is on.
+13. Owner: the announcement.
 
 ### Stage 8: after launch
 
