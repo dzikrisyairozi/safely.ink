@@ -1,10 +1,10 @@
 # Where safely.ink goes next
 
-|         |                                                                                                                                                                                                                                                                                                                                                   |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status  | Living document                                                                                                                                                                                                                                                                                                                                   |
-| Date    | 2026-11-11                                                                                                                                                                                                                                                                                                                                        |
-| Related | [PRD](./PRD.md) · [FSD](./FSD.md) · [TSD](./TSD.md) · [Literature review](./research/2026-10-18-literature-review.md) · [Market](./research/2026-10-18-market-and-competitors.md) · [Technical stack](./research/2026-10-18-technical-stack.md) · [Plan refresh](./research/2026-11-11-plan-refresh.md) · [Flow](./FLOW.md) · [Setup](./SETUP.md) |
+|         |                                                                                                                                                                                                                                                                                                                                                                       |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status  | Living document                                                                                                                                                                                                                                                                                                                                                       |
+| Date    | 2026-11-11                                                                                                                                                                                                                                                                                                                                                            |
+| Related | [PRD](./PRD.md) · [FSD](./FSD.md) · [TSD](./TSD.md) · [Literature review](./research/2026-10-18-literature-review.md) · [Market](./research/2026-10-18-market-and-competitors.md) · [Technical stack](./research/2026-10-18-technical-stack.md) · [Plan refresh](./research/2026-11-11-plan-refresh.md) · [Flow](./FLOW.md) · [Setup](./SETUP.md) · [Plan](./PLAN.md) |
 
 ## The goal
 
@@ -45,7 +45,7 @@ Weaknesses still open:
 - `peraturan.bpk.go.id` blocks Cloud Run, and 8 of 13 law lookups were unavailable in one live Indonesian run. R5 fixes this with our own corpus.
 - Boundary scenarios step by 1 even for rupiah amounts (R7).
 - The upload bucket is in US-EAST1, reports have no expiry, and the privacy page has `[TBD]` fields (R3).
-- `staging` is a branch with no environment behind it, and the custom domains are not live (R4).
+- `staging` is a branch with no environment behind it (R4), and the custom domains are not live (R14).
 - Neither Gemini model in use is listed for processing in Singapore, and our calls still set a parameter Google will reject in a future release. The [plan refresh](./research/2026-11-11-plan-refresh.md) has both.
 
 The honest claim today is a working demo on an Indonesian insurance policy, with legal findings that may be partial and no accuracy figures.
@@ -108,6 +108,8 @@ R3, R3m ────────── R14 ── R17 ── R18
 ```
 
 R14 also waits for R1 and R4, and R7 for R6, as the table says. R13's first live phase waits for R1's gate, R2, R3, R5 and R6.
+
+The order of the work, who does each step and when a milestone counts as deployed are in the [plan](./PLAN.md).
 
 ### R0 Engine fixes
 
