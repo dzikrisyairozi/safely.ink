@@ -124,7 +124,7 @@ Milestone: R3 (#43).
 2. Owner: engage Indonesian counsel, and name the operator entity and its contact.
 3. People: counsel reads the transfers in FLOW "Where the data goes", and the choice between Search grounding and Web Grounding for Enterprise.
 4. Cloud: create the upload bucket in asia-southeast2 with the 7-day lifecycle rule, and add it to Firebase.
-5. Code: point the API and the dashboard at the new bucket.
+5. Code: give `firebase.json` a Storage deploy target for the new bucket, and deploy `storage.rules` to it. Today the file deploys the rules to the default bucket only, and a bucket without them refuses every browser upload. Then point the API and the dashboard at the new bucket.
 6. Code: add `expireAt` to the analysis, each subcollection document and the usage counters under `users/{uid}/usage`, and backfill the records that exist. Cloud: add a TTL policy for each collection group, and set log retention.
 7. Code, only if stage 2 chose field-level encryption: encrypt clause text in the API before it is written, decrypt it where the pipeline reads clauses, and serve clause text to the dashboard through the API, because the dashboard reads clauses from Firestore today. Confirm on staging that Firestore holds no readable clause text and that a full analysis still shows its clauses.
 8. Code: record consent for each purpose with a timestamp and the policy version.
@@ -195,7 +195,7 @@ One decision is open: whether the launch waits for stage 6. The dependency table
 6. Cloud: enforce App Check on staging for Firestore, Storage and the API, and turn on Cloud Armor rate limiting in front of the API on staging.
 7. Code: add an error tracker that strips request bodies and document text, and a status page.
 8. Code: walk FSD section 8 on staging, and run a fresh-user pass in Indonesian and in English on a phone.
-9. Code: rehearse the rollback in runbook section 5 on staging.
+9. Code: add App Check to runbook section 5, then rehearse that rollback on staging. A rollback after enforcement turns enforcement off first, because the earlier dashboard sends no tokens.
 10. Cloud: delete the old `policy-police-96af6` project after the key check in #16.
 11. Code: the release, then the production checks, including a test budget message.
 12. Cloud: after the App Check metrics in production show that requests from the released dashboard carry valid tokens, enforce App Check there, and turn on Cloud Armor. A dashboard released without token support cannot read Firestore or upload once enforcement is on.
